@@ -22,7 +22,7 @@ Low-level OpenGL 4.6 abstraction in C++20.
 - [ ] texture view
 - [ ] sampler
 - [ ] buffer
-- [ ] rendering info
+- [ ] rendering info (BeginRendering and EndRendering)
   - https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkRenderingInfo.html
 - [ ] graphics pipeline
 - [ ] compute pipeline
