@@ -87,6 +87,12 @@ namespace GFX
     Offset3D operator<<(uint32_t val) const { return *this << Offset3D{ val, val, val }; }
   };
 
+  struct Rect2D
+  {
+    Offset2D offset;
+    Extent2D extent;
+  };
+
   enum class ImageType : uint8_t
   {
     TEX_1D,

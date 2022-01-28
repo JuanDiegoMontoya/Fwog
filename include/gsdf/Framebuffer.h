@@ -13,9 +13,7 @@ namespace GFX
   public:
     static std::optional<Framebuffer> Create();
 
-    Framebuffer(const Framebuffer&) = delete;
     Framebuffer(Framebuffer&& old) noexcept;
-    Framebuffer& operator=(const Framebuffer&) = delete;
     Framebuffer& operator=(Framebuffer&& old) noexcept;
     ~Framebuffer();
 
@@ -29,9 +27,11 @@ namespace GFX
     [[nodiscard]] uint32_t GetAttachmentAPIHandle(Attachment slot) const;
 
     static void Blit(const Framebuffer& source, const Framebuffer& target,
-      Offset2D sourceStart, Offset2D sourceEnd,
-      Offset2D targetStart, Offset2D targetEnd,
+      Rect2D sourceRect, Rect2D targetRect,
       AspectMaskBits mask, Filter filter);
+
+    Framebuffer(const Framebuffer&) = delete;
+    Framebuffer& operator=(const Framebuffer&) = delete;
 
   private:
     Framebuffer();

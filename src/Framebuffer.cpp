@@ -113,13 +113,12 @@ namespace GFX
   }
 
   void Framebuffer::Blit(const Framebuffer& source, const Framebuffer& target,
-    Offset2D sourceStart, Offset2D sourceEnd,
-    Offset2D targetStart, Offset2D targetEnd,
+    Rect2D sourceRect, Rect2D targetRect,
     AspectMaskBits mask, Filter filter)
   {
     glBlitNamedFramebuffer(source.handle_, target.handle_,
-      sourceStart.x, sourceStart.y, sourceEnd.x, sourceEnd.y,
-      targetStart.x, targetStart.y, targetEnd.x, targetEnd.y,
+      sourceRect.offset.x, sourceRect.offset.y, sourceRect.offset.x + sourceRect.extent.width, sourceRect.offset.y + sourceRect.extent.width,
+      targetRect.offset.x, targetRect.offset.y, targetRect.offset.x + targetRect.extent.width, targetRect.offset.y + targetRect.extent.width,
       getAspectMask(mask), glFilter[static_cast<uint32_t>(filter)]);
   }
 }

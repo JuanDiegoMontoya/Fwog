@@ -372,17 +372,17 @@ namespace GFX
     return sampler;
   }
 
-  TextureSampler::TextureSampler(const TextureSampler& other)
-  {
-    char name[MAX_NAME_LEN]{};
-    GLsizei len{};
-    glGetObjectLabel(GL_SAMPLER, other.id_, MAX_NAME_LEN, &len, name);
-    *this = other;
-    if (len > 0)
-    {
-      glObjectLabel(GL_SAMPLER, id_, len, name);
-    }
-  }
+  //TextureSampler::TextureSampler(const TextureSampler& other)
+  //{
+  //  char name[MAX_NAME_LEN]{};
+  //  GLsizei len{};
+  //  glGetObjectLabel(GL_SAMPLER, other.id_, MAX_NAME_LEN, &len, name);
+  //  *this = other;
+  //  if (len > 0)
+  //  {
+  //    glObjectLabel(GL_SAMPLER, id_, len, name);
+  //  }
+  //}
 
   TextureSampler::TextureSampler(TextureSampler&& old) noexcept
   {
@@ -390,12 +390,12 @@ namespace GFX
     samplerState_ = old.samplerState_;
   }
 
-  TextureSampler& TextureSampler::operator=(const TextureSampler& other)
-  {
-    if (&other == this) return *this;
-    *this = *Create(other.samplerState_); // invokes move assignment
-    return *this;
-  }
+  //TextureSampler& TextureSampler::operator=(const TextureSampler& other)
+  //{
+  //  if (&other == this) return *this;
+  //  *this = *Create(other.samplerState_); // invokes move assignment
+  //  return *this;
+  //}
 
   TextureSampler& TextureSampler::operator=(TextureSampler&& old) noexcept
   {
@@ -529,8 +529,8 @@ namespace GFX
 
   void BindTextureView(uint32_t slot, const TextureView& textureView, const TextureSampler& textureSampler)
   {
-    glBindTextureUnit(slot, textureView.GetAPIHandle());
-    glBindSampler(slot, textureSampler.GetAPIHandle());
+    glBindTextureUnit(slot, textureView.Handle());
+    glBindSampler(slot, textureSampler.Handle());
   }
 
   void UnbindTextureView(uint32_t slot)
@@ -542,7 +542,7 @@ namespace GFX
   void BindImage(uint32_t slot, const TextureView& textureView, uint32_t level)
   {
     GSDF_ASSERT(level < textureView.CreateInfo().numLevels);
-    glBindImageTexture(slot, textureView.GetAPIHandle(), level, GL_TRUE, 0,
+    glBindImageTexture(slot, textureView.Handle(), level, GL_TRUE, 0,
       GL_READ_WRITE, formats[(int)textureView.CreateInfo().format]);
   }
 

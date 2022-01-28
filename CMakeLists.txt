@@ -15,6 +15,8 @@ set(source_files
 	src/Framebuffer.cpp
 	src/Shader.cpp
 	src/Texture.cpp
+	src/Rendering.cpp
+	src/Pipeline.cpp
 )
 
 set(header_files
@@ -28,6 +30,8 @@ set(header_files
 	include/gsdf/Shader.h
 	include/gsdf/Texture.h
 	include/gsdf/Flags.h
+	include/gsdf/Rendering.h
+	include/gsdf/Pipeline.h
 )
 
 add_library(lib_gsdf ${source_files} ${header_files})

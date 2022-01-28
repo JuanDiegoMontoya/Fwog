@@ -83,7 +83,7 @@ namespace GFX
     ~TextureView();
 
     void SubImage(const TextureUpdateInfo& info) const;
-    [[nodiscard]] uint32_t GetAPIHandle() const { return id_; }
+    [[nodiscard]] uint32_t Handle() const { return id_; }
     [[nodiscard]] TextureViewCreateInfo CreateInfo() const { return createInfo_; }
     [[nodiscard]] Extent3D Extent() const { return extent_; }
     //[[nodiscard]] std::optional<TextureView> MipView(uint32_t level) const;
@@ -110,6 +110,7 @@ namespace GFX
 
     void SubImage(const TextureUpdateInfo& info);
     void GenMipmaps();
+    [[nodiscard]] uint32_t Handle() const { return id_; }
     [[nodiscard]] std::optional<TextureView> View() const;
     [[nodiscard]] std::optional<TextureView> MipView(uint32_t level) const;
     [[nodiscard]] const TextureCreateInfo& CreateInfo() const { return createInfo_; }
@@ -130,15 +131,16 @@ namespace GFX
   {
   public:
     [[nodiscard]] static std::optional<TextureSampler> Create(const SamplerState& initialState, std::string_view name = "");
-    TextureSampler(const TextureSampler& other);
     TextureSampler(TextureSampler&& old) noexcept;
-    TextureSampler& operator=(const TextureSampler& other);
     TextureSampler& operator=(TextureSampler&& old) noexcept;
     ~TextureSampler();
 
     void SetState(const SamplerState& samplerState);
     [[nodiscard]] const SamplerState& GetState() const noexcept { return samplerState_; }
-    [[nodiscard]] uint32_t GetAPIHandle() const { return id_; }
+    [[nodiscard]] uint32_t Handle() const { return id_; }
+
+    TextureSampler(const TextureSampler& other) = delete;
+    TextureSampler& operator=(const TextureSampler& other) = delete;
 
   private:
     TextureSampler() {};

@@ -7,6 +7,7 @@
 
 #include <gsdf/BasicTypes.h>
 #include <gsdf/Fence.h>
+#include <gsdf/Rendering.h>
 
 struct WindowCreateInfo
 {
@@ -64,11 +65,14 @@ int main()
   GLFWwindow* window = CreateWindow({ .maximize = false, .decorate = true, .width = 1280, .height = 720 });
   InitOpenGL();
 
-  GFX::TimerQueryAsync asyncBoi(5);
+
+  //auto renderingInfo = RenderingInfo
+  //{
+
+  //};
 
   while (!glfwWindowShouldClose(window))
   {
-    asyncBoi.Begin();
     glfwPollEvents();
     if (glfwGetKey(window, GLFW_KEY_ESCAPE))
     {
@@ -79,9 +83,6 @@ int main()
     glClear(GL_COLOR_BUFFER_BIT);
 
     glfwSwapBuffers(window);
-    asyncBoi.End();
-    auto t = asyncBoi.Elapsed_ns();
-    if (t) std::cout << t.value() << '\n';
   }
 
   glfwTerminate();
