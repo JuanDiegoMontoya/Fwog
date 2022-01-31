@@ -93,7 +93,7 @@ namespace GFX
     Extent2D extent;
   };
 
-  enum class ImageType : uint8_t
+  enum class ImageType
   {
     TEX_1D,
     TEX_2D,
@@ -106,7 +106,7 @@ namespace GFX
     TEX_2D_MULTISAMPLE_ARRAY,
   };
 
-  enum class Format : uint8_t
+  enum class Format
   {
     UNDEFINED,
     R8_UNORM,
@@ -180,23 +180,24 @@ namespace GFX
     // TODO: compressed formats
   };
 
-  enum class SampleCount : uint8_t
+  // multisampling and anisotropy
+  enum class SampleCount
   {
-    ONE,
-    TWO,
-    FOUR,
-    EIGHT,
-    SIXTEEN,
+    SAMPLES_1,
+    SAMPLES_2,
+    SAMPLES_4,
+    SAMPLES_8,
+    SAMPLES_16,
   };
 
-  enum class UploadDimension : uint8_t
+  enum class UploadDimension
   {
     ONE,
     TWO,
     THREE,
   };
 
-  enum class UploadFormat : uint8_t
+  enum class UploadFormat
   {
     UNDEFINED,
     R,
@@ -209,7 +210,7 @@ namespace GFX
     STENCIL_INDEX,
   };
 
-  enum class UploadType : uint8_t
+  enum class UploadType
   {
     UNDEFINED,
     UBYTE,
@@ -233,14 +234,14 @@ namespace GFX
     UINT_10_10_10_2_REV,
   };
 
-  enum class Filter : uint8_t
+  enum class Filter
   {
     NONE,
     NEAREST,
     LINEAR,
   };
 
-  enum class AddressMode : uint8_t
+  enum class AddressMode
   {
     REPEAT,
     MIRRORED_REPEAT,
@@ -249,7 +250,7 @@ namespace GFX
     MIRROR_CLAMP_TO_EDGE,
   };
 
-  enum class BorderColor : uint8_t
+  enum class BorderColor
   {
     FLOAT_TRANSPARENT_BLACK,
     INT_TRANSPARENT_BLACK,
@@ -257,15 +258,6 @@ namespace GFX
     INT_OPAQUE_BLACK,
     FLOAT_OPAQUE_WHITE,
     INT_OPAQUE_WHITE,
-  };
-
-  enum class Anisotropy : uint8_t
-  {
-    SAMPLES_1,
-    SAMPLES_2,
-    SAMPLES_4,
-    SAMPLES_8,
-    SAMPLES_16,
   };
 
   enum class Attachment
@@ -293,5 +285,117 @@ namespace GFX
     DEPTH_BUFFER_BIT    = 1 << 1,
     STENCIL_BUFFER_BIT  = 1 << 2,
   };
-  DECLARE_FLAG_TYPE(AspectMaskBits, AspectMaskBit, uint32_t)
+  DECLARE_FLAG_TYPE(AspectMask, AspectMaskBit, uint32_t)
+
+  enum class PrimitiveTopology
+  {
+    POINT_LIST,
+    LINE_LIST,
+    LINE_STRIP,
+    TRIANGLE_LIST,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN,
+    // TODO: add more toplogies that are deemed useful
+  };
+
+  enum class PolygonMode
+  {
+    FILL,
+    LINE,
+    POINT,
+  };
+
+  enum class CullModeBits
+  {
+    FRONT = 0b01,
+    BACK = 0b10,
+    FRONT_AND_BACK = 0b11,
+  };
+  DECLARE_FLAG_TYPE(CullMode, CullModeBits, uint32_t)
+
+  enum class FrontFace
+  {
+    CLOCKWISE,
+    COUNTERCLOCKWISE,
+  };
+
+  enum class CompareOp
+  {
+    NEVER,
+    LESS,
+    EQUAL,
+    LESS_OR_EQUAL,
+    GREATER,
+    NOT_EQUAL,
+    GREATER_OR_EQUAL,
+    ALWAYS,
+  };
+
+  enum class LogicOp
+  {
+    CLEAR,
+    SET,
+    COPY,
+    COPY_INVERTED,
+    NO_OP,
+    INVERT,
+    AND,
+    NAND,
+    OR,
+    NOR,
+    XOR,
+    EQUIVALENT,
+    AND_REVERSE,
+    OR_REVERSE,
+    AND_INVERTED,
+    OR_INVERTED,
+  };
+
+  enum class BlendFactor
+  {
+    ZERO,
+    ONE,
+    SRC_COLOR,
+    ONE_MINUS_SRC_COLOR,
+    DST_COLOR,
+    ONE_MINUS_DST_COLOR,
+    SRC_ALPHA,
+    ONE_MINUS_SRC_ALPHA,
+    DST_ALPHA,
+    ONE_MINUS_DST_ALPHA,
+    CONSTANT_COLOR,
+    ONE_MINUS_CONSTANT_COLOR,
+    CONSTANT_ALPHA,
+    ONE_MINUS_CONSTANT_ALPHA,
+    SRC_ALPHA_SATURATE,
+    SRC1_COLOR,
+    ONE_MINUS_SRC1_COLOR,
+    SRC1_ALPHA,
+    ONE_MINUS_SRC1_ALPHA,
+  };
+
+  enum class BlendOp
+  {
+    ADD,
+    SUBTRACT,
+    REVERSE_SUBTRACT,
+    MIN,
+    MAX,
+  };
+
+  enum class ColorComponentFlagsBits
+  {
+    R_BIT = 0b0001,
+    G_BIT = 0b0010,
+    B_BIT = 0b0100,
+    A_BIT = 0b1000,
+  };
+  DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlagsBits, uint32_t)
+
+  enum class IndexType
+  {
+    UNSIGNED_BYTE,
+    UNSIGNED_SHORT,
+    UNSIGNED_INT,
+  };
 }

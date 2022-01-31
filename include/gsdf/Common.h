@@ -2,6 +2,6 @@
 #include <cassert>
 
 #define GSDF_ASSERT(x) assert(x)
-#define UNREACHABLE GSDF_ASSERT(0)
+#define GSDF_UNREACHABLE GSDF_ASSERT(0)
 
 #include <glad/gl.h>

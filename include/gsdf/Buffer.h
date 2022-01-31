@@ -5,7 +5,7 @@
 
 namespace GFX
 {
-  enum class Target
+  enum class BufferTarget
   {
     VERTEX_BUFFER,
     SHADER_STORAGE_BUFFER,
@@ -51,18 +51,18 @@ namespace GFX
     ~Buffer();
 
     // for binding everything EXCEPT SSBOs and UBOs
-    template<Target T>
+    template<BufferTarget T>
     void Bind()
     {
-      static_assert(T != Target::SHADER_STORAGE_BUFFER && T != Target::UNIFORM_BUFFER, "SSBO and UBO targets require an index.");
+      static_assert(T != BufferTarget::SHADER_STORAGE_BUFFER && T != BufferTarget::UNIFORM_BUFFER, "SSBO and UBO targets require an index.");
       BindBuffer(static_cast<uint32_t>(T));
     }
 
     // for binding SSBOs and UBOs
-    template<Target T>
+    template<BufferTarget T>
     void Bind(uint32_t index)
     {
-      static_assert(T == Target::SHADER_STORAGE_BUFFER || T == Target::UNIFORM_BUFFER, "Only SSBO and UBO targets use an index.");
+      static_assert(T == BufferTarget::SHADER_STORAGE_BUFFER || T == BufferTarget::UNIFORM_BUFFER, "Only SSBO and UBO targets use an index.");
       BindBuffer(static_cast<uint32_t>(T));
       BindBufferBase(static_cast<uint32_t>(T), index);
     }
@@ -87,15 +87,15 @@ namespace GFX
 
   private:
     Buffer() {}
-    void BindBuffer(uint32_t target);
-    void BindBufferBase(uint32_t target, uint32_t slot);
+    void BindBuffer(BufferTarget target);
+    void BindBufferBase(BufferTarget target, uint32_t slot);
     static std::optional<Buffer> CreateInternal(const void* data, size_t size, BufferFlags flags);
 
     // updates a subset of the buffer's data store
     void SubData(const void* data, size_t size, size_t offset = 0);
 
     uint32_t id_{};
-    uint32_t size_{};
+    size_t size_{};
     bool isMapped_{ false };
   };
 }

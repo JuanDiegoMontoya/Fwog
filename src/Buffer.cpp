@@ -1,43 +1,13 @@
 #include <gsdf/Common.h>
+#include <gsdf/detail/ApiToEnum.h>
 #include <gsdf/Buffer.h>
-
-uint32_t getSetBit(uint32_t val, uint32_t bit)
-{
-  return val & (1 << bit) ? bit : 0;
-}
 
 namespace GFX
 {
-  namespace
-  {
-    GLenum targets[]
-    {
-      GL_ARRAY_BUFFER,
-      GL_SHADER_STORAGE_BUFFER,
-      GL_ATOMIC_COUNTER_BUFFER,
-      GL_DRAW_INDIRECT_BUFFER,
-      GL_PARAMETER_BUFFER,
-      GL_UNIFORM_BUFFER,
-    };
-
-    GLbitfield bufferFlags[]
-    {
-      0,
-      GL_DYNAMIC_STORAGE_BIT,
-      GL_CLIENT_STORAGE_BIT,
-      GL_MAP_READ_BIT,
-      GL_MAP_WRITE_BIT,
-      GL_MAP_PERSISTENT_BIT,
-      GL_MAP_COHERENT_BIT,
-    };
-  }
-
   std::optional<Buffer> Buffer::CreateInternal(const void* data, size_t size, BufferFlags flags)
   {
     size = std::max(size, 1ull);
-    GLbitfield glflags = 0;
-    for (int i = 1; i < _countof(bufferFlags); i++)
-      glflags |= bufferFlags[getSetBit((uint32_t)flags, i)];
+    GLbitfield glflags = detail::BufferFlagsToGL(flags);
     Buffer buffer{};
     buffer.size_ = size;
     glCreateBuffers(1, &buffer.id_);
@@ -82,18 +52,18 @@ namespace GFX
 
   void Buffer::UnmapPointer()
   {
-    GSDF_ASSERT(IsMapped(), "Buffers that aren't mapped cannot be unmapped");
+    GSDF_ASSERT(IsMapped() && "Buffers that aren't mapped cannot be unmapped");
     isMapped_ = false;
     glUnmapNamedBuffer(id_);
   }
 
-  void Buffer::BindBuffer(uint32_t target)
+  void Buffer::BindBuffer(BufferTarget target)
   {
-    glBindBuffer(targets[target], id_);
+    glBindBuffer(detail::BufferTargetToGL(target), id_);
   }
 
-  void Buffer::BindBufferBase(uint32_t target, uint32_t slot)
+  void Buffer::BindBufferBase(BufferTarget target, uint32_t slot)
   {
-    glBindBufferBase(targets[target], slot, id_);
+    glBindBufferBase(detail::BufferTargetToGL(target), slot, id_);
   }
 }

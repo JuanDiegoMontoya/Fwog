@@ -47,14 +47,14 @@ namespace GFX
     {
       struct
       {
-        Filter magFilter : 2 = Filter::LINEAR;
-        Filter minFilter : 2 = Filter::LINEAR;
-        Filter mipmapFilter : 2 = Filter::NONE;
+        Filter magFilter         : 2 = Filter::LINEAR;
+        Filter minFilter         : 2 = Filter::LINEAR;
+        Filter mipmapFilter      : 2 = Filter::NONE;
         AddressMode addressModeU : 3 = AddressMode::CLAMP_TO_EDGE;
         AddressMode addressModeV : 3 = AddressMode::CLAMP_TO_EDGE;
         AddressMode addressModeW : 3 = AddressMode::CLAMP_TO_EDGE;
-        BorderColor borderColor : 3 = BorderColor::INT_OPAQUE_WHITE;
-        Anisotropy anisotropy : 3 = Anisotropy::SAMPLES_1;
+        BorderColor borderColor  : 3 = BorderColor::INT_OPAQUE_WHITE;
+        SampleCount anisotropy   : 3 = SampleCount::SAMPLES_1;
       }asBitField{};
       uint32_t asUint32;
     };

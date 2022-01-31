@@ -28,7 +28,7 @@ namespace GFX
 
     static void Blit(const Framebuffer& source, const Framebuffer& target,
       Rect2D sourceRect, Rect2D targetRect,
-      AspectMaskBits mask, Filter filter);
+      AspectMask mask, Filter filter);
 
     Framebuffer(const Framebuffer&) = delete;
     Framebuffer& operator=(const Framebuffer&) = delete;

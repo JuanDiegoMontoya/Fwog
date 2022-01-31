@@ -10,7 +10,7 @@ namespace GFX
     bool isRendering = false;
   }
 
-  void BeginRendering(const RenderInfo&)
+  void BeginRendering(const RenderInfo& renderInfo)
   {
     GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
     isRendering = true;
@@ -20,5 +20,10 @@ namespace GFX
   {
     GSDF_ASSERT(isRendering && "Cannot call EndRendering when not rendering");
     isRendering = false;
+  }
+
+  namespace Cmd
+  {
+
   }
 }
