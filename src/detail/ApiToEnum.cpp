@@ -38,20 +38,6 @@ namespace GFX::detail
     return ret;
   }
 
-  GLenum BufferTargetToGL(BufferTarget bufferTarget)
-  {
-    switch (bufferTarget)
-    {
-    case BufferTarget::VERTEX_BUFFER:         return GL_ARRAY_BUFFER;
-    case BufferTarget::SHADER_STORAGE_BUFFER: return GL_SHADER_STORAGE_BUFFER;
-    case BufferTarget::ATOMIC_BUFFER:         return GL_ATOMIC_COUNTER_BUFFER;
-    case BufferTarget::DRAW_INDIRECT_BUFFER:  return GL_DRAW_INDIRECT_BUFFER;
-    case BufferTarget::PARAMETER_BUFFER:      return GL_PARAMETER_BUFFER;
-    case BufferTarget::UNIFORM_BUFFER:        return GL_UNIFORM_BUFFER;
-    default: GSDF_UNREACHABLE; return 0;
-    }
-  }
-
   GLbitfield BufferFlagsToGL(BufferFlags flags)
   {
     GLbitfield ret = 0;

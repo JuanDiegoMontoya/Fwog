@@ -13,11 +13,9 @@ namespace GFX::detail
   GLbitfield AspectMaskToGL(AspectMask bits);
 
   ////////////////////////////////////////////////////////// buffer
-  GLenum BufferTargetToGL(BufferTarget bufferTarget);
-
   GLbitfield BufferFlagsToGL(BufferFlags flags);
 
-  // texture
+  ////////////////////////////////////////////////////////// texture
   GLint ImageTypeToGL(ImageType imageType);
 
   GLint FormatToGL(Format format);
@@ -29,4 +27,12 @@ namespace GFX::detail
   GLint AddressModeToGL(AddressMode addressMode);
 
   GLsizei SampleCountToGL(SampleCount sampleCount);
+
+  ////////////////////////////////////////////////////////// pipeline
+  GLenum CullModeToGL(CullMode mode);
+  GLenum PolygonModeToGL(PolygonMode mode);
+  GLenum FrontFaceToGL(FrontFace face);
+  GLenum LogicOpToGL(LogicOp op);
+  GLenum BlendFactorToGL(BlendFactor factor);
+  GLenum BlendOpToGL(BlendOp op);
 }

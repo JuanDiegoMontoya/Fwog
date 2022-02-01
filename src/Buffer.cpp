@@ -56,14 +56,4 @@ namespace GFX
     isMapped_ = false;
     glUnmapNamedBuffer(id_);
   }
-
-  void Buffer::BindBuffer(BufferTarget target)
-  {
-    glBindBuffer(detail::BufferTargetToGL(target), id_);
-  }
-
-  void Buffer::BindBufferBase(BufferTarget target, uint32_t slot)
-  {
-    glBindBufferBase(detail::BufferTargetToGL(target), slot, id_);
-  }
 }

@@ -307,6 +307,7 @@ namespace GFX
 
   enum class CullModeBits
   {
+    NONE = 0b00,
     FRONT = 0b01,
     BACK = 0b10,
     FRONT_AND_BACK = 0b11,
@@ -383,14 +384,15 @@ namespace GFX
     MAX,
   };
 
-  enum class ColorComponentFlagsBits
+  enum class ColorComponentFlag
   {
+    NONE,
     R_BIT = 0b0001,
     G_BIT = 0b0010,
     B_BIT = 0b0100,
     A_BIT = 0b1000,
   };
-  DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlagsBits, uint32_t)
+  DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlag, uint32_t)
 
   enum class IndexType
   {

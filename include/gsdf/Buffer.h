@@ -5,16 +5,6 @@
 
 namespace GFX
 {
-  enum class BufferTarget
-  {
-    VERTEX_BUFFER,
-    SHADER_STORAGE_BUFFER,
-    ATOMIC_BUFFER,
-    DRAW_INDIRECT_BUFFER,
-    PARAMETER_BUFFER,
-    UNIFORM_BUFFER,
-  };
-
   enum class BufferFlag : uint32_t
   {
     NONE = 1 << 0,
@@ -50,23 +40,6 @@ namespace GFX
     Buffer& operator=(Buffer&& other) noexcept;
     ~Buffer();
 
-    // for binding everything EXCEPT SSBOs and UBOs
-    template<BufferTarget T>
-    void Bind()
-    {
-      static_assert(T != BufferTarget::SHADER_STORAGE_BUFFER && T != BufferTarget::UNIFORM_BUFFER, "SSBO and UBO targets require an index.");
-      BindBuffer(static_cast<uint32_t>(T));
-    }
-
-    // for binding SSBOs and UBOs
-    template<BufferTarget T>
-    void Bind(uint32_t index)
-    {
-      static_assert(T == BufferTarget::SHADER_STORAGE_BUFFER || T == BufferTarget::UNIFORM_BUFFER, "Only SSBO and UBO targets use an index.");
-      BindBuffer(static_cast<uint32_t>(T));
-      BindBufferBase(static_cast<uint32_t>(T), index);
-    }
-
     template<typename T>
     void SubData(std::span<T> data, size_t destOffsetBytes)
     {
@@ -81,14 +54,12 @@ namespace GFX
     [[nodiscard]] bool IsMapped() { return isMapped_; }
 
     // gets the OpenGL handle of this object
-    [[nodiscard]] auto GetAPIHandle() const { return id_; }
+    [[nodiscard]] auto Handle() const { return id_; }
 
     [[nodiscard]] auto Size() const { return size_; }
 
   private:
     Buffer() {}
-    void BindBuffer(BufferTarget target);
-    void BindBufferBase(BufferTarget target, uint32_t slot);
     static std::optional<Buffer> CreateInternal(const void* data, size_t size, BufferFlags flags);
 
     // updates a subset of the buffer's data store

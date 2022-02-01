@@ -23,7 +23,7 @@ namespace GFX
     void Bind();
 
     [[nodiscard]] bool IsValid() const;
-    [[nodiscard]] uint32_t GetAPIHandle() const { return handle_; }
+    [[nodiscard]] uint32_t Handle() const { return handle_; }
     [[nodiscard]] uint32_t GetAttachmentAPIHandle(Attachment slot) const;
 
     static void Blit(const Framebuffer& source, const Framebuffer& target,

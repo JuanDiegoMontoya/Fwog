@@ -51,12 +51,16 @@ namespace GFX
     const RenderAttachment* stencilAttachment;
   };
 
+  // TODO: BeginSwapchainRendering or something
   void BeginRendering(const RenderInfo& renderInfo);
   void EndRendering();
 
+  // Cmd:: functions can only be called within a rendering context
   namespace Cmd
   {
     void BindPipeline(const GraphicsPipelineInfo& pipeline);      // sets pipeline state
+    
+    // dynamic state
     void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
     
     // drawing operations
@@ -67,6 +71,13 @@ namespace GFX
 
     // vertex setup
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride); // glVertexArrayVertexBuffer
-    void BindIndexBuffer(const Buffer& buffer, IndexType indexType);
+    void BindIndexBuffer(const Buffer& buffer, IndexType indexType);                                      // glVertexArrayElementBuffer
+
+    // 'descriptors'
+    void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
+    void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
+    void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
+    void BindImage(uint32_t index, const TextureView& textureView, uint32_t level);                                       // glBindImageTexture{s}
+
   }
 }
