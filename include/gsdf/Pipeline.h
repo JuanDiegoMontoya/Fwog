@@ -10,6 +10,7 @@ namespace GFX
     uint32_t location; // glEnableVertexArrayAttrib + glVertexArrayAttribFormat
     uint32_t binding;  // glVertexArrayAttribBinding
     Format format;     // glVertexArrayAttribFormat
+    uint32_t offset;   // glVertexArrayAttribFormat
   };
 
   struct VertexInputState
@@ -71,6 +72,7 @@ namespace GFX
   struct GraphicsPipelineInfo
   {
     InputAssemblyState inputAssemblyState;
+    VertexInputState vertexInputState;
     RasterizationState rasterizationState;
     DepthStencilState depthStencilState;
     ColorBlendState colorBlendState;

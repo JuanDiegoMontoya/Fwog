@@ -13,7 +13,12 @@ namespace GFX
 {
   struct ClearColorValue
   {
-    float f[4];
+    union u
+    {
+      float f[4];
+      uint32_t ui[4];
+      int32_t i[4];
+    };
   };
 
   struct ClearDepthStencilValue
@@ -32,7 +37,7 @@ namespace GFX
   {
     TextureView* textureView;
     ClearValue clearValue;
-    bool clear;
+    bool clearOnLoad;
   };
 
   struct Viewport

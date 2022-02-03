@@ -35,4 +35,18 @@ namespace GFX::detail
   GLenum LogicOpToGL(LogicOp op);
   GLenum BlendFactorToGL(BlendFactor factor);
   GLenum BlendOpToGL(BlendOp op);
+  
+  // arguments for glVertexArrayAttrib*Format
+  enum class GlFormatClass { FLOAT, SINT, UINT, LONG };
+  struct GlVertexFormat
+  {
+    GLenum type;          // GL_FLOAT, etc.
+    GLint size;           // 1, 2, 3, 4
+    GLboolean normalized; // GL_TRUE, GL_FALSE
+    GlFormatClass formatClass; // whether to call Format, IFormat, or LFormat
+  };
+  GLenum FormatToTypeGL(Format format);
+  GLint FormatToSizeGL(Format format);
+  GLboolean IsFormatNormalizedGL(Format format);
+  GlFormatClass FormatToInternalType(Format format);
 }
