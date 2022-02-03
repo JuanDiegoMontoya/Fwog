@@ -37,7 +37,7 @@ namespace GFX::detail
   GLenum BlendOpToGL(BlendOp op);
   
   // arguments for glVertexArrayAttrib*Format
-  enum class GlFormatClass { FLOAT, SINT, UINT, LONG };
+  enum class GlFormatClass { FLOAT, INT, LONG };
   struct GlVertexFormat
   {
     GLenum type;          // GL_FLOAT, etc.
@@ -48,5 +48,9 @@ namespace GFX::detail
   GLenum FormatToTypeGL(Format format);
   GLint FormatToSizeGL(Format format);
   GLboolean IsFormatNormalizedGL(Format format);
-  GlFormatClass FormatToInternalType(Format format);
+  GlFormatClass FormatToFormatClass(Format format);
+
+  // for clearing color textures, we need to know which of these the texture holds
+  enum class GlBaseTypeClass { FLOAT, SINT, UINT };
+  GlBaseTypeClass FormatToBaseTypeClass(Format format);
 }

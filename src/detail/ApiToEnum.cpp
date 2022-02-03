@@ -210,4 +210,408 @@ namespace GFX::detail
     default: GSDF_UNREACHABLE; return 0;
     }
   }
+
+  GLenum CullModeToGL(CullMode mode)
+  {
+    switch (mode)
+    {
+    case CullMode::NONE: return 0;
+    case CullMode::FRONT: return GL_FRONT;
+    case CullMode::BACK: return GL_BACK;
+    case CullMode::FRONT_AND_BACK: return GL_FRONT_AND_BACK;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLenum PolygonModeToGL(PolygonMode mode)
+  {
+    switch (mode)
+    {
+    case PolygonMode::FILL: return GL_FILL;
+    case PolygonMode::LINE: return GL_LINE;
+    case PolygonMode::POINT: return GL_POINT;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLenum FrontFaceToGL(FrontFace face)
+  {
+    switch (face)
+    {
+    case FrontFace::CLOCKWISE: return GL_CW;
+    case FrontFace::COUNTERCLOCKWISE: return GL_CCW;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLenum LogicOpToGL(LogicOp op)
+  {
+    switch (op)
+    {
+    case LogicOp::CLEAR: return GL_CLEAR;
+    case LogicOp::SET: return GL_SET;
+    case LogicOp::COPY: return GL_COPY;
+    case LogicOp::COPY_INVERTED: return GL_COPY_INVERTED;
+    case LogicOp::NO_OP: return GL_NOOP;
+    case LogicOp::INVERT: return GL_INVERT;
+    case LogicOp::AND: return GL_AND;
+    case LogicOp::NAND: return GL_NAND;
+    case LogicOp::OR: return GL_OR;
+    case LogicOp::NOR: return GL_NOR;
+    case LogicOp::XOR: return GL_XOR;
+    case LogicOp::EQUIVALENT: return GL_EQUIV;
+    case LogicOp::AND_REVERSE: return GL_AND_REVERSE;
+    case LogicOp::OR_REVERSE: return GL_OR_REVERSE;
+    case LogicOp::AND_INVERTED: return GL_AND_INVERTED;
+    case LogicOp::OR_INVERTED: return GL_OR_INVERTED;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLenum BlendFactorToGL(BlendFactor factor)
+  {
+    switch (factor)
+    {
+    case BlendFactor::ZERO: return GL_ZERO;
+    case BlendFactor::ONE: return GL_ONE;
+    case BlendFactor::SRC_COLOR: return GL_SRC_COLOR;
+    case BlendFactor::ONE_MINUS_SRC_COLOR: return GL_ONE_MINUS_SRC_COLOR;
+    case BlendFactor::DST_COLOR: return GL_DST_COLOR;
+    case BlendFactor::ONE_MINUS_DST_COLOR: return GL_ONE_MINUS_DST_COLOR;
+    case BlendFactor::SRC_ALPHA: return GL_SRC_ALPHA;
+    case BlendFactor::ONE_MINUS_SRC_ALPHA: return GL_ONE_MINUS_SRC_ALPHA;
+    case BlendFactor::DST_ALPHA: return GL_DST_ALPHA;
+    case BlendFactor::ONE_MINUS_DST_ALPHA: return GL_ONE_MINUS_DST_ALPHA;
+    case BlendFactor::CONSTANT_COLOR: return GL_CONSTANT_COLOR;
+    case BlendFactor::ONE_MINUS_CONSTANT_COLOR: return GL_ONE_MINUS_CONSTANT_COLOR;
+    case BlendFactor::CONSTANT_ALPHA: return GL_CONSTANT_ALPHA;
+    case BlendFactor::ONE_MINUS_CONSTANT_ALPHA: return GL_ONE_MINUS_CONSTANT_ALPHA;
+    case BlendFactor::SRC_ALPHA_SATURATE: return GL_SRC_ALPHA_SATURATE;
+    case BlendFactor::SRC1_COLOR: return GL_SRC1_COLOR;
+    case BlendFactor::ONE_MINUS_SRC1_COLOR: return GL_ONE_MINUS_SRC1_COLOR;
+    case BlendFactor::SRC1_ALPHA: return GL_SRC1_ALPHA;
+    case BlendFactor::ONE_MINUS_SRC1_ALPHA: return GL_ONE_MINUS_SRC1_ALPHA;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLenum BlendOpToGL(BlendOp op)
+  {
+    switch (op)
+    {
+    case BlendOp::ADD: return GL_FUNC_ADD;
+    case BlendOp::SUBTRACT: return GL_FUNC_SUBTRACT;
+    case BlendOp::REVERSE_SUBTRACT: return GL_FUNC_REVERSE_SUBTRACT;
+    case BlendOp::MIN: return GL_MIN;
+    case BlendOp::MAX: return GL_MAX;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLenum FormatToTypeGL(Format format)
+  {
+    switch (format)
+    {
+    case Format::R8_UNORM:
+    case Format::R8G8_UNORM:
+    case Format::R8G8B8_UNORM:
+    case Format::R8G8B8A8_UNORM:
+    case Format::R8_UINT:
+    case Format::R8G8_UINT:
+    case Format::R8G8B8_UINT:
+    case Format::R8G8B8A8_UINT:
+      return GL_UNSIGNED_BYTE;
+    case Format::R8_SNORM:
+    case Format::R8G8_SNORM:
+    case Format::R8G8B8_SNORM:
+    case Format::R8G8B8A8_SNORM:
+    case Format::R8_SINT:
+    case Format::R8G8_SINT:
+    case Format::R8G8B8_SINT:
+    case Format::R8G8B8A8_SINT:
+      return GL_BYTE;
+    case Format::R16_UNORM:
+    case Format::R16G16_UNORM:
+    case Format::R16G16B16A16_UNORM:
+    case Format::R16_UINT:
+    case Format::R16G16_UINT:
+    case Format::R16G16B16_UINT:
+    case Format::R16G16B16A16_UINT:
+      return GL_UNSIGNED_SHORT;
+    case Format::R16_SNORM:
+    case Format::R16G16_SNORM:
+    case Format::R16G16B16_SNORM:
+    case Format::R16_SINT:
+    case Format::R16G16_SINT:
+    case Format::R16G16B16_SINT:
+    case Format::R16G16B16A16_SINT:
+      return GL_SHORT;
+    case Format::R16_FLOAT:
+    case Format::R16G16_FLOAT:
+    case Format::R16G16B16_FLOAT:
+    case Format::R16G16B16A16_FLOAT:
+      return GL_HALF_FLOAT;
+    case Format::R32_FLOAT:
+    case Format::R32G32_FLOAT:
+    case Format::R32G32B32_FLOAT:
+    case Format::R32G32B32A32_FLOAT:
+      return GL_FLOAT;
+    case Format::R32_SINT:
+    case Format::R32G32_SINT:
+    case Format::R32G32B32_SINT:
+    case Format::R32G32B32A32_SINT:
+      return GL_INT;
+    case Format::R32_UINT:
+    case Format::R32G32_UINT:
+    case Format::R32G32B32_UINT:
+    case Format::R32G32B32A32_UINT:
+      return GL_UNSIGNED_INT;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLint FormatToSizeGL(Format format)
+  {
+    switch (format)
+    {
+    case Format::R8_UNORM:
+    case Format::R8_SNORM:
+    case Format::R16_UNORM:
+    case Format::R16_SNORM:
+    case Format::R16_FLOAT:
+    case Format::R32_FLOAT:
+    case Format::R8_SINT:
+    case Format::R16_SINT:
+    case Format::R32_SINT:
+    case Format::R8_UINT:
+    case Format::R16_UINT:
+    case Format::R32_UINT:
+      return 1;
+    case Format::R8G8_UNORM:
+    case Format::R8G8_SNORM:
+    case Format::R16G16_FLOAT:
+    case Format::R16G16_UNORM:
+    case Format::R16G16_SNORM:
+    case Format::R32G32_FLOAT:
+    case Format::R8G8_SINT:
+    case Format::R16G16_SINT:
+    case Format::R32G32_SINT:
+    case Format::R8G8_UINT:
+    case Format::R16G16_UINT:
+    case Format::R32G32_UINT:
+      return 2;
+    case Format::R8G8B8_UNORM:
+    case Format::R8G8B8_SNORM:
+    case Format::R16G16B16_SNORM:
+    case Format::R16G16B16_FLOAT:
+    case Format::R32G32B32_FLOAT:
+    case Format::R8G8B8_SINT:
+    case Format::R16G16B16_SINT:
+    case Format::R32G32B32_SINT:
+    case Format::R8G8B8_UINT:
+    case Format::R16G16B16_UINT:
+    case Format::R32G32B32_UINT:
+      return 3;
+    case Format::R8G8B8A8_UNORM:
+    case Format::R8G8B8A8_SNORM:
+    case Format::R16G16B16A16_UNORM:
+    case Format::R16G16B16A16_FLOAT:
+    case Format::R32G32B32A32_FLOAT:
+    case Format::R8G8B8A8_SINT:
+    case Format::R16G16B16A16_SINT:
+    case Format::R32G32B32A32_SINT:
+    case Format::R10G10B10A2_UINT:
+    case Format::R8G8B8A8_UINT:
+    case Format::R16G16B16A16_UINT:
+    case Format::R32G32B32A32_UINT:
+      return 4;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GLboolean IsFormatNormalizedGL(Format format)
+  {
+    switch (format)
+    {
+    case Format::R8_UNORM:
+    case Format::R8_SNORM:
+    case Format::R16_UNORM:
+    case Format::R16_SNORM:
+    case Format::R8G8_UNORM:
+    case Format::R8G8_SNORM:
+    case Format::R16G16_UNORM:
+    case Format::R16G16_SNORM:
+    case Format::R8G8B8_UNORM:
+    case Format::R8G8B8_SNORM:
+    case Format::R16G16B16_SNORM:
+    case Format::R8G8B8A8_UNORM:
+    case Format::R8G8B8A8_SNORM:
+    case Format::R16G16B16A16_UNORM:
+      return GL_TRUE;
+    case Format::R16_FLOAT:
+    case Format::R32_FLOAT:
+    case Format::R8_SINT:
+    case Format::R16_SINT:
+    case Format::R32_SINT:
+    case Format::R8_UINT:
+    case Format::R16_UINT:
+    case Format::R32_UINT:
+    case Format::R16G16_FLOAT:
+    case Format::R32G32_FLOAT:
+    case Format::R8G8_SINT:
+    case Format::R16G16_SINT:
+    case Format::R32G32_SINT:
+    case Format::R8G8_UINT:
+    case Format::R16G16_UINT:
+    case Format::R32G32_UINT:
+    case Format::R16G16B16_FLOAT:
+    case Format::R32G32B32_FLOAT:
+    case Format::R8G8B8_SINT:
+    case Format::R16G16B16_SINT:
+    case Format::R32G32B32_SINT:
+    case Format::R8G8B8_UINT:
+    case Format::R16G16B16_UINT:
+    case Format::R32G32B32_UINT:
+    case Format::R16G16B16A16_FLOAT:
+    case Format::R32G32B32A32_FLOAT:
+    case Format::R8G8B8A8_SINT:
+    case Format::R16G16B16A16_SINT:
+    case Format::R32G32B32A32_SINT:
+    case Format::R10G10B10A2_UINT:
+    case Format::R8G8B8A8_UINT:
+    case Format::R16G16B16A16_UINT:
+    case Format::R32G32B32A32_UINT:
+      return GL_FALSE;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
+
+  GlFormatClass FormatToFormatClass(Format format)
+  {
+    switch (format)
+    {
+    case Format::R8_UNORM:
+    case Format::R8_SNORM:
+    case Format::R16_UNORM:
+    case Format::R16_SNORM:
+    case Format::R8G8_UNORM:
+    case Format::R8G8_SNORM:
+    case Format::R16G16_UNORM:
+    case Format::R16G16_SNORM:
+    case Format::R8G8B8_UNORM:
+    case Format::R8G8B8_SNORM:
+    case Format::R16G16B16_SNORM:
+    case Format::R8G8B8A8_UNORM:
+    case Format::R8G8B8A8_SNORM:
+    case Format::R16G16B16A16_UNORM:
+    case Format::R16_FLOAT:
+    case Format::R16G16_FLOAT:
+    case Format::R16G16B16_FLOAT:
+    case Format::R16G16B16A16_FLOAT:
+    case Format::R32_FLOAT:
+    case Format::R32G32_FLOAT:
+    case Format::R32G32B32_FLOAT:
+    case Format::R32G32B32A32_FLOAT:
+      return GlFormatClass::FLOAT;
+    case Format::R8_SINT:
+    case Format::R16_SINT:
+    case Format::R32_SINT:
+    case Format::R8G8_SINT:
+    case Format::R16G16_SINT:
+    case Format::R32G32_SINT:
+    case Format::R8G8B8_SINT:
+    case Format::R16G16B16_SINT:
+    case Format::R32G32B32_SINT:
+    case Format::R8G8B8A8_SINT:
+    case Format::R16G16B16A16_SINT:
+    case Format::R32G32B32A32_SINT:
+    case Format::R10G10B10A2_UINT:
+    case Format::R8_UINT:
+    case Format::R16_UINT:
+    case Format::R32_UINT:
+    case Format::R8G8_UINT:
+    case Format::R16G16_UINT:
+    case Format::R32G32_UINT:
+    case Format::R8G8B8_UINT:
+    case Format::R16G16B16_UINT:
+    case Format::R32G32B32_UINT:
+    case Format::R8G8B8A8_UINT:
+    case Format::R16G16B16A16_UINT:
+    case Format::R32G32B32A32_UINT:
+      return GlFormatClass::INT;
+    default: GSDF_UNREACHABLE; return GlFormatClass::LONG;
+    }
+  }
+
+  GlBaseTypeClass FormatToBaseTypeClass(Format format)
+  {
+    switch (format)
+    {
+    case Format::R8_UNORM:
+    case Format::R8_SNORM:
+    case Format::R16_UNORM:
+    case Format::R16_SNORM:
+    case Format::R8G8_UNORM:
+    case Format::R8G8_SNORM:
+    case Format::R16G16_UNORM:
+    case Format::R16G16_SNORM:
+    case Format::R3G3B2_UNORM:
+    case Format::R4G4B4_UNORM:
+    case Format::R5G5B5_UNORM:
+    case Format::R8G8B8_UNORM:
+    case Format::R8G8B8_SNORM:
+    case Format::R10G10B10_UNORM:
+    case Format::R12G12B12_UNORM:
+    case Format::R16G16B16_SNORM:
+    case Format::R2G2B2A2_UNORM:
+    case Format::R4G4B4A4_UNORM:
+    case Format::R5G5B5A1_UNORM:
+    case Format::R8G8B8A8_UNORM:
+    case Format::R8G8B8A8_SNORM:
+    case Format::R10G10B10A2_UNORM:
+    case Format::R12G12B12A12_UNORM:
+    case Format::R16G16B16A16_UNORM:
+    case Format::R8G8B8_SRGB:
+    case Format::R8G8B8A8_SRGB:
+    case Format::R16_FLOAT:
+    case Format::R16G16_FLOAT:
+    case Format::R16G16B16_FLOAT:
+    case Format::R16G16B16A16_FLOAT:
+    case Format::R32_FLOAT:
+    case Format::R32G32_FLOAT:
+    case Format::R32G32B32_FLOAT:
+    case Format::R32G32B32A32_FLOAT:
+    case Format::R11G11B10_FLOAT:
+    case Format::R9G9B9_E5:
+      return GlBaseTypeClass::FLOAT;
+    case Format::R8_SINT:
+    case Format::R16_SINT:
+    case Format::R32_SINT:
+    case Format::R8G8_SINT:
+    case Format::R16G16_SINT:
+    case Format::R32G32_SINT:
+    case Format::R8G8B8_SINT:
+    case Format::R16G16B16_SINT:
+    case Format::R32G32B32_SINT:
+    case Format::R8G8B8A8_SINT:
+    case Format::R16G16B16A16_SINT:
+    case Format::R32G32B32A32_SINT:
+      return GlBaseTypeClass::SINT;
+    case Format::R10G10B10A2_UINT:
+    case Format::R8_UINT:
+    case Format::R16_UINT:
+    case Format::R32_UINT:
+    case Format::R8G8_UINT:
+    case Format::R16G16_UINT:
+    case Format::R32G32_UINT:
+    case Format::R8G8B8_UINT:
+    case Format::R16G16B16_UINT:
+    case Format::R32G32B32_UINT:
+    case Format::R8G8B8A8_UINT:
+    case Format::R16G16B16A16_UINT:
+    case Format::R32G32B32A32_UINT:
+      return GlBaseTypeClass::UINT;
+    default: GSDF_UNREACHABLE; return GlBaseTypeClass::FLOAT;
+    }
+  }
 }

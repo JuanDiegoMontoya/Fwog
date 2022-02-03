@@ -178,6 +178,7 @@ namespace GFX
     D32_FLOAT_S8_UINT,
     D24_UNORM_S8_UINT,
     // TODO: compressed formats
+    // TODO: 64-bits-per-component formats
   };
 
   // multisampling and anisotropy
@@ -305,14 +306,13 @@ namespace GFX
     POINT,
   };
 
-  enum class CullModeBits
+  enum class CullMode
   {
     NONE = 0b00,
     FRONT = 0b01,
     BACK = 0b10,
     FRONT_AND_BACK = 0b11,
   };
-  DECLARE_FLAG_TYPE(CullMode, CullModeBits, uint32_t)
 
   enum class FrontFace
   {

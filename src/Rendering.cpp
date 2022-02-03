@@ -3,6 +3,7 @@
 #include <gsdf/Common.h>
 #include <vector>
 
+// helper function
 static void GLEnableOrDisable(GLenum state, GLboolean value)
 {
   if (value)
@@ -20,9 +21,37 @@ namespace GFX
     bool isRendering = false;
     bool isPipelineBound = false;
 
-    PrimitiveTopology sTopology;
+    PrimitiveTopology sTopology{};
     GLuint sVao = 0;
     GLuint sFbo = 0;
+  }
+
+  void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
+  {
+    GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
+    isRendering = true;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    const auto& ri = renderInfo;
+    GLbitfield clearBuffers = 0;
+
+    if (ri.clearColorOnLoad)
+    {
+      auto f = ri.clearColorValue.f;
+      glClearColor(f[0], f[1], f[2], f[3]);
+      clearBuffers |= GL_COLOR_BUFFER_BIT;
+    }
+    if (ri.clearDepthOnLoad)
+    {
+      glClearDepthf(ri.clearDepthValue);
+      clearBuffers |= GL_DEPTH_BUFFER_BIT;
+    }
+    if (ri.clearStencilOnLoad)
+    {
+      glClearStencil(ri.clearStencilValue);
+      clearBuffers |= GL_STENCIL_BUFFER_BIT;
+    }
+    glClear(clearBuffers);
   }
 
   void BeginRendering(const RenderInfo& renderInfo)
@@ -46,21 +75,20 @@ namespace GFX
       const auto& attachment = ri.colorAttachments[i];
       if (attachment.clearOnLoad)
       {
-        // TODO: choose a glClearNamedFramebuffer* depending on the internal format of the texture
         auto format = attachment.textureView->CreateInfo().format;
-        auto formatClass = detail::FormatToInternalType(format);
-        switch (formatClass)
+        auto baseTypeClass = detail::FormatToBaseTypeClass(format);
+        switch (baseTypeClass)
         {
-        case GFX::detail::GlFormatClass::FLOAT:
+        case detail::GlBaseTypeClass::FLOAT:
+          glClearNamedFramebufferfv(sFbo, GL_COLOR, i, attachment.clearValue.color.f);
           break;
-        case GFX::detail::GlFormatClass::SINT:
+        case detail::GlBaseTypeClass::SINT:
+          glClearNamedFramebufferiv(sFbo, GL_COLOR, i, attachment.clearValue.color.i);
           break;
-        case GFX::detail::GlFormatClass::UINT:
+        case detail::GlBaseTypeClass::UINT:
+          glClearNamedFramebufferuiv(sFbo, GL_COLOR, i, attachment.clearValue.color.ui);
           break;
-        case GFX::detail::GlFormatClass::LONG:
-          break;
-        default:
-          break;
+        default: GSDF_UNREACHABLE;
         }
       }
     }
@@ -96,6 +124,8 @@ namespace GFX
     }
     glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
       ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
+    glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+    glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
   }
 
   void EndRendering()
@@ -129,14 +159,13 @@ namespace GFX
         auto type = detail::FormatToTypeGL(desc.format);
         auto size = detail::FormatToSizeGL(desc.format);
         auto normalized = detail::IsFormatNormalizedGL(desc.format);
-        auto internalType = detail::FormatToInternalType(desc.format);
+        auto internalType = detail::FormatToFormatClass(desc.format);
         switch (internalType)
         {
         case detail::GlFormatClass::FLOAT:
           glVertexArrayAttribFormat(sVao, i, size, type, normalized, desc.offset);
           break;
-        case detail::GlFormatClass::SINT: [[fallthrough]]
-        case detail::GlFormatClass::UINT:
+        case detail::GlFormatClass::INT:
           glVertexArrayAttribIFormat(sVao, i, size, type, desc.offset);
           break;
         case detail::GlFormatClass::LONG:
@@ -151,8 +180,8 @@ namespace GFX
       const auto& rs = pipeline.rasterizationState;
       GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
       glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
-      GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullModeBits::NONE);
-      if (rs.cullMode != CullModeBits::NONE)
+      GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
+      if (rs.cullMode != CullMode::NONE)
       {
         glCullFace(detail::CullModeToGL(rs.cullMode));
       }

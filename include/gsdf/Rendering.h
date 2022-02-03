@@ -13,7 +13,7 @@ namespace GFX
 {
   struct ClearColorValue
   {
-    union u
+    union
     {
       float f[4];
       uint32_t ui[4];
@@ -42,9 +42,21 @@ namespace GFX
 
   struct Viewport
   {
-    Rect2D drawRect;
-    float minDepth;
-    float maxDepth;
+    Rect2D drawRect; // glViewport
+    float minDepth;  // glDepthRangef
+    float maxDepth;  // glDepthRangef
+  };
+
+  // I don't know how to get the default framebuffer's textures so I have this awful struct instead
+  struct SwapchainRenderInfo
+  {
+    const Viewport* viewport;
+    bool clearColorOnLoad;
+    ClearColorValue clearColorValue;
+    bool clearDepthOnLoad;
+    float clearDepthValue;
+    bool clearStencilOnLoad;
+    int32_t clearStencilValue;
   };
 
   // describes the render targets that may be used in a draw
@@ -56,7 +68,7 @@ namespace GFX
     const RenderAttachment* stencilAttachment;
   };
 
-  // TODO: BeginSwapchainRendering or something
+  void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo);
   void BeginRendering(const RenderInfo& renderInfo);
   void EndRendering();
 
