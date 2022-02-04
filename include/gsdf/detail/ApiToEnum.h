@@ -56,4 +56,6 @@ namespace GFX::detail
 
   ////////////////////////////////////////////////////////// drawing
   GLenum PrimitiveTopologyToGL(PrimitiveTopology topology);
+
+  GLenum IndexTypeToGL(IndexType type);
 }

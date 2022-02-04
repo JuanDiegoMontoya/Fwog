@@ -21,8 +21,10 @@ namespace GFX
     bool isRendering = false;
     bool isPipelineBound = false;
     bool isVertexBufferBound = false;
+    bool isIndexBufferBound = false;
 
     PrimitiveTopology sTopology{};
+    IndexType sIndexType{};
     GLuint sVao = 0;
     GLuint sFbo = 0;
   }
@@ -239,6 +241,14 @@ namespace GFX
       glVertexArrayVertexBuffer(sVao, bindingIndex, buffer.Handle(), offset, stride);
     }
 
+    void BindIndexBuffer(const Buffer& buffer, IndexType indexType)
+    {
+      GSDF_ASSERT(isRendering);
+      isIndexBufferBound = true;
+      sIndexType = indexType;
+      glVertexArrayElementBuffer(sVao, buffer.Handle());
+    }
+
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
       GSDF_ASSERT(isRendering && isVertexBufferBound);
@@ -247,6 +257,19 @@ namespace GFX
         firstVertex,
         vertexCount,
         instanceCount,
+        firstInstance);
+    }
+
+    void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+    {
+      GSDF_ASSERT(isRendering && isVertexBufferBound && isIndexBufferBound);
+      glDrawElementsInstancedBaseVertexBaseInstance(
+        detail::PrimitiveTopologyToGL(sTopology),
+        indexCount,
+        detail::IndexTypeToGL(sIndexType),
+        reinterpret_cast<void*>(firstIndex),
+        instanceCount,
+        vertexOffset,
         firstInstance);
     }
 

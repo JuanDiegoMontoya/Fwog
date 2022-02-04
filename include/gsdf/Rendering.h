@@ -94,7 +94,6 @@ namespace GFX
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
-    void BindImage(uint32_t index, const TextureView& textureView, uint32_t level);                                       // glBindImageTexture{s}
-
+    void BindImage(uint32_t index, const TextureView& textureView, uint32_t level);                       // glBindImageTexture{s}
   }
 }

@@ -628,4 +628,15 @@ namespace GFX::detail
     default: GSDF_UNREACHABLE; return 0;
     }
   }
+
+  GLenum IndexTypeToGL(IndexType type)
+  {
+    switch (type)
+    {
+    case IndexType::UNSIGNED_BYTE: return GL_UNSIGNED_BYTE;
+    case IndexType::UNSIGNED_SHORT: return GL_UNSIGNED_SHORT;
+    case IndexType::UNSIGNED_INT: return GL_UNSIGNED_INT;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
 }
