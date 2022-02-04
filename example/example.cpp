@@ -5,10 +5,43 @@
 #include <format>
 #include <iostream>
 #include <sstream>
+#include <array>
 
 #include <gsdf/BasicTypes.h>
 #include <gsdf/Fence.h>
 #include <gsdf/Rendering.h>
+
+////////////////////////////////////// Globals
+const char* gVertexSource = R"(
+#version 460 core
+
+layout(location = 0) in vec2 a_pos;
+layout(location = 1) in vec3 a_color;
+
+layout(location = 0) out vec3 v_color;
+
+void main()
+{
+  v_color = a_color;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}
+)";
+
+const char* gFragmentSource = R"(
+#version 460 core
+
+layout(location = 0) out vec4 o_color;
+
+layout(location = 0) in vec3 v_color;
+
+void main()
+{
+  o_color = vec4(v_color, 1.0);
+}
+)";
+
+std::array<float, 6> gTriVertices = { -0, -0, 1, -1, 1, 1 };
+std::array<uint8_t, 9> gTriColors = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
 static void GLAPIENTRY glErrorCallback(
   GLenum source,
@@ -73,6 +106,63 @@ static void GLAPIENTRY glErrorCallback(
   std::cout << errStream.str() << '\n';
 }
 
+static GLuint CompileShader(GLenum stage, std::string_view source)
+{
+  auto sourceStr = std::string(source);
+  const GLchar* strings = sourceStr.c_str();
+
+  GLuint shader = glCreateShader(stage);
+  glShaderSource(shader, 1, &strings, nullptr);
+  glCompileShader(shader);
+
+  GLint success;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+  if (!success)
+  {
+    GLsizei infoLength = 512;
+    std::string infoLog(infoLength + 1, '\0');
+    glGetShaderInfoLog(shader, infoLength, nullptr, infoLog.data());
+
+    throw std::runtime_error(infoLog);
+  }
+
+  return shader;
+}
+
+static void LinkProgram(GLuint program)
+{
+  glLinkProgram(program);
+  GLsizei length = 512;
+
+  GLint success{};
+  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  if (!success)
+  {
+    std::string infoLog(length + 1, '\0');
+    glGetProgramInfoLog(program, length, nullptr, infoLog.data());
+
+    throw std::runtime_error(infoLog);
+  }
+}
+
+static GLuint GenerateProgram(std::string_view vs, std::string_view fs)
+{
+  GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vs);
+  GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fs);
+
+  GLuint program = glCreateProgram();
+
+  glAttachShader(program, vertexShader);
+  glAttachShader(program, fragmentShader);
+
+  try { LinkProgram(program); }
+  catch (std::runtime_error& e) { glDeleteProgram(program); throw e; }
+
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+  return program;
+}
+
 struct WindowCreateInfo
 {
   bool maximize{};
@@ -102,7 +192,7 @@ GLFWwindow* CreateWindow(const WindowCreateInfo& createInfo)
   glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
   const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-  GLFWwindow* window = glfwCreateWindow(createInfo.width, createInfo.height, "Top Texplosion", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(createInfo.width, createInfo.height, "Example Giraffics", nullptr, nullptr);
 
   if (!window)
   {
@@ -129,6 +219,8 @@ int main()
   GLFWwindow* window = CreateWindow({ .maximize = false, .decorate = true, .width = 1280, .height = 720 });
   InitOpenGL();
 
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
   // enable debugging stuff
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(glErrorCallback, NULL);
@@ -150,9 +242,82 @@ int main()
   {
     .viewport = &viewport,
     .clearColorOnLoad = true,
-    .clearColorValue = GFX::ClearColorValue {.f = { .5, 1, .5, 1 }},
+    .clearColorValue = GFX::ClearColorValue {.f = { .2, .0, .2, 1 }},
     .clearDepthOnLoad = false,
     .clearStencilOnLoad = false,
+  };
+
+  GLuint shader = GenerateProgram(gVertexSource, gFragmentSource);
+  auto vertexPosBuffer = GFX::Buffer::Create(std::span<const float>(gTriVertices));
+  auto vertexColorBuffer = GFX::Buffer::Create(std::span<const uint8_t>(gTriColors));
+
+  GFX::InputAssemblyState inputAssembly
+  {
+    .topology = GFX::PrimitiveTopology::TRIANGLE_LIST,
+    .primitiveRestartEnable = false,
+  };
+
+  GFX::VertexInputBindingDescription descPos
+  {
+    .location = 0,
+    .binding = 0,
+    .format = GFX::Format::R32G32_FLOAT,
+    .offset = 0,
+  };
+  GFX::VertexInputBindingDescription descColor
+  {
+    .location = 1,
+    .binding = 1,
+    .format = GFX::Format::R8G8B8_UNORM,
+    .offset = 0,
+  };
+  GFX::VertexInputBindingDescription inputDescs[] = { descPos, descColor };
+  GFX::VertexInputState vertexInput{ inputDescs };
+
+  GFX::RasterizationState rasterization
+  {
+    .depthClampEnable = false,
+    .polygonMode = GFX::PolygonMode::FILL,
+    .cullMode = GFX::CullMode::NONE,
+    .frontFace = GFX::FrontFace::COUNTERCLOCKWISE,
+    .depthBiasEnable = false,
+    .lineWidth = 1.0f,
+    .pointSize = 1.0f,
+  };
+
+  GFX::DepthStencilState depthStencil
+  {
+    .depthTestEnable = false,
+    .depthWriteEnable = false,
+  };
+
+  GFX::ColorBlendAttachmentState colorBlendAttachment
+  {
+    .blendEnable = true,
+    .srcColorBlendFactor = GFX::BlendFactor::ONE,
+    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
+    .colorBlendOp = GFX::BlendOp::ADD,
+    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
+    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
+    .alphaBlendOp = GFX::BlendOp::ADD,
+    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
+  };
+  GFX::ColorBlendState colorBlend
+  {
+    .logicOpEnable = false,
+    .logicOp{},
+    .attachments = { &colorBlendAttachment, 1 },
+    .blendConstants = {},
+  };
+
+  GFX::GraphicsPipelineInfo pipeline
+  {
+    .shaderProgram = shader,
+    .inputAssemblyState = inputAssembly,
+    .vertexInputState = vertexInput,
+    .rasterizationState = rasterization,
+    .depthStencilState = depthStencil,
+    .colorBlendState = colorBlend
   };
 
   while (!glfwWindowShouldClose(window))
@@ -164,7 +329,10 @@ int main()
     }
 
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
-
+    GFX::Cmd::BindPipeline(pipeline);
+    GFX::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
+    GFX::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+    GFX::Cmd::Draw(3, 1, 0, 0);
     GFX::EndRendering();
 
     glfwSwapBuffers(window);

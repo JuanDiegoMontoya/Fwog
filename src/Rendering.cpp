@@ -20,6 +20,7 @@ namespace GFX
   {
     bool isRendering = false;
     bool isPipelineBound = false;
+    bool isVertexBufferBound = false;
 
     PrimitiveTopology sTopology{};
     GLuint sVao = 0;
@@ -133,6 +134,7 @@ namespace GFX
     GSDF_ASSERT(isRendering && "Cannot call EndRendering when not rendering");
     isPipelineBound = false;
     isRendering = false;
+    isVertexBufferBound = false;
   }
 
   namespace Cmd
@@ -140,6 +142,9 @@ namespace GFX
     void BindPipeline(const GraphicsPipelineInfo& pipeline)
     {
       isPipelineBound = true;
+
+      //////////////////////////////////////////////////////////////// shader program
+      glUseProgram(pipeline.shaderProgram);
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipeline.inputAssemblyState;
@@ -225,6 +230,24 @@ namespace GFX
           (cba.colorWriteMask & ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
           (cba.colorWriteMask & ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
       }
+    }
+
+    void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)
+    {
+      GSDF_ASSERT(isRendering);
+      isVertexBufferBound = true;
+      glVertexArrayVertexBuffer(sVao, bindingIndex, buffer.Handle(), offset, stride);
+    }
+
+    void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+      GSDF_ASSERT(isRendering && isVertexBufferBound);
+      glDrawArraysInstancedBaseInstance(
+        detail::PrimitiveTopologyToGL(sTopology),
+        firstVertex,
+        vertexCount,
+        instanceCount,
+        firstInstance);
     }
 
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)

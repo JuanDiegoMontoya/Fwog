@@ -5,6 +5,12 @@
 
 namespace GFX
 {
+  struct InputAssemblyState
+  {
+    PrimitiveTopology topology;
+    bool primitiveRestartEnable;
+  };
+
   struct VertexInputBindingDescription
   {
     uint32_t location; // glEnableVertexArrayAttrib + glVertexArrayAttribFormat
@@ -16,12 +22,6 @@ namespace GFX
   struct VertexInputState
   {
     std::span<const VertexInputBindingDescription> vertexBindingDescriptions;
-  };
-
-  struct InputAssemblyState
-  {
-    PrimitiveTopology topology;
-    bool primitiveRestartEnable;
   };
 
   // TODO: see what rasterization state can be dynamic instead
@@ -71,6 +71,7 @@ namespace GFX
 
   struct GraphicsPipelineInfo
   {
+    uint32_t shaderProgram; // TODO: temp
     InputAssemblyState inputAssemblyState;
     VertexInputState vertexInputState;
     RasterizationState rasterizationState;

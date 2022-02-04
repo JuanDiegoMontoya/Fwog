@@ -53,4 +53,7 @@ namespace GFX::detail
   // for clearing color textures, we need to know which of these the texture holds
   enum class GlBaseTypeClass { FLOAT, SINT, UINT };
   GlBaseTypeClass FormatToBaseTypeClass(Format format);
+
+  ////////////////////////////////////////////////////////// drawing
+  GLenum PrimitiveTopologyToGL(PrimitiveTopology topology);
 }

@@ -391,6 +391,7 @@ namespace GFX
     G_BIT = 0b0010,
     B_BIT = 0b0100,
     A_BIT = 0b1000,
+    RGBA_BITS = 0b1111,
   };
   DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlag, uint32_t)
 
