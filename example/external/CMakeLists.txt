@@ -1,6 +1,5 @@
 # external content definitions
 
-option(BUILD_TESTING "" OFF)
 option(GLFW_BUILD_TESTS "" OFF)
 option(GLFW_BUILD_DOCS "" OFF)
 option(GLFW_INSTALL "" OFF)

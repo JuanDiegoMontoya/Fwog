@@ -1,5 +1,5 @@
 #pragma once
-#include <gsdf/Flags.h>
+#include <gsdf/detail/Flags.h>
 #include <optional>
 #include <span>
 
@@ -16,7 +16,7 @@ namespace GFX
     MAP_PERSISTENT = 1 << 5,
     MAP_COHERENT = 1 << 6,
   };
-  DECLARE_FLAG_TYPE(BufferFlags, BufferFlag, uint32_t)
+  GSDF_DECLARE_FLAG_TYPE(BufferFlags, BufferFlag, uint32_t)
 
   // general-purpose immutable graphics buffer storage
   class Buffer

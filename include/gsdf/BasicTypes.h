@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <gsdf/Flags.h>
+#include <gsdf/detail/Flags.h>
 
 namespace GFX
 {
@@ -286,7 +286,7 @@ namespace GFX
     DEPTH_BUFFER_BIT    = 1 << 1,
     STENCIL_BUFFER_BIT  = 1 << 2,
   };
-  DECLARE_FLAG_TYPE(AspectMask, AspectMaskBit, uint32_t)
+  GSDF_DECLARE_FLAG_TYPE(AspectMask, AspectMaskBit, uint32_t)
 
   enum class PrimitiveTopology
   {
@@ -393,7 +393,7 @@ namespace GFX
     A_BIT = 0b1000,
     RGBA_BITS = 0b1111,
   };
-  DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlag, uint32_t)
+  GSDF_DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlag, uint32_t)
 
   enum class IndexType
   {

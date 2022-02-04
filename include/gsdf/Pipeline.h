@@ -1,6 +1,6 @@
 #pragma once
 #include <gsdf/BasicTypes.h>
-#include <gsdf/Flags.h>
+#include <gsdf/detail/Flags.h>
 #include <span>
 
 namespace GFX

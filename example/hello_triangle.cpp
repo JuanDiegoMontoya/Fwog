@@ -278,7 +278,7 @@ int main()
   {
     .depthClampEnable = false,
     .polygonMode = GFX::PolygonMode::FILL,
-    .cullMode = GFX::CullMode::NONE,
+    .cullMode = GFX::CullMode::BACK,
     .frontFace = GFX::FrontFace::COUNTERCLOCKWISE,
     .depthBiasEnable = false,
     .lineWidth = 1.0f,

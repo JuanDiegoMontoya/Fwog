@@ -30,9 +30,9 @@ set(header_files
 	include/gsdf/Indirect.h
 	include/gsdf/Shader.h
 	include/gsdf/Texture.h
-	include/gsdf/Flags.h
 	include/gsdf/Rendering.h
 	include/gsdf/Pipeline.h
+	include/gsdf/detail/Flags.h
 	include/gsdf/detail/ApiToEnum.h
 )
 
