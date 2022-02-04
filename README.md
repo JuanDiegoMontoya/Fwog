@@ -18,21 +18,17 @@ Low-level OpenGL 4.6 abstraction in C++20.
   - object creation yields optional type or something (people won't like it if constructors can throw)
 
 ## core features
-- [ ] texture
-- [ ] texture view
-- [ ] sampler
-- [ ] buffer
-- [ ] rendering info (BeginRendering and EndRendering)
+- [x] texture
+- [x] texture view
+- [x] sampler
+- [x] buffer
+- [x] rendering info (BeginRendering and EndRendering)
   - https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkRenderingInfo.html
-- [ ] graphics pipeline
+- [x] graphics pipeline
 - [ ] compute pipeline
 - [ ] fence sync
-- [ ] vertex spec/VAO
-  - DSA-like specification interface
+- [x] vertex spec/VAO
 - [ ] debug groups (manual and automatic scope)
-- [ ] framebuffer(?)
-  - unnecessary with dynamic rendering
-  - ...but how will framebuffer operations be handled? opaque framebuffers?
 - [ ] shader(?)
 
 ## extended features (which may not come)
