@@ -141,7 +141,7 @@ namespace GFX
 
   namespace Cmd
   {
-    void BindPipeline(const GraphicsPipelineInfo& pipeline)
+    void BindGraphicsPipeline(const GraphicsPipelineInfo& pipeline)
     {
       isPipelineBound = true;
 

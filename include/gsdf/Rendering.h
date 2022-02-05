@@ -75,7 +75,7 @@ namespace GFX
   // Cmd:: functions can only be called within a rendering context
   namespace Cmd
   {
-    void BindPipeline(const GraphicsPipelineInfo& pipeline);      // sets pipeline state
+    void BindGraphicsPipeline(const GraphicsPipelineInfo& pipeline);      // sets pipeline state
     
     // dynamic state
     void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
