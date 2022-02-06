@@ -51,7 +51,7 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 The draw loop of hello triangle looks like this (WIP):
 ```cpp
 GFX::BeginSwapchainRendering(swapchainRenderingInfo);
-GFX::Cmd::BindPipeline(pipeline);
+GFX::Cmd::BindGraphicsPipeline(pipeline);
 GFX::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
 GFX::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
 GFX::Cmd::Draw(3, 1, 0, 0);
