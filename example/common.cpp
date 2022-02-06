@@ -145,7 +145,7 @@ namespace Utility
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
     const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-    GLFWwindow* window = glfwCreateWindow(createInfo.width, createInfo.height, "Example Giraffics", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(createInfo.width, createInfo.height, createInfo.name.data(), nullptr, nullptr);
 
     if (!window)
     {

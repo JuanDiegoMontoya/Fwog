@@ -18,6 +18,7 @@ set(source_files
 	src/Rendering.cpp
 	src/Pipeline.cpp
 	src/detail/ApiToEnum.cpp
+	src/detail/PipelineManager.cpp
 )
 
 set(header_files
@@ -34,6 +35,7 @@ set(header_files
 	include/gsdf/Pipeline.h
 	include/gsdf/detail/Flags.h
 	include/gsdf/detail/ApiToEnum.h
+	include/gsdf/detail/PipelineManager.h
 )
 
 add_library(lib_gsdf ${source_files} ${header_files})

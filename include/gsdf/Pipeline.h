@@ -2,6 +2,7 @@
 #include <gsdf/BasicTypes.h>
 #include <gsdf/detail/Flags.h>
 #include <span>
+#include <optional>
 
 namespace GFX
 {
@@ -34,7 +35,7 @@ namespace GFX
     bool depthBiasEnable;
     float depthBiasConstantFactor;
     float depthBiasSlopeFactor;
-    //float depthBiasClamp; // no equivalent GL function
+    //float depthBiasClamp; // no equivalent core OpenGL function
     float lineWidth; // glLineWidth
     float pointSize; // glPointSize
   };
@@ -43,7 +44,7 @@ namespace GFX
   {
     bool depthTestEnable;       // gl{Enable, Disable}(GL_DEPTH_TEST)
     bool depthWriteEnable;      // glDepthMask(depthWriteEnable)
-    //bool depthBoundsTestEnable; // ???
+    //bool depthBoundsTestEnable; // no equivalent core OpenGL function
     //float minDepthBounds;       // ???
     //float maxDepthBounds;       // ???
     // TODO: add stencil stuff here (front and back stencil op)
@@ -82,4 +83,23 @@ namespace GFX
     // Multisample state omitted (stretch goal)
     // Tessellation state omitted (stretch goal)
   };
+
+  struct ComputePipelineInfo
+  {
+    uint32_t shaderProgram; // TODO: temp
+  };
+
+  struct GraphicsPipeline
+  {
+    auto operator<=>(const GraphicsPipeline&) const = default;
+    uint64_t id;
+  };
+  struct ComputePipeline
+  {
+    auto operator<=>(const ComputePipeline&) const = default;
+    uint64_t id;
+  };
+
+  std::optional<GraphicsPipeline> CompileGraphicsPipeline(const GraphicsPipelineInfo& info);
+  bool DestroyGraphicsPipeline(GraphicsPipeline pipeline);
 }

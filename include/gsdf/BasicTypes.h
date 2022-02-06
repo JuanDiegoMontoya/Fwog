@@ -93,7 +93,7 @@ namespace GFX
     Extent2D extent;
   };
 
-  enum class ImageType
+  enum class ImageType : uint32_t
   {
     TEX_1D,
     TEX_2D,
@@ -106,7 +106,7 @@ namespace GFX
     TEX_2D_MULTISAMPLE_ARRAY,
   };
 
-  enum class Format
+  enum class Format : uint32_t
   {
     UNDEFINED,
     R8_UNORM,
@@ -182,7 +182,7 @@ namespace GFX
   };
 
   // multisampling and anisotropy
-  enum class SampleCount
+  enum class SampleCount : uint32_t
   {
     SAMPLES_1,
     SAMPLES_2,
@@ -191,14 +191,14 @@ namespace GFX
     SAMPLES_16,
   };
 
-  enum class UploadDimension
+  enum class UploadDimension : uint32_t
   {
     ONE,
     TWO,
     THREE,
   };
 
-  enum class UploadFormat
+  enum class UploadFormat : uint32_t
   {
     UNDEFINED,
     R,
@@ -211,7 +211,7 @@ namespace GFX
     STENCIL_INDEX,
   };
 
-  enum class UploadType
+  enum class UploadType : uint32_t
   {
     UNDEFINED,
     UBYTE,
@@ -235,14 +235,14 @@ namespace GFX
     UINT_10_10_10_2_REV,
   };
 
-  enum class Filter
+  enum class Filter : uint32_t
   {
     NONE,
     NEAREST,
     LINEAR,
   };
 
-  enum class AddressMode
+  enum class AddressMode : uint32_t
   {
     REPEAT,
     MIRRORED_REPEAT,
@@ -251,7 +251,7 @@ namespace GFX
     MIRROR_CLAMP_TO_EDGE,
   };
 
-  enum class BorderColor
+  enum class BorderColor : uint32_t
   {
     FLOAT_TRANSPARENT_BLACK,
     INT_TRANSPARENT_BLACK,
@@ -261,7 +261,8 @@ namespace GFX
     INT_OPAQUE_WHITE,
   };
 
-  enum class Attachment
+  // TODO: remove
+  enum class Attachment : uint32_t
   {
     NONE,
     COLOR_0,
@@ -280,7 +281,7 @@ namespace GFX
   template<typename T>
   Attachment operator+(T b, Attachment a) { return a + b; }
 
-  enum class AspectMaskBit
+  enum class AspectMaskBit : uint32_t
   {
     COLOR_BUFFER_BIT    = 1 << 0,
     DEPTH_BUFFER_BIT    = 1 << 1,
@@ -288,7 +289,7 @@ namespace GFX
   };
   GSDF_DECLARE_FLAG_TYPE(AspectMask, AspectMaskBit, uint32_t)
 
-  enum class PrimitiveTopology
+  enum class PrimitiveTopology : uint32_t
   {
     POINT_LIST,
     LINE_LIST,
@@ -299,14 +300,14 @@ namespace GFX
     // TODO: add more toplogies that are deemed useful
   };
 
-  enum class PolygonMode
+  enum class PolygonMode : uint32_t
   {
     FILL,
     LINE,
     POINT,
   };
 
-  enum class CullMode
+  enum class CullMode : uint32_t
   {
     NONE = 0b00,
     FRONT = 0b01,
@@ -314,13 +315,13 @@ namespace GFX
     FRONT_AND_BACK = 0b11,
   };
 
-  enum class FrontFace
+  enum class FrontFace : uint32_t
   {
     CLOCKWISE,
     COUNTERCLOCKWISE,
   };
 
-  enum class CompareOp
+  enum class CompareOp : uint32_t
   {
     NEVER,
     LESS,
@@ -332,7 +333,7 @@ namespace GFX
     ALWAYS,
   };
 
-  enum class LogicOp
+  enum class LogicOp : uint32_t
   {
     CLEAR,
     SET,
@@ -352,7 +353,7 @@ namespace GFX
     OR_INVERTED,
   };
 
-  enum class BlendFactor
+  enum class BlendFactor : uint32_t
   {
     ZERO,
     ONE,
@@ -375,7 +376,7 @@ namespace GFX
     ONE_MINUS_SRC1_ALPHA,
   };
 
-  enum class BlendOp
+  enum class BlendOp : uint32_t
   {
     ADD,
     SUBTRACT,
@@ -384,7 +385,7 @@ namespace GFX
     MAX,
   };
 
-  enum class ColorComponentFlag
+  enum class ColorComponentFlag : uint32_t
   {
     NONE,
     R_BIT = 0b0001,
@@ -395,7 +396,7 @@ namespace GFX
   };
   GSDF_DECLARE_FLAG_TYPE(ColorComponentFlags, ColorComponentFlag, uint32_t)
 
-  enum class IndexType
+  enum class IndexType : uint32_t
   {
     UNSIGNED_BYTE,
     UNSIGNED_SHORT,

@@ -38,36 +38,9 @@ void main()
 std::array<float, 6> gTriVertices = { -0, -0, 1, -1, 1, 1 };
 std::array<uint8_t, 9> gTriColors = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
-int main()
+GFX::GraphicsPipeline CompilePipeline()
 {
-  GLFWwindow* window = Utility::CreateWindow({ .maximize = false, .decorate = true, .width = 1280, .height = 720 });
-  Utility::InitOpenGL();
-
-  glEnable(GL_FRAMEBUFFER_SRGB);
-
-  GFX::Viewport viewport
-  {
-    .drawRect
-    {
-      .offset = { 0, 0 },
-      .extent = { 1280, 720 }
-    },
-    .minDepth = 0.0f,
-    .maxDepth = 0.0f,
-  };
-
-  GFX::SwapchainRenderInfo swapchainRenderingInfo
-  {
-    .viewport = &viewport,
-    .clearColorOnLoad = true,
-    .clearColorValue = GFX::ClearColorValue {.f = { .2, .0, .2, 1 }},
-    .clearDepthOnLoad = false,
-    .clearStencilOnLoad = false,
-  };
-
   GLuint shader = Utility::CompileVertexFragmentProgram(gVertexSource, gFragmentSource);
-  auto vertexPosBuffer = GFX::Buffer::Create(std::span<const float>(gTriVertices));
-  auto vertexColorBuffer = GFX::Buffer::Create(std::span<const uint8_t>(gTriColors));
 
   GFX::InputAssemblyState inputAssembly
   {
@@ -128,7 +101,7 @@ int main()
     .blendConstants = {},
   };
 
-  GFX::GraphicsPipelineInfo pipeline
+  GFX::GraphicsPipelineInfo pipelineInfo
   {
     .shaderProgram = shader,
     .inputAssemblyState = inputAssembly,
@@ -137,6 +110,44 @@ int main()
     .depthStencilState = depthStencil,
     .colorBlendState = colorBlend
   };
+
+  auto pipeline = GFX::CompileGraphicsPipeline(pipelineInfo);
+  if (!pipeline)
+    throw std::exception("Invalid pipeline");
+  return *pipeline;
+}
+
+int main()
+{
+  GLFWwindow* window = Utility::CreateWindow({ .name = "Hello Triangle", .maximize = false, .decorate = true, .width = 1280, .height = 720});
+  Utility::InitOpenGL();
+
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
+  GFX::Viewport viewport
+  {
+    .drawRect
+    {
+      .offset = { 0, 0 },
+      .extent = { 1280, 720 }
+    },
+    .minDepth = 0.0f,
+    .maxDepth = 0.0f,
+  };
+
+  GFX::SwapchainRenderInfo swapchainRenderingInfo
+  {
+    .viewport = &viewport,
+    .clearColorOnLoad = true,
+    .clearColorValue = GFX::ClearColorValue {.f = { .2, .0, .2, 1 }},
+    .clearDepthOnLoad = false,
+    .clearStencilOnLoad = false,
+  };
+
+  auto vertexPosBuffer = GFX::Buffer::Create(gTriVertices);
+  auto vertexColorBuffer = GFX::Buffer::Create(gTriColors);
+
+  GFX::GraphicsPipeline pipeline = CompilePipeline();
 
   while (!glfwWindowShouldClose(window))
   {

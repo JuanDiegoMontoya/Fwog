@@ -2,9 +2,20 @@
 #include <gsdf/detail/Flags.h>
 #include <optional>
 #include <span>
+#include <type_traits>
 
 namespace GFX
 {
+  class cool_bytes : public std::span<const std::byte>
+  {
+  public:
+    template<typename T> requires std::is_trivially_copyable_v<T>
+    cool_bytes(const T& t) : std::span<const std::byte>(std::as_bytes(std::span{ &t, 1 })) {}
+
+    template<typename T> requires std::is_trivially_copyable_v<T>
+    cool_bytes(std::span<const T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
+  };
+
   enum class BufferFlag : uint32_t
   {
     NONE = 1 << 0,
@@ -27,8 +38,7 @@ namespace GFX
       return CreateInternal(nullptr, size, flags);
     }
 
-    template<typename T>
-    [[nodiscard]] static std::optional<Buffer> Create(std::span<T> data, BufferFlags flags = BufferFlag::NONE)
+    [[nodiscard]] static std::optional<Buffer> Create(cool_bytes data, BufferFlags flags = BufferFlag::NONE)
     {
       return CreateInternal(data.data(), data.size_bytes(), flags);
     }
@@ -40,8 +50,7 @@ namespace GFX
     Buffer& operator=(Buffer&& other) noexcept;
     ~Buffer();
 
-    template<typename T>
-    void SubData(std::span<T> data, size_t destOffsetBytes)
+    void SubData(cool_bytes data, size_t destOffsetBytes)
     {
       SubData(data.data(), data.size_bytes(), destOffsetBytes);
     }

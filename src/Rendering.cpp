@@ -1,6 +1,7 @@
 #include <gsdf/Rendering.h>
-#include <gsdf/detail/ApiToEnum.h>
 #include <gsdf/Common.h>
+#include <gsdf/detail/ApiToEnum.h>
+#include <gsdf/detail/PipelineManager.h>
 #include <vector>
 
 // helper function
@@ -20,8 +21,10 @@ namespace GFX
   {
     bool isRendering = false;
     bool isPipelineBound = false;
-    bool isVertexBufferBound = false;
     bool isIndexBufferBound = false;
+
+    GraphicsPipeline sLastGraphicsPipeline{}; // TODO: way to reset this in case the user wants to do own OpenGL operations (basically invalidate cached state)
+    const RenderInfo* sLastRenderInfo{};
 
     PrimitiveTopology sTopology{};
     IndexType sIndexType{};
@@ -33,6 +36,8 @@ namespace GFX
   {
     GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
     isRendering = true;
+    sLastRenderInfo = nullptr;
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     const auto& ri = renderInfo;
@@ -61,6 +66,13 @@ namespace GFX
   {
     GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
     isRendering = true;
+
+    if (sLastRenderInfo == &renderInfo)
+    {
+      return;
+    }
+
+    sLastRenderInfo = &renderInfo;
 
     const auto& ri = renderInfo;
     glDeleteFramebuffers(1, &sFbo);
@@ -136,25 +148,35 @@ namespace GFX
     GSDF_ASSERT(isRendering && "Cannot call EndRendering when not rendering");
     isPipelineBound = false;
     isRendering = false;
-    isVertexBufferBound = false;
+    isIndexBufferBound = false;
   }
 
   namespace Cmd
   {
-    void BindGraphicsPipeline(const GraphicsPipelineInfo& pipeline)
+    void BindGraphicsPipeline(GraphicsPipeline pipeline)
     {
       isPipelineBound = true;
 
+      auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
+      assert(pipelineState);
+
+      if (sLastGraphicsPipeline == pipeline)
+      {
+        return;
+      }
+
+      sLastGraphicsPipeline = pipeline;
+
       //////////////////////////////////////////////////////////////// shader program
-      glUseProgram(pipeline.shaderProgram);
+      glUseProgram(pipelineState->shaderProgram);
 
       //////////////////////////////////////////////////////////////// input assembly
-      const auto& ias = pipeline.inputAssemblyState;
+      const auto& ias = pipelineState->inputAssemblyState;
       GLEnableOrDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX, ias.primitiveRestartEnable);
       sTopology = ias.topology;
 
       //////////////////////////////////////////////////////////////// vertex input
-      const auto& vis = pipeline.vertexInputState;
+      const auto& vis = pipelineState->vertexInputState;
       glDeleteVertexArrays(1, &sVao);
       glCreateVertexArrays(1, &sVao);
       for (uint32_t i = 0; i < vis.vertexBindingDescriptions.size(); i++)
@@ -184,7 +206,7 @@ namespace GFX
       glBindVertexArray(sVao);
 
       //////////////////////////////////////////////////////////////// rasterization
-      const auto& rs = pipeline.rasterizationState;
+      const auto& rs = pipelineState->rasterizationState;
       GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
       glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
       GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
@@ -204,13 +226,13 @@ namespace GFX
       glPointSize(rs.pointSize);
 
       //////////////////////////////////////////////////////////////// depth + stencil
-      const auto& ds = pipeline.depthStencilState;
+      const auto& ds = pipelineState->depthStencilState;
       GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       glDepthMask(ds.depthWriteEnable);
       // TODO: stencil state
 
       //////////////////////////////////////////////////////////////// color blending state
-      const auto& cb = pipeline.colorBlendState;
+      const auto& cb = pipelineState->colorBlendState;
       GLEnableOrDisable(GL_COLOR_LOGIC_OP, cb.logicOpEnable);
       if (cb.logicOpEnable)
       {
@@ -237,7 +259,6 @@ namespace GFX
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)
     {
       GSDF_ASSERT(isRendering);
-      isVertexBufferBound = true;
       glVertexArrayVertexBuffer(sVao, bindingIndex, buffer.Handle(), offset, stride);
     }
 
@@ -251,7 +272,7 @@ namespace GFX
 
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
-      GSDF_ASSERT(isRendering && isVertexBufferBound);
+      GSDF_ASSERT(isRendering);
       glDrawArraysInstancedBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         firstVertex,
@@ -262,7 +283,7 @@ namespace GFX
 
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
     {
-      GSDF_ASSERT(isRendering && isVertexBufferBound && isIndexBufferBound);
+      GSDF_ASSERT(isRendering && isIndexBufferBound);
       glDrawElementsInstancedBaseVertexBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         indexCount,

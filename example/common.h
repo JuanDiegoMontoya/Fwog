@@ -14,6 +14,7 @@ namespace Utility
 
   struct WindowCreateInfo
   {
+    std::string_view name = "";
     bool maximize{};
     bool decorate{};
     uint32_t width{};

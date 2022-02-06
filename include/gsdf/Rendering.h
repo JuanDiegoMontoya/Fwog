@@ -72,10 +72,14 @@ namespace GFX
   void BeginRendering(const RenderInfo& renderInfo);
   void EndRendering();
 
-  // Cmd:: functions can only be called within a rendering context
+  void BlitTexture(const TextureView& source, const TextureView& target,
+    Offset3D sourceOffset, Offset3D targetOffset, Extent3D sourceExtent, Extent3D targetExtent,
+    Filter filter);
+
+  // Cmd:: functions can only be called within a rendering context/scope
   namespace Cmd
   {
-    void BindGraphicsPipeline(const GraphicsPipelineInfo& pipeline);      // sets pipeline state
+    void BindGraphicsPipeline(GraphicsPipeline pipeline);         // sets pipeline state
     
     // dynamic state
     void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
