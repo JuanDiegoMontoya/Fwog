@@ -1,8 +1,8 @@
 #pragma once
-
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <string_view>
+#include <string>
 
 namespace Utility
 {
@@ -23,4 +23,6 @@ namespace Utility
 
   GLFWwindow* CreateWindow(const WindowCreateInfo& createInfo);
   void InitOpenGL();
+
+  std::string LoadFile(std::string_view path);
 }

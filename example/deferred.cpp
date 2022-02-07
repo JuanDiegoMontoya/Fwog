@@ -18,68 +18,6 @@ struct Uniforms
 constexpr int gWindowWidth = 1280;
 constexpr int gWindowHeight = 720;
 
-const char* gVertexSource = R"(
-#version 460 core
-
-layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec3 a_color;
-
-layout(location = 0) out vec3 v_color;
-
-layout(binding = 0, std140) uniform Uniforms
-{
-  mat4 model;
-  mat4 viewProj;
-};
-
-void main()
-{
-  v_color = a_color;
-  gl_Position = viewProj * model * vec4(a_pos, 1.0);
-}
-)";
-
-const char* gFragmentSource = R"(
-#version 460 core
-
-layout(location = 0) out vec4 o_color;
-
-layout(location = 0) in vec3 v_color;
-
-void main()
-{
-  o_color = vec4(v_color, 1.0);
-}
-)";
-
-const char* gTriangleVertexSource = R"(
-#version 460 core
-
-layout(location = 0) out vec2 v_uv;
-
-void main()
-{
-  vec2 pos = vec2(gl_VertexID == 0, gl_VertexID == 2);
-  v_uv = pos.xy * 2.0;
-  gl_Position = vec4(pos * 4.0 - 1.0, 0.0, 1.0);
-}
-)";
-
-const char* gTriangleFragmentSource = R"(
-#version 460 core
-
-layout(binding = 0) uniform sampler2D s_image;
-
-layout(location = 0) in vec2 v_uv;
-
-layout(location = 0) out vec4 o_color;
-
-void main()
-{
-  o_color = vec4(texture(s_image, v_uv).rgb, 1.0);
-}
-)";
-
 std::array<glm::vec3, 3> gTriVertices
 {
   glm::vec3{-0.f, -0.f, -1},
@@ -93,9 +31,11 @@ std::array<glm::u8vec3, 3> gTriColors
   glm::u8vec3{0, 0, 255}
 };
 
-GFX::GraphicsPipeline CompilePipeline()
+GFX::GraphicsPipeline CreateScenePipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(gVertexSource, gFragmentSource);
+  GLuint shader = Utility::CompileVertexFragmentProgram(
+    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
+    Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
 
   GFX::InputAssemblyState inputAssembly
   {
@@ -172,9 +112,11 @@ GFX::GraphicsPipeline CompilePipeline()
   return *pipeline;
 }
 
-GFX::GraphicsPipeline CompilePipeline2()
+GFX::GraphicsPipeline CreateShadingPipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(gTriangleVertexSource, gTriangleFragmentSource);
+  GLuint shader = Utility::CompileVertexFragmentProgram(
+    Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
+    Utility::LoadFile("shaders/ShadeDeferred.frag.glsl"));
 
   GFX::InputAssemblyState inputAssembly
   {
@@ -314,8 +256,8 @@ int main()
 
   auto sampler = GFX::TextureSampler::Create({});
 
-  GFX::GraphicsPipeline pipeline = CompilePipeline();
-  GFX::GraphicsPipeline pipeline2 = CompilePipeline2();
+  GFX::GraphicsPipeline scenePipeline = CreateScenePipeline();
+  GFX::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
 
   while (!glfwWindowShouldClose(window))
   {
@@ -329,7 +271,7 @@ int main()
     uniformBuffer->SubData(uniforms, 0);
 
     GFX::BeginRendering(gbufferRenderInfo);
-    GFX::Cmd::BindGraphicsPipeline(pipeline);
+    GFX::Cmd::BindGraphicsPipeline(scenePipeline);
     GFX::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, sizeof(glm::vec3));
     GFX::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, sizeof(glm::u8vec3));
     GFX::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
@@ -337,7 +279,7 @@ int main()
     GFX::EndRendering();
 
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
-    GFX::Cmd::BindGraphicsPipeline(pipeline2);
+    GFX::Cmd::BindGraphicsPipeline(shadingPipeline);
     GFX::Cmd::BindSampledImage(0, *gcolorTexView, *sampler);
     GFX::Cmd::Draw(3, 1, 0, 0);
     GFX::EndRendering();

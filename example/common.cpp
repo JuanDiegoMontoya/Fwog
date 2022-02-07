@@ -3,6 +3,7 @@
 #include <format>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 namespace Utility
 {
@@ -171,5 +172,11 @@ namespace Utility
     glDebugMessageCallback(Utility::glErrorCallback, NULL);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+  }
+
+  std::string LoadFile(std::string_view path)
+  {
+    std::ifstream file{ path.data() };
+    return { std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
   }
 }

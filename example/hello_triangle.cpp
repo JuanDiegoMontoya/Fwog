@@ -38,7 +38,7 @@ void main()
 std::array<float, 6> gTriVertices = { -0, -0, 1, -1, 1, 1 };
 std::array<uint8_t, 9> gTriColors = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
-GFX::GraphicsPipeline CompilePipeline()
+GFX::GraphicsPipeline CreatePipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(gVertexSource, gFragmentSource);
 
@@ -147,7 +147,7 @@ int main()
   auto vertexPosBuffer = GFX::Buffer::Create(gTriVertices);
   auto vertexColorBuffer = GFX::Buffer::Create(gTriColors);
 
-  GFX::GraphicsPipeline pipeline = CompilePipeline();
+  GFX::GraphicsPipeline pipeline = CreatePipeline();
 
   while (!glfwWindowShouldClose(window))
   {
