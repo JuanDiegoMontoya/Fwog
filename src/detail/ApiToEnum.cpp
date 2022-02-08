@@ -639,4 +639,20 @@ namespace GFX::detail
     default: GSDF_UNREACHABLE; return 0;
     }
   }
+
+  GLenum CompareOpToGL(CompareOp op)
+  {
+    switch (op)
+    {
+    case CompareOp::NEVER: return GL_NEVER;
+    case CompareOp::LESS: return GL_LESS;
+    case CompareOp::EQUAL: return GL_EQUAL;
+    case CompareOp::LESS_OR_EQUAL: return GL_LEQUAL;
+    case CompareOp::GREATER: return GL_GREATER;
+    case CompareOp::NOT_EQUAL: return GL_NOTEQUAL;
+    case CompareOp::GREATER_OR_EQUAL: return GL_GEQUAL;
+    case CompareOp::ALWAYS: return GL_ALWAYS;
+    default: GSDF_UNREACHABLE; return 0;
+    }
+  }
 }

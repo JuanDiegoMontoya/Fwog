@@ -74,6 +74,7 @@ namespace GFX::detail
         info.rasterizationState.pointSize,
         info.depthStencilState.depthTestEnable,
         info.depthStencilState.depthWriteEnable,
+        info.depthStencilState.depthCompareOp,
         info.colorBlendState.logicOpEnable,
         info.colorBlendState.logicOp,
         info.colorBlendState.blendConstants[0],

@@ -13,6 +13,13 @@ static void GLEnableOrDisable(GLenum state, GLboolean value)
     glDisable(state);
 }
 
+static void GLSetMaskStates()
+{
+  glColorMask(true, true, true, true);
+  glDepthMask(true);
+  glStencilMask(true);
+}
+
 namespace GFX
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
@@ -59,7 +66,11 @@ namespace GFX
       glClearStencil(ri.clearStencilValue);
       clearBuffers |= GL_STENCIL_BUFFER_BIT;
     }
-    glClear(clearBuffers);
+    if (clearBuffers != 0)
+    {
+      GLSetMaskStates();
+      glClear(clearBuffers);
+    }
   }
 
   void BeginRendering(const RenderInfo& renderInfo)
@@ -67,16 +78,17 @@ namespace GFX
     GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
     isRendering = true;
 
-    if (sLastRenderInfo == &renderInfo)
-    {
-      return;
-    }
+    //if (sLastRenderInfo == &renderInfo)
+    //{
+    //  return;
+    //}
 
     sLastRenderInfo = &renderInfo;
 
     const auto& ri = renderInfo;
     glDeleteFramebuffers(1, &sFbo);
     glCreateFramebuffers(1, &sFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
     std::vector<GLenum> drawBuffers;
     for (size_t i = 0; i < ri.colorAttachments.size(); i++)
     {
@@ -84,7 +96,10 @@ namespace GFX
       glNamedFramebufferTexture(sFbo, GL_COLOR_ATTACHMENT0 + i, attachment.textureView->Handle(), 0);
       drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
     }
+
     glNamedFramebufferDrawBuffers(sFbo, drawBuffers.size(), drawBuffers.data());
+    GLSetMaskStates();
+
     for (size_t i = 0; i < ri.colorAttachments.size(); i++)
     {
       const auto& attachment = ri.colorAttachments[i];
@@ -140,7 +155,6 @@ namespace GFX
     glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
       ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
     glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
-    glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
   }
 
   void EndRendering()
@@ -229,6 +243,7 @@ namespace GFX
       const auto& ds = pipelineState->depthStencilState;
       GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       glDepthMask(ds.depthWriteEnable);
+      glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
       // TODO: stencil state
 
       //////////////////////////////////////////////////////////////// color blending state

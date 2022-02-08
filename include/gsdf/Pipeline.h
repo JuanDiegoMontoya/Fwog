@@ -44,6 +44,7 @@ namespace GFX
   {
     bool depthTestEnable;       // gl{Enable, Disable}(GL_DEPTH_TEST)
     bool depthWriteEnable;      // glDepthMask(depthWriteEnable)
+    CompareOp depthCompareOp;   // glDepthFunc
     //bool depthBoundsTestEnable; // no equivalent core OpenGL function
     //float minDepthBounds;       // ???
     //float maxDepthBounds;       // ???

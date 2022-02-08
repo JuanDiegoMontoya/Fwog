@@ -58,4 +58,6 @@ namespace GFX::detail
   GLenum PrimitiveTopologyToGL(PrimitiveTopology topology);
 
   GLenum IndexTypeToGL(IndexType type);
+
+  GLenum CompareOpToGL(CompareOp op);
 }
