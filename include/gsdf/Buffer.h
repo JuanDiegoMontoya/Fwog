@@ -2,6 +2,8 @@
 #include <gsdf/detail/Flags.h>
 #include <optional>
 #include <span>
+#include <array>
+#include <vector>
 #include <type_traits>
 
 namespace GFX
@@ -14,6 +16,9 @@ namespace GFX
 
     template<typename T> requires std::is_trivially_copyable_v<T>
     cool_bytes(std::span<const T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
+    
+    template<typename T> requires std::is_trivially_copyable_v<T>
+    cool_bytes(std::span<T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
   };
 
   enum class BufferFlag : uint32_t

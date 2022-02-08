@@ -318,7 +318,7 @@ namespace GFX
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
       GSDF_ASSERT(isRendering);
-      glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer.Handle(), offset, size);
+      glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler)

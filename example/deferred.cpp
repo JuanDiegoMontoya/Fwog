@@ -1,8 +1,12 @@
 #include "common.h"
 
 #include <array>
+#include <vector>
 
-#include <glm/glm.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/vec4.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec2.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <gsdf/BasicTypes.h>
@@ -40,12 +44,6 @@ struct View
   }
 };
 
-struct Uniforms
-{
-  glm::mat4 model;
-  glm::mat4 viewProj;
-};
-
 ////////////////////////////////////// Globals
 constexpr int gWindowWidth = 1280;
 constexpr int gWindowHeight = 720;
@@ -66,6 +64,11 @@ struct Vertex
   glm::vec3 position;
   glm::vec3 normal;
   glm::vec2 uv;
+};
+
+struct Object
+{
+  glm::mat4 model;
 };
 
 std::array<Vertex, 24> gCubeVertices
@@ -128,6 +131,8 @@ std::array<uint16_t, 36> gCubeIndices
   20, 21, 22,
   22, 23, 20,
 };
+
+//std::vector
 
 GFX::GraphicsPipeline CreateScenePipeline()
 {
@@ -343,7 +348,7 @@ void RenderScene()
   GFX::RenderAttachment colorAttachment
   {
     .textureView = &gcolorTexView.value(),
-    .clearValue = GFX::ClearValue{.color{.f{ 0, 1, 0, 0 } } },
+    .clearValue = GFX::ClearValue{.color{.f{ .1, .3, .5, 0 } } },
     .clearOnLoad = true
   };
   GFX::RenderAttachment normalAttachment
@@ -358,7 +363,7 @@ void RenderScene()
     .clearValue = GFX::ClearValue{.depthStencil{.depth = 1.0f } },
     .clearOnLoad = true
   };
-  GFX::RenderAttachment cAttachments[] = { colorAttachment/*, normalAttachment*/ };
+  GFX::RenderAttachment cAttachments[] = { colorAttachment, normalAttachment };
   GFX::RenderInfo gbufferRenderInfo
   {
     .viewport = &viewport,
@@ -370,14 +375,20 @@ void RenderScene()
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
-  Uniforms uniforms;
-  uniforms.model = glm::mat4(1);
-  uniforms.viewProj = proj * view;
+  std::vector<glm::mat4> objectUniforms;
+  for (int i = 0; i < 5; i++)
+  {
+    glm::mat4 model{ 1 };
+    model = glm::translate(model, { 2 * i, 0, -1 });
+    model = glm::scale(model, glm::vec3{ 1.0f + i * .2f });
+    objectUniforms.push_back(model);
+  }
 
   auto vertexBuffer = GFX::Buffer::Create(gCubeVertices);
   auto indexBuffer = GFX::Buffer::Create(gCubeIndices);
-  auto uniformBuffer = GFX::Buffer::Create(uniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
-
+  auto objectBuffer = GFX::Buffer::Create(std::span(objectUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
+  auto globalUniforms = GFX::Buffer::Create(sizeof(glm::mat4), GFX::BufferFlag::DYNAMIC_STORAGE);
+  
   auto sampler = GFX::TextureSampler::Create({});
 
   GFX::GraphicsPipeline scenePipeline = CreateScenePipeline();
@@ -417,16 +428,22 @@ void RenderScene()
     camera.pitch += gCursorOffsetY * gSensitivity;
     camera.pitch = glm::clamp(camera.pitch, -glm::half_pi<float>() + 1e-4f, glm::half_pi<float>() - 1e-4f);
 
-    //uniforms.model = glm::translate(glm::vec3{ 0.f, sinf(glfwGetTime()) / 5.f, cosf(glfwGetTime()) / 2.f });
-    uniforms.viewProj = proj * camera.GetViewMatrix();
-    uniformBuffer->SubData(uniforms, 0);
+    for (size_t i = 0; i < objectUniforms.size(); i++)
+    {
+      objectUniforms[i] = glm::rotate(objectUniforms[i], dt, { 0, 1, 0 });
+    }
+    objectBuffer->SubData(std::span(objectUniforms), 0);
+
+    glm::mat4 viewProj = proj * camera.GetViewMatrix();
+    globalUniforms->SubData(viewProj, 0);
 
     GFX::BeginRendering(gbufferRenderInfo);
     GFX::Cmd::BindGraphicsPipeline(scenePipeline);
     GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
     GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-    GFX::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
-    GFX::Cmd::DrawIndexed(gCubeIndices.size(), 1, 0, 0, 0);
+    GFX::Cmd::BindUniformBuffer(0, *globalUniforms, 0, globalUniforms->Size());
+    GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+    GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
     GFX::EndRendering();
 
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
