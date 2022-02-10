@@ -2,12 +2,11 @@
 #include <gsdf/detail/Flags.h>
 #include <optional>
 #include <span>
-#include <array>
-#include <vector>
 #include <type_traits>
 
 namespace GFX
 {
+  // used to constrain types accepted by Buffer
   class cool_bytes : public std::span<const std::byte>
   {
   public:
@@ -23,14 +22,14 @@ namespace GFX
 
   enum class BufferFlag : uint32_t
   {
-    NONE = 1 << 0,
-    DYNAMIC_STORAGE = 1 << 1,
-    CLIENT_STORAGE = 1 << 2,
+    NONE =            0,
+    DYNAMIC_STORAGE = 1 << 0,
+    CLIENT_STORAGE =  1 << 1,
 
-    MAP_READ = 1 << 3,
-    MAP_WRITE = 1 << 4,
-    MAP_PERSISTENT = 1 << 5,
-    MAP_COHERENT = 1 << 6,
+    MAP_READ =        1 << 2,
+    MAP_WRITE =       1 << 3,
+    MAP_PERSISTENT =  1 << 4,
+    MAP_COHERENT =    1 << 5,
   };
   GSDF_DECLARE_FLAG_TYPE(BufferFlags, BufferFlag, uint32_t)
 

@@ -71,6 +71,9 @@ namespace GFX
       GLSetMaskStates();
       glClear(clearBuffers);
     }
+    glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
+      ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
+    glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
   }
 
   void BeginRendering(const RenderInfo& renderInfo)
@@ -269,6 +272,13 @@ namespace GFX
           (cba.colorWriteMask & ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
           (cba.colorWriteMask & ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
       }
+    }
+    
+    void SetViewport(const Viewport& viewport)
+    {
+      glViewport(viewport.drawRect.offset.x, viewport.drawRect.offset.y,
+        viewport.drawRect.extent.width, viewport.drawRect.extent.height);
+      glDepthRangef(viewport.minDepth, viewport.maxDepth);
     }
 
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)

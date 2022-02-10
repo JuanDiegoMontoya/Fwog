@@ -82,7 +82,8 @@ namespace GFX
     void BindGraphicsPipeline(GraphicsPipeline pipeline);         // sets pipeline state
     
     // dynamic state
-    void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
+    //void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
+    void SetViewport(const Viewport& viewport);                  // glViewport
     
     // drawing operations
     void Draw(uint32_t vertexCount, uint32_t instanceCount,       // glDrawArraysInstancedBaseInstance

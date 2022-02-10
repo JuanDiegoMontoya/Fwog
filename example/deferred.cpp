@@ -13,6 +13,7 @@
 #include <gsdf/Fence.h>
 #include <gsdf/Rendering.h>
 
+////////////////////////////////////// Types
 struct View
 {
   glm::vec3 position{};
@@ -44,6 +45,27 @@ struct View
   }
 };
 
+struct Vertex
+{
+  glm::vec3 position;
+  glm::vec3 normal;
+  glm::vec2 uv;
+};
+
+struct ShadingUniforms
+{
+  glm::vec4 viewPos;
+  glm::mat4 sunViewProj;
+  glm::vec4 sunDir;
+  glm::vec4 sunStrength;
+};
+
+struct GlobalUniforms
+{
+  glm::mat4 viewProj;
+  glm::mat4 invViewProj;
+};
+
 ////////////////////////////////////// Globals
 constexpr int gWindowWidth = 1280;
 constexpr int gWindowHeight = 720;
@@ -53,23 +75,8 @@ float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
 
-struct VertexColor
-{
-  glm::vec3 position;
-  glm::u8vec3 color;
-};
-
-struct Vertex
-{
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec2 uv;
-};
-
-struct Object
-{
-  glm::mat4 model;
-};
+constexpr int gShadowmapWidth = 1024;
+constexpr int gShadowmapHeight = 1024;
 
 std::array<Vertex, 24> gCubeVertices
 {
@@ -132,20 +139,8 @@ std::array<uint16_t, 36> gCubeIndices
   22, 23, 20,
 };
 
-//std::vector
-
-GFX::GraphicsPipeline CreateScenePipeline()
+std::array<GFX::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
-    Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
-
-  GFX::InputAssemblyState inputAssembly
-  {
-    .topology = GFX::PrimitiveTopology::TRIANGLE_LIST,
-    .primitiveRestartEnable = false,
-  };
-
   GFX::VertexInputBindingDescription descPos
   {
     .location = 0,
@@ -167,10 +162,13 @@ GFX::GraphicsPipeline CreateScenePipeline()
     .format = GFX::Format::R32G32_FLOAT,
     .offset = offsetof(Vertex, uv),
   };
-  GFX::VertexInputBindingDescription inputDescs[] = { descPos, descNormal, descUV };
-  GFX::VertexInputState vertexInput{ inputDescs };
 
-  GFX::RasterizationState rasterization
+  return { descPos, descNormal, descUV };
+}
+
+GFX::RasterizationState GetDefaultRasterizationState()
+{
+  return GFX::RasterizationState
   {
     .depthClampEnable = false,
     .polygonMode = GFX::PolygonMode::FILL,
@@ -180,6 +178,24 @@ GFX::GraphicsPipeline CreateScenePipeline()
     .lineWidth = 1.0f,
     .pointSize = 1.0f,
   };
+}
+
+GFX::GraphicsPipeline CreateScenePipeline()
+{
+  GLuint shader = Utility::CompileVertexFragmentProgram(
+    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
+    Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
+
+  GFX::InputAssemblyState inputAssembly
+  {
+    .topology = GFX::PrimitiveTopology::TRIANGLE_LIST,
+    .primitiveRestartEnable = false,
+  };
+
+  auto inputDescs = GetSceneInputBindingDescs();
+  GFX::VertexInputState vertexInput{ inputDescs };
+
+  auto rasterization = GetDefaultRasterizationState();
 
   GFX::DepthStencilState depthStencil
   {
@@ -191,6 +207,68 @@ GFX::GraphicsPipeline CreateScenePipeline()
   GFX::ColorBlendAttachmentState colorBlendAttachment
   {
     .blendEnable = true,
+    .srcColorBlendFactor = GFX::BlendFactor::ONE,
+    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
+    .colorBlendOp = GFX::BlendOp::ADD,
+    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
+    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
+    .alphaBlendOp = GFX::BlendOp::ADD,
+    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
+  };
+  GFX::ColorBlendState colorBlend
+  {
+    .logicOpEnable = false,
+    .logicOp{},
+    .attachments = { &colorBlendAttachment, 1 },
+    .blendConstants = {},
+  };
+
+  GFX::GraphicsPipelineInfo pipelineInfo
+  {
+    .shaderProgram = shader,
+    .inputAssemblyState = inputAssembly,
+    .vertexInputState = vertexInput,
+    .rasterizationState = rasterization,
+    .depthStencilState = depthStencil,
+    .colorBlendState = colorBlend
+  };
+
+  auto pipeline = GFX::CompileGraphicsPipeline(pipelineInfo);
+  if (!pipeline)
+    throw std::exception("Invalid pipeline");
+  return *pipeline;
+}
+
+GFX::GraphicsPipeline CreateShadowPipeline()
+{
+  GLuint shader = Utility::CompileVertexFragmentProgram(
+    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
+    Utility::LoadFile("shaders/RSMScene.frag.glsl"));
+
+  GFX::InputAssemblyState inputAssembly
+  {
+    .topology = GFX::PrimitiveTopology::TRIANGLE_LIST,
+    .primitiveRestartEnable = false,
+  };
+
+  auto inputDescs = GetSceneInputBindingDescs();
+  GFX::VertexInputState vertexInput{ inputDescs };
+
+  auto rasterization = GetDefaultRasterizationState();
+  rasterization.depthBiasEnable = true;
+  rasterization.depthBiasConstantFactor = 0;
+  rasterization.depthBiasSlopeFactor = 3;
+
+  GFX::DepthStencilState depthStencil
+  {
+    .depthTestEnable = true,
+    .depthWriteEnable = true,
+    .depthCompareOp = GFX::CompareOp::LESS,
+  };
+
+  GFX::ColorBlendAttachmentState colorBlendAttachment
+  {
+    .blendEnable = false,
     .srcColorBlendFactor = GFX::BlendFactor::ONE,
     .dstColorBlendFactor = GFX::BlendFactor::ZERO,
     .colorBlendOp = GFX::BlendOp::ADD,
@@ -237,16 +315,8 @@ GFX::GraphicsPipeline CreateShadingPipeline()
 
   GFX::VertexInputState vertexInput{};
 
-  GFX::RasterizationState rasterization
-  {
-    .depthClampEnable = false,
-    .polygonMode = GFX::PolygonMode::FILL,
-    .cullMode = GFX::CullMode::NONE,
-    .frontFace = GFX::FrontFace::COUNTERCLOCKWISE,
-    .depthBiasEnable = false,
-    .lineWidth = 1.0f,
-    .pointSize = 1.0f,
-  };
+  auto rasterization = GetDefaultRasterizationState();
+  rasterization.cullMode = GFX::CullMode::NONE;
 
   GFX::DepthStencilState depthStencil
   {
@@ -319,12 +389,23 @@ void RenderScene()
   glfwSetCursorPosCallback(window, CursorPosCallback);
   glEnable(GL_FRAMEBUFFER_SRGB);
 
-  GFX::Viewport viewport
+  GFX::Viewport mainViewport
   {
     .drawRect
     {
       .offset = { 0, 0 },
-      .extent = { 1280, 720 }
+      .extent = { gWindowWidth, gWindowHeight }
+    },
+    .minDepth = 0.0f,
+    .maxDepth = 1.0f,
+  };
+
+  GFX::Viewport rsmViewport
+  {
+    .drawRect
+    {
+      .offset = { 0, 0 },
+      .extent = { gShadowmapWidth, gShadowmapHeight }
     },
     .minDepth = 0.0f,
     .maxDepth = 1.0f,
@@ -332,43 +413,78 @@ void RenderScene()
 
   GFX::SwapchainRenderInfo swapchainRenderingInfo
   {
-    .viewport = &viewport,
+    .viewport = &mainViewport,
     .clearColorOnLoad = false,
     .clearColorValue = GFX::ClearColorValue {.f = { .0, .0, .0, 1.0 }},
     .clearDepthOnLoad = false,
     .clearStencilOnLoad = false,
   };
 
+  // create gbuffer textures and render info
   auto gcolorTex = GFX::CreateTexture2D({ gWindowWidth, gWindowHeight }, GFX::Format::R8G8B8A8_UNORM);
   auto gnormalTex = GFX::CreateTexture2D({ gWindowWidth, gWindowHeight }, GFX::Format::R16G16B16_SNORM);
-  auto gdepthTex = GFX::CreateTexture2D({ gWindowWidth, gWindowHeight }, GFX::Format::D24_UNORM);
+  auto gdepthTex = GFX::CreateTexture2D({ gWindowWidth, gWindowHeight }, GFX::Format::D32_UNORM);
   auto gcolorTexView = gcolorTex->View();
   auto gnormalTexView = gnormalTex->View();
   auto gdepthTexView = gdepthTex->View();
-  GFX::RenderAttachment colorAttachment
+  GFX::RenderAttachment gcolorAttachment
   {
     .textureView = &gcolorTexView.value(),
     .clearValue = GFX::ClearValue{.color{.f{ .1, .3, .5, 0 } } },
     .clearOnLoad = true
   };
-  GFX::RenderAttachment normalAttachment
+  GFX::RenderAttachment gnormalAttachment
   {
     .textureView = &gnormalTexView.value(),
     .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = true
   };
-  GFX::RenderAttachment depthAttachment
+  GFX::RenderAttachment gdepthAttachment
   {
     .textureView = &gdepthTexView.value(),
     .clearValue = GFX::ClearValue{.depthStencil{.depth = 1.0f } },
     .clearOnLoad = true
   };
-  GFX::RenderAttachment cAttachments[] = { colorAttachment, normalAttachment };
+  GFX::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
   GFX::RenderInfo gbufferRenderInfo
   {
-    .viewport = &viewport,
-    .colorAttachments = cAttachments,
-    .depthAttachment = &depthAttachment,
+    .viewport = &mainViewport,
+    .colorAttachments = cgAttachments,
+    .depthAttachment = &gdepthAttachment,
+    .stencilAttachment = nullptr
+  };
+
+  // create RSM textures and render info
+  auto rfluxTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::R11G11B10_FLOAT);
+  auto rnormalTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::R16G16B16_SNORM);
+  auto rdepthTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::D32_UNORM);
+  auto rfluxTexView = rfluxTex->View();
+  auto rnormalTexView = rnormalTex->View();
+  auto rdepthTexView = rdepthTex->View();
+  GFX::RenderAttachment rcolorAttachment
+  {
+    .textureView = &rfluxTexView.value(),
+    .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 1, 0 } } },
+    .clearOnLoad = true
+  };
+  GFX::RenderAttachment rnormalAttachment
+  {
+    .textureView = &rnormalTexView.value(),
+    .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
+    .clearOnLoad = true
+  };
+  GFX::RenderAttachment rdepthAttachment
+  {
+    .textureView = &rdepthTexView.value(),
+    .clearValue = GFX::ClearValue{.depthStencil{.depth = 1.0f } },
+    .clearOnLoad = true
+  };
+  GFX::RenderAttachment crAttachments[] = { rcolorAttachment, rnormalAttachment };
+  GFX::RenderInfo rsmRenderInfo
+  {
+    .viewport = &rsmViewport,
+    .colorAttachments = crAttachments,
+    .depthAttachment = &rdepthAttachment,
     .stencilAttachment = nullptr
   };
 
@@ -376,22 +492,43 @@ void RenderScene()
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
   std::vector<glm::mat4> objectUniforms;
-  for (int i = 0; i < 5; i++)
+  std::pair<glm::vec3, glm::vec3> transforms[]{
+    { { 0, .5, -1 }, { 3, 1, 1 } },
+    { { -1, .5, 0 }, { 1, 1, 1 } },
+    { { 1, .5, 0 }, { 1, 1, 1 } },
+    { { 0, -.5, -.5 }, { 3, 1, 2 } },
+    { { 0, 1.5, -.5 }, { 3, 1, 2 } },
+    { { 0, .25, 0 }, { .25, .5, .25 } },
+  };
+  for (const auto& [translation, scale] : transforms)
   {
     glm::mat4 model{ 1 };
-    model = glm::translate(model, { 2 * i, 0, -1 });
-    model = glm::scale(model, glm::vec3{ 1.0f + i * .2f });
+    model = glm::translate(model, translation);
+    model = glm::scale(model, scale);
     objectUniforms.push_back(model);
   }
+
+  ShadingUniforms shadingUniforms
+  {
+    .sunDir = glm::normalize(glm::vec4{ -.1, -1, -.6, 0 }),
+    .sunStrength = glm::vec4{ 1, 1, 1, 0 }
+  };
+
+  GlobalUniforms globalUniforms;
 
   auto vertexBuffer = GFX::Buffer::Create(gCubeVertices);
   auto indexBuffer = GFX::Buffer::Create(gCubeIndices);
   auto objectBuffer = GFX::Buffer::Create(std::span(objectUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
-  auto globalUniforms = GFX::Buffer::Create(sizeof(glm::mat4), GFX::BufferFlag::DYNAMIC_STORAGE);
+  auto globalUniformsBuffer = GFX::Buffer::Create(sizeof(globalUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
+  auto shadingUniformsBuffer = GFX::Buffer::Create(shadingUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
   
-  auto sampler = GFX::TextureSampler::Create({});
+  GFX::SamplerState ss;
+  ss.asBitField.minFilter = GFX::Filter::NEAREST;
+  ss.asBitField.magFilter = GFX::Filter::NEAREST;
+  auto sampler = GFX::TextureSampler::Create(ss);
 
   GFX::GraphicsPipeline scenePipeline = CreateScenePipeline();
+  GFX::GraphicsPipeline rsmPipeline = CreateShadowPipeline();
   GFX::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
 
   View camera;
@@ -428,28 +565,69 @@ void RenderScene()
     camera.pitch += gCursorOffsetY * gSensitivity;
     camera.pitch = glm::clamp(camera.pitch, -glm::half_pi<float>() + 1e-4f, glm::half_pi<float>() - 1e-4f);
 
-    for (size_t i = 0; i < objectUniforms.size(); i++)
-    {
-      objectUniforms[i] = glm::rotate(objectUniforms[i], dt, { 0, 1, 0 });
-    }
-    objectBuffer->SubData(std::span(objectUniforms), 0);
+    //for (size_t i = 0; i < objectUniforms.size(); i++)
+    //{
+    //  objectUniforms[i] = glm::rotate(objectUniforms[i], dt, { 0, 1, 0 });
+    //}
+    //objectBuffer->SubData(std::span(objectUniforms), 0);
 
     glm::mat4 viewProj = proj * camera.GetViewMatrix();
-    globalUniforms->SubData(viewProj, 0);
+    globalUniformsBuffer->SubData(viewProj, 0);
 
+    glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
+    float eyeWidth = 2.5f;
+    shadingUniforms.viewPos = glm::vec4(camera.position, 0);
+    shadingUniforms.sunViewProj = 
+      glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 10.f) *
+      glm::lookAt(eye, glm::vec3(0), glm::vec3{ 0, 1, 0 });
+    shadingUniformsBuffer->SubData(shadingUniforms, 0);
+
+    // geometry buffer pass
     GFX::BeginRendering(gbufferRenderInfo);
     GFX::Cmd::BindGraphicsPipeline(scenePipeline);
     GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
     GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-    GFX::Cmd::BindUniformBuffer(0, *globalUniforms, 0, globalUniforms->Size());
+    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
     GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
     GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
     GFX::EndRendering();
 
+    globalUniformsBuffer->SubData(shadingUniforms.sunViewProj, 0);
+
+    // shadow map (RSM) pass
+    GFX::BeginRendering(rsmRenderInfo);
+    GFX::Cmd::BindGraphicsPipeline(rsmPipeline);
+    GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
+    GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
+    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+    GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
+    GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+    GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+    GFX::EndRendering();
+
+    globalUniformsBuffer->SubData(viewProj, 0);
+    globalUniformsBuffer->SubData(glm::inverse(viewProj), sizeof(glm::mat4));
+
+    // shading pass (full screen tri)
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
     GFX::Cmd::BindGraphicsPipeline(shadingPipeline);
     GFX::Cmd::BindSampledImage(0, *gcolorTexView, *sampler);
+    GFX::Cmd::BindSampledImage(1, *gnormalTexView, *sampler);
+    GFX::Cmd::BindSampledImage(2, *gdepthTexView, *sampler);
+    GFX::Cmd::BindSampledImage(3, *rfluxTexView, *sampler);
+    GFX::Cmd::BindSampledImage(4, *rnormalTexView, *sampler);
+    GFX::Cmd::BindSampledImage(5, *rdepthTexView, *sampler);
+    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+    GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
     GFX::Cmd::Draw(3, 1, 0, 0);
+
+    //if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+    //{
+    //  GFX::Cmd::BindGraphicsPipeline(...);
+    //  GFX::Cmd::SetViewport(rsmViewport);
+    //  GFX::Cmd::BindSampledImage(0, *rfluxTexView, *sampler);
+    //  GFX::Cmd::Draw(3, 1, 0, 0);
+    //}
     GFX::EndRendering();
 
     glfwSwapBuffers(window);

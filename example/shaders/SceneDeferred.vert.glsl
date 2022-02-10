@@ -22,7 +22,7 @@ void main()
 {
   int i = gl_InstanceID;
   v_position = (objects[i] * vec4(a_pos, 1.0)).xyz;
-  v_normal = (objects[i] * vec4(a_normal, 0.0)).xyz;
+  v_normal = normalize(inverse(transpose(mat3(objects[i]))) * a_normal);
   v_uv = a_uv;
   gl_Position = viewProj * vec4(v_position, 1.0);
 }
