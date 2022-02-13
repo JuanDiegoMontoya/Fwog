@@ -6,6 +6,7 @@ layout(location = 1) out vec3 o_normal;
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec2 v_uv;
+layout(location = 3) in vec3 v_color;
 
 layout(binding = 1, std140) uniform UBO1
 {
@@ -17,6 +18,6 @@ layout(binding = 1, std140) uniform UBO1
 
 void main()
 {
-  o_flux = vec3(v_uv, 0) * shadingUniforms.sunStrength.rgb;
-  o_normal = v_normal;
+  o_normal = normalize(v_normal);
+  o_flux = v_color * shadingUniforms.sunStrength.rgb;
 }

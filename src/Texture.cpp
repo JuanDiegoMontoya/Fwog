@@ -293,6 +293,16 @@ namespace GFX
       return;
     }
 
+    if (state.asBitField.compareEnable != samplerState_.asBitField.compareEnable || force)
+    {
+      glSamplerParameteri(id_, GL_TEXTURE_COMPARE_MODE, state.asBitField.compareEnable ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+    }
+
+    if (state.asBitField.compareOp != samplerState_.asBitField.compareOp || force)
+    {
+      glSamplerParameteri(id_, GL_TEXTURE_COMPARE_FUNC, detail::CompareOpToGL(state.asBitField.compareOp));
+    }
+
     if (state.asBitField.magFilter != samplerState_.asBitField.magFilter || force)
     {
       GLint filter = state.asBitField.magFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;

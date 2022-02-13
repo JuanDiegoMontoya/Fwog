@@ -1,6 +1,5 @@
 #include "common.h"
 #include <exception>
-#include <format>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -134,7 +133,7 @@ namespace Utility
 
     glfwSetErrorCallback([](int, const char* desc)
       {
-        std::cout << std::format("GLFW error: {}\n", desc);
+        std::cout << "GLFW error: " << desc << '\n';
       });
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);

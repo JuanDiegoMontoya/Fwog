@@ -55,6 +55,8 @@ namespace GFX
         AddressMode addressModeW : 3 = AddressMode::CLAMP_TO_EDGE;
         BorderColor borderColor  : 3 = BorderColor::INT_OPAQUE_WHITE;
         SampleCount anisotropy   : 3 = SampleCount::SAMPLES_1;
+        bool compareEnable       : 1 = false;
+        CompareOp compareOp      : 3 = CompareOp::NEVER;
       }asBitField{};
       uint32_t asUint32;
     };
@@ -62,8 +64,6 @@ namespace GFX
     float lodBias{ 0 };
     float minLod{ -1000 };
     float maxLod{ 1000 };
-    // TODO: maybe add this later
-    //CompareOp compareOp;
   };
 
   // serves as lightweight view of an image, cheap to construct, copy, and meant to be passed around

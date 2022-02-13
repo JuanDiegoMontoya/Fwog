@@ -45,6 +45,12 @@ struct View
   }
 };
 
+struct ObjectUniforms
+{
+  glm::mat4 model;
+  glm::vec4 color;
+};
+
 struct Vertex
 {
   glm::vec3 position;
@@ -52,12 +58,13 @@ struct Vertex
   glm::vec2 uv;
 };
 
-struct ShadingUniforms
+struct alignas(16) ShadingUniforms
 {
   glm::vec4 viewPos;
   glm::mat4 sunViewProj;
   glm::vec4 sunDir;
   glm::vec4 sunStrength;
+  float rMax;
 };
 
 struct GlobalUniforms
@@ -75,8 +82,8 @@ float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
 
-constexpr int gShadowmapWidth = 1024;
-constexpr int gShadowmapHeight = 1024;
+constexpr int gShadowmapWidth = 2048;
+constexpr int gShadowmapHeight = 2048;
 
 std::array<Vertex, 24> gCubeVertices
 {
@@ -456,15 +463,15 @@ void RenderScene()
 
   // create RSM textures and render info
   auto rfluxTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::R11G11B10_FLOAT);
-  auto rnormalTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::R16G16B16_SNORM);
-  auto rdepthTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::D32_UNORM);
+  auto rnormalTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::R11G11B10_FLOAT);
+  auto rdepthTex = GFX::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, GFX::Format::D16_UNORM);
   auto rfluxTexView = rfluxTex->View();
   auto rnormalTexView = rnormalTex->View();
   auto rdepthTexView = rdepthTex->View();
   GFX::RenderAttachment rcolorAttachment
   {
     .textureView = &rfluxTexView.value(),
-    .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 1, 0 } } },
+    .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = true
   };
   GFX::RenderAttachment rnormalAttachment
@@ -491,27 +498,28 @@ void RenderScene()
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
-  std::vector<glm::mat4> objectUniforms;
-  std::pair<glm::vec3, glm::vec3> transforms[]{
-    { { 0, .5, -1 }, { 3, 1, 1 } },
-    { { -1, .5, 0 }, { 1, 1, 1 } },
-    { { 1, .5, 0 }, { 1, 1, 1 } },
-    { { 0, -.5, -.5 }, { 3, 1, 2 } },
-    { { 0, 1.5, -.5 }, { 3, 1, 2 } },
-    { { 0, .25, 0 }, { .25, .5, .25 } },
+  std::vector<ObjectUniforms> objectUniforms;
+  std::tuple<glm::vec3, glm::vec3, glm::vec3> objects[]{
+    { { 0, .5, -1 },   { 3, 1, 1 },      { .5, .5, .5 } },
+    { { -1, .5, 0 },   { 1, 1, 1 },      { .1, .1, .9 } },
+    { { 1, .5, 0 },    { 1, 1, 1 },      { .1, .1, .9 } },
+    { { 0, -.5, -.5 }, { 3, 1, 2 },      { .5, .5, .5 } },
+    { { 0, 1.5, -.5 }, { 3, 1, 2 },      { .2, .7, .2 } },
+    { { 0, .25, 0 },   { .25, .5, .25 }, { .5, .1, .1 } },
   };
-  for (const auto& [translation, scale] : transforms)
+  for (const auto& [translation, scale, color] : objects)
   {
     glm::mat4 model{ 1 };
     model = glm::translate(model, translation);
     model = glm::scale(model, scale);
-    objectUniforms.push_back(model);
+    objectUniforms.push_back({ model, glm::vec4{ color, 0.0f } });
   }
 
   ShadingUniforms shadingUniforms
   {
-    .sunDir = glm::normalize(glm::vec4{ -.1, -1, -.6, 0 }),
-    .sunStrength = glm::vec4{ 1, 1, 1, 0 }
+    .sunDir = glm::normalize(glm::vec4{ -.1, -.3, -.6, 0 }),
+    .sunStrength = glm::vec4{ 2, 2, 2, 0 },
+    .rMax = 0.08,
   };
 
   GlobalUniforms globalUniforms;
@@ -521,18 +529,40 @@ void RenderScene()
   auto objectBuffer = GFX::Buffer::Create(std::span(objectUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
   auto globalUniformsBuffer = GFX::Buffer::Create(sizeof(globalUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
   auto shadingUniformsBuffer = GFX::Buffer::Create(shadingUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
-  
+
   GFX::SamplerState ss;
   ss.asBitField.minFilter = GFX::Filter::NEAREST;
   ss.asBitField.magFilter = GFX::Filter::NEAREST;
-  auto sampler = GFX::TextureSampler::Create(ss);
+  ss.asBitField.addressModeU = GFX::AddressMode::REPEAT;
+  ss.asBitField.addressModeV = GFX::AddressMode::REPEAT;
+  auto nearestSampler = GFX::TextureSampler::Create(ss);
+
+  ss.asBitField.minFilter = GFX::Filter::LINEAR;
+  ss.asBitField.magFilter = GFX::Filter::LINEAR;
+  ss.asBitField.borderColor = GFX::BorderColor::FLOAT_TRANSPARENT_BLACK;
+  ss.asBitField.addressModeU = GFX::AddressMode::CLAMP_TO_BORDER;
+  ss.asBitField.addressModeV = GFX::AddressMode::CLAMP_TO_BORDER;
+  auto rsmColorSampler = GFX::TextureSampler::Create(ss);
+
+  ss.asBitField.minFilter = GFX::Filter::NEAREST;
+  ss.asBitField.magFilter = GFX::Filter::NEAREST;
+  ss.asBitField.borderColor = GFX::BorderColor::FLOAT_TRANSPARENT_BLACK;
+  ss.asBitField.addressModeU = GFX::AddressMode::CLAMP_TO_BORDER;
+  ss.asBitField.addressModeV = GFX::AddressMode::CLAMP_TO_BORDER;
+  auto rsmDepthSampler = GFX::TextureSampler::Create(ss);
+
+  ss.asBitField.compareEnable = true;
+  ss.asBitField.compareOp = GFX::CompareOp::LESS;
+  ss.asBitField.minFilter = GFX::Filter::LINEAR;
+  ss.asBitField.magFilter = GFX::Filter::LINEAR;
+  auto rsmShadowSampler = GFX::TextureSampler::Create(ss);
 
   GFX::GraphicsPipeline scenePipeline = CreateScenePipeline();
   GFX::GraphicsPipeline rsmPipeline = CreateShadowPipeline();
   GFX::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
 
   View camera;
-  camera.position = { 0, 0, 1 };
+  camera.position = { 0, .5, 1 };
   camera.yaw = -glm::half_pi<float>();
 
   float prevFrame = glfwGetTime();
@@ -567,9 +597,30 @@ void RenderScene()
 
     //for (size_t i = 0; i < objectUniforms.size(); i++)
     //{
-    //  objectUniforms[i] = glm::rotate(objectUniforms[i], dt, { 0, 1, 0 });
+    //  objectUniforms[i].model = glm::rotate(objectUniforms[i].model, dt, { 0, 1, 0 });
     //}
     //objectBuffer->SubData(std::span(objectUniforms), 0);
+
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+    {
+      shadingUniforms.rMax -= .15 * dt;
+      printf("rMax: %f\n", shadingUniforms.rMax);
+    }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+    {
+      shadingUniforms.rMax += .15 * dt;
+      printf("rMax: %f\n", shadingUniforms.rMax);
+    }
+    shadingUniforms.rMax = glm::clamp(shadingUniforms.rMax, 0.02f, 0.3f);
+
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+    {
+      shadingUniforms.sunDir = glm::rotate(glm::quarter_pi<float>() * dt, glm::vec3{ 0, 1, 0 }) * shadingUniforms.sunDir;
+    }
+    if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
+    {
+      shadingUniforms.sunDir = glm::rotate(glm::quarter_pi<float>() * dt, glm::vec3{ 0, -1, 0 }) * shadingUniforms.sunDir;
+    }
 
     glm::mat4 viewProj = proj * camera.GetViewMatrix();
     globalUniformsBuffer->SubData(viewProj, 0);
@@ -577,7 +628,7 @@ void RenderScene()
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
     float eyeWidth = 2.5f;
     shadingUniforms.viewPos = glm::vec4(camera.position, 0);
-    shadingUniforms.sunViewProj = 
+    shadingUniforms.sunViewProj =
       glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 10.f) *
       glm::lookAt(eye, glm::vec3(0), glm::vec3{ 0, 1, 0 });
     shadingUniformsBuffer->SubData(shadingUniforms, 0);
@@ -611,12 +662,13 @@ void RenderScene()
     // shading pass (full screen tri)
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
     GFX::Cmd::BindGraphicsPipeline(shadingPipeline);
-    GFX::Cmd::BindSampledImage(0, *gcolorTexView, *sampler);
-    GFX::Cmd::BindSampledImage(1, *gnormalTexView, *sampler);
-    GFX::Cmd::BindSampledImage(2, *gdepthTexView, *sampler);
-    GFX::Cmd::BindSampledImage(3, *rfluxTexView, *sampler);
-    GFX::Cmd::BindSampledImage(4, *rnormalTexView, *sampler);
-    GFX::Cmd::BindSampledImage(5, *rdepthTexView, *sampler);
+    GFX::Cmd::BindSampledImage(0, *gcolorTexView, *nearestSampler);
+    GFX::Cmd::BindSampledImage(1, *gnormalTexView, *nearestSampler);
+    GFX::Cmd::BindSampledImage(2, *gdepthTexView, *nearestSampler);
+    GFX::Cmd::BindSampledImage(3, *rfluxTexView, *rsmColorSampler);
+    GFX::Cmd::BindSampledImage(4, *rnormalTexView, *rsmColorSampler);
+    GFX::Cmd::BindSampledImage(5, *rdepthTexView, *rsmDepthSampler);
+    GFX::Cmd::BindSampledImage(6, *rdepthTexView, *rsmShadowSampler);
     GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
     GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
     GFX::Cmd::Draw(3, 1, 0, 0);
