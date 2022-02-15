@@ -54,7 +54,16 @@ namespace GFX::detail
         return g.id;
       }
     };
-    std::unordered_map<GraphicsPipeline, GraphicsPipelineInfoOwning, GraphicsPipelineHash> gPipelines;
+    struct ComputePipelineHash
+    {
+      size_t operator()(const ComputePipeline& p) const
+      {
+        return p.id;
+      }
+    };
+
+    std::unordered_map<GraphicsPipeline, GraphicsPipelineInfoOwning, GraphicsPipelineHash> gGraphicsPipelines;
+    std::unordered_map<ComputePipeline, ComputePipelineInfo, ComputePipelineHash> gComputePipelines;
 
     GraphicsPipeline HashPipelineInfo(const GraphicsPipelineInfo& info)
     {
@@ -137,19 +146,19 @@ namespace GFX::detail
   std::optional<GraphicsPipeline> CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
     auto pipeline = HashPipelineInfo(info);
-    if (auto it = gPipelines.find(pipeline); it != gPipelines.end())
+    if (auto it = gGraphicsPipelines.find(pipeline); it != gGraphicsPipelines.end())
     {
       return it->first;
     }
 
     auto owning = MakePipelineInfoOwning(info);
-    gPipelines.insert({ pipeline, owning });
+    gGraphicsPipelines.insert({ pipeline, owning });
     return pipeline;
   }
 
   const GraphicsPipelineInfoOwning* GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
-    if (auto it = gPipelines.find(pipeline); it != gPipelines.end())
+    if (auto it = gGraphicsPipelines.find(pipeline); it != gGraphicsPipelines.end())
     {
       return &it->second;
     }
@@ -158,13 +167,46 @@ namespace GFX::detail
 
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
-    auto it = gPipelines.find(pipeline);
-    if (it == gPipelines.end())
+    auto it = gGraphicsPipelines.find(pipeline);
+    if (it == gGraphicsPipelines.end())
     {
       return false;
     }
 
-    gPipelines.erase(it);
+    gGraphicsPipelines.erase(it);
+    return true;
+  }
+
+  std::optional<ComputePipeline> CompileComputePipelineInternal(const ComputePipelineInfo& info)
+  {
+    ComputePipeline pipeline = { std::hash<decltype(info.shaderProgram)>{}(info.shaderProgram) };
+    if (auto it = gComputePipelines.find(pipeline); it != gComputePipelines.end())
+    {
+      return it->first;
+    }
+    
+    gComputePipelines.insert({ pipeline, info });
+    return pipeline;
+  }
+
+  const ComputePipelineInfo* GetComputePipelineInternal(ComputePipeline pipeline)
+  {
+    if (auto it = gComputePipelines.find(pipeline); it != gComputePipelines.end())
+    {
+      return &it->second;
+    }
+    return nullptr;
+  }
+
+  bool DestroyComputePipelineInternal(ComputePipeline pipeline)
+  {
+    auto it = gComputePipelines.find(pipeline);
+    if (it == gComputePipelines.end())
+    {
+      return false;
+    }
+
+    gComputePipelines.erase(it);
     return true;
   }
 }

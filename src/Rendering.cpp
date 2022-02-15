@@ -26,6 +26,7 @@ namespace GFX
   // since only one rendering instance can be active at a time, we store some state here
   namespace
   {
+    bool isComputeActive = false;
     bool isRendering = false;
     bool isPipelineBound = false;
     bool isIndexBufferBound = false;
@@ -42,6 +43,7 @@ namespace GFX
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
   {
     GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
+    GSDF_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
     isRendering = true;
     sLastRenderInfo = nullptr;
 
@@ -79,6 +81,7 @@ namespace GFX
   void BeginRendering(const RenderInfo& renderInfo)
   {
     GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
+    GSDF_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
     isRendering = true;
 
     //if (sLastRenderInfo == &renderInfo)
@@ -168,10 +171,24 @@ namespace GFX
     isIndexBufferBound = false;
   }
 
+  void BeginCompute()
+  {
+    GSDF_ASSERT(!isComputeActive);
+    GSDF_ASSERT(!isRendering && "Cannot nest compute and rendering");
+    isComputeActive = true;
+  }
+
+  void EndCompute()
+  {
+    GSDF_ASSERT(isComputeActive);
+    isComputeActive = false;
+  }
+
   namespace Cmd
   {
     void BindGraphicsPipeline(GraphicsPipeline pipeline)
     {
+      GSDF_ASSERT(isRendering);
       isPipelineBound = true;
 
       auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
@@ -273,9 +290,20 @@ namespace GFX
           (cba.colorWriteMask & ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
       }
     }
+
+    void BindComputePipeline(ComputePipeline pipeline)
+    {
+      GSDF_ASSERT(isComputeActive);
+
+      auto pipelineState = detail::GetComputePipelineInternal(pipeline);
+      assert(pipelineState);
+
+      glUseProgram(pipelineState->shaderProgram);
+    }
     
     void SetViewport(const Viewport& viewport)
     {
+      GSDF_ASSERT(isRendering);
       glViewport(viewport.drawRect.offset.x, viewport.drawRect.offset.y,
         viewport.drawRect.extent.width, viewport.drawRect.extent.height);
       glDepthRangef(viewport.minDepth, viewport.maxDepth);
@@ -321,28 +349,38 @@ namespace GFX
 
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
-      GSDF_ASSERT(isRendering);
+      GSDF_ASSERT(isRendering || isComputeActive);
       glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
-      GSDF_ASSERT(isRendering);
+      GSDF_ASSERT(isRendering || isComputeActive);
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler)
     {
-      GSDF_ASSERT(isRendering);
+      GSDF_ASSERT(isRendering || isComputeActive);
       glBindTextureUnit(index, textureView.Handle());
       glBindSampler(index, sampler.Handle());
     }
 
     void BindImage(uint32_t index, const TextureView& textureView, uint32_t level)
     {
-      GSDF_ASSERT(isRendering);
+      GSDF_ASSERT(isRendering || isComputeActive);
       GSDF_ASSERT(level < textureView.CreateInfo().numLevels);
       glBindImageTexture(index, textureView.Handle(), level, GL_TRUE, 0, GL_READ_WRITE, detail::FormatToGL(textureView.CreateInfo().format));
+    }
+
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    {
+      glDispatchCompute(groupCountX, groupCountY, groupCountZ);
+    }
+
+    void MemoryBarrier(MemoryBarrierAccessBits accessBits)
+    {
+      glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
     }
   }
 }

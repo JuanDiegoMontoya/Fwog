@@ -103,4 +103,7 @@ namespace GFX
 
   std::optional<GraphicsPipeline> CompileGraphicsPipeline(const GraphicsPipelineInfo& info);
   bool DestroyGraphicsPipeline(GraphicsPipeline pipeline);
+
+  std::optional<ComputePipeline> CompileComputePipeline(const ComputePipelineInfo& info);
+  bool DestroyComputePipeline(ComputePipeline pipeline);
 }

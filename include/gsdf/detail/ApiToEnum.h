@@ -60,4 +60,6 @@ namespace GFX::detail
   GLenum IndexTypeToGL(IndexType type);
 
   GLenum CompareOpToGL(CompareOp op);
+
+  GLbitfield BarrierBitsToGL(MemoryBarrierAccessBits bits);
 }

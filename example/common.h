@@ -11,6 +11,7 @@ namespace Utility
   GLuint CompileShader(GLenum stage, std::string_view source);
   void LinkProgram(GLuint program);
   GLuint CompileVertexFragmentProgram(std::string_view vs, std::string_view fs);
+  GLuint CompileComputeProgram(std::string_view cs);
 
   struct WindowCreateInfo
   {
