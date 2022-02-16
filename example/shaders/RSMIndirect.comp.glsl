@@ -22,8 +22,9 @@ layout(binding = 1, std140) uniform RSMUniforms
 {
   mat4 sunViewProj;
   mat4 invSunViewProj;
-  ivec2 targetDim;
-  float rMax;
+  ivec2 targetDim; // input and output texture dimensions
+  float rMax;      // max radius for which indirect lighting will be considered
+  int currentPass; // used to determine which pixels to shade
 }rsm;
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
@@ -59,7 +60,7 @@ vec3 ComputeIndirectIrradiance(vec3 albedo, vec3 normal, vec3 worldPos)
   const vec4 rsmClip = rsm.sunViewProj * vec4(worldPos, 1.0);
   const vec2 rsmUV = (rsmClip.xy / rsmClip.w) * .5 + .5;
 
-  const int SAMPLES = 600;
+  const int SAMPLES = 1200;
   for (int i = 0; i < SAMPLES; i++)
   {
     vec2 xi = Hammersley(i, SAMPLES);
@@ -82,6 +83,16 @@ layout(local_size_x = 8, local_size_y = 8) in;
 void main()
 {
   ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+
+  gid *= 2;
+
+  if (rsm.currentPass == 1)
+    gid++;
+  if (rsm.currentPass == 2)
+    gid.x++;
+  if (rsm.currentPass == 3)
+    gid.y++;
+
   if (any(greaterThanEqual(gid, rsm.targetDim)))
     return;
   vec2 texel = 1.0 / rsm.targetDim;
@@ -97,7 +108,66 @@ void main()
     imageStore(i_outIndirect, gid, vec4(0.0));
     return;
   }
-  vec3 ambient = ComputeIndirectIrradiance(albedo, normal, worldPos);
+
+  vec3 ambient = vec3(0);
+
+  if (rsm.currentPass == 0)
+  {
+    ambient = ComputeIndirectIrradiance(albedo, normal, worldPos);
+  }
+  else
+  {
+    // look at corners and identify if any two opposing ones can be interpolated
+    ivec2 offsets[4];
+    if (rsm.currentPass == 1)
+    {
+      offsets = ivec2[4](
+        ivec2(-1, 1),
+        ivec2( 1, 1),
+        ivec2(-1,-1),
+        ivec2( 1,-1));
+    }
+    else if (rsm.currentPass > 1)
+    {
+      offsets = ivec2[4](
+        ivec2( 0, 1),
+        ivec2( 0,-1),
+        ivec2(-1, 0),
+        ivec2( 1, 0));
+    }
+
+    float accum_weight = 0;
+    vec3 accum_color = vec3(0);
+    for (int i = 0; i < 4; i++)
+    {
+      ivec2 corner = gid + offsets[i];
+      if (any(greaterThanEqual(corner, rsm.targetDim)) || any(lessThan(corner, ivec2(0))))
+        continue;
+
+      vec3 c = texelFetch(s_inIndirect, corner, 0).rgb;
+      
+      vec3 n = texelFetch(s_gNormal, corner, 0).xyz;
+      vec3 dn = normal - n;
+      float n_weight = exp(-dot(dn, dn) / 1.0);
+
+      vec3 p = UnprojectUV(texelFetch(s_gDepth, corner, 0).x, uv + vec2(offsets[i]) * texel, invViewProj);
+      vec3 dp = worldPos - p;
+      float p_weight = exp(-dot(dp, dp) / 0.4);
+
+      float weight = n_weight * p_weight;
+      accum_color += c * weight;
+      accum_weight += weight;
+    }
+
+    ambient = accum_color / accum_weight;
+
+    // if quality of neighbors is too low, instead compute indirect irradiance
+    if (accum_weight <= 3.0)
+    {
+      ambient = ComputeIndirectIrradiance(albedo, normal, worldPos);
+      //ambient = vec3(1, 0, 0); // debug
+    }
+  }
   
   imageStore(i_outIndirect, gid, vec4(ambient, 1.0));
 }

@@ -77,6 +77,7 @@ struct alignas(16) RSMUniforms
   glm::mat4 invSunViewProj;
   glm::ivec2 targetDim;
   float rMax;
+  int currentPass;
 };
 
 ////////////////////////////////////// Globals
@@ -511,13 +512,9 @@ void RenderScene()
     .stencilAttachment = nullptr
   };
 
-  std::optional<GFX::Texture> indirectLightingTex[2];
-  std::optional<GFX::TextureView> indirectLightingTexView[2];
-  indirectLightingTex[0] = GFX::CreateTexture2D({gWindowWidth, gWindowHeight}, GFX::Format::R16G16B16A16_FLOAT);
-  indirectLightingTex[1] = GFX::CreateTexture2D({gWindowWidth, gWindowHeight}, GFX::Format::R16G16B16A16_FLOAT);
-  indirectLightingTexView[0] = indirectLightingTex[0]->View();
-  indirectLightingTexView[1] = indirectLightingTex[1]->View();
-
+  std::optional<GFX::Texture> indirectLightingTex = GFX::CreateTexture2D({ gWindowWidth, gWindowHeight }, GFX::Format::R16G16B16A16_FLOAT);
+  std::optional<GFX::TextureView> indirectLightingTexView = indirectLightingTex->View();
+  
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
@@ -691,12 +688,11 @@ void RenderScene()
 
     rsmUniforms.sunViewProj = shadingUniforms.sunViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
-    rsmUniformBuffer->SubData(rsmUniforms, 0);
 
     // RSM indirect illumination calculation pass
     GFX::BeginCompute();
     GFX::Cmd::BindComputePipeline(rsmIndirectPipeline);
-    GFX::Cmd::BindSampledImage(0, *indirectLightingTexView[0], *nearestSampler);
+    GFX::Cmd::BindSampledImage(0, *indirectLightingTexView, *nearestSampler);
     GFX::Cmd::BindSampledImage(1, *gcolorTexView, *nearestSampler);
     GFX::Cmd::BindSampledImage(2, *gnormalTexView, *nearestSampler);
     GFX::Cmd::BindSampledImage(3, *gdepthTexView, *nearestSampler);
@@ -705,17 +701,31 @@ void RenderScene()
     GFX::Cmd::BindSampledImage(6, *rdepthTexView, *nearestSampler);
     GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
     GFX::Cmd::BindUniformBuffer(1, *rsmUniformBuffer, 0, rsmUniformBuffer->Size());
-    GFX::Cmd::BindImage(0, *indirectLightingTexView[1], 0);
+    GFX::Cmd::BindImage(0, *indirectLightingTexView, 0);
 
     const int localSize = 8;
-    const int numGroupsX = (rsmUniforms.targetDim.x + localSize - 1) / localSize;
-    const int numGroupsY = (rsmUniforms.targetDim.y + localSize - 1) / localSize;
+    const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
+    const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
+
+    rsmUniforms.currentPass = 0;
+    rsmUniformBuffer->SubData(rsmUniforms, 0);
     GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
     GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    // pass 1: compute RSM contribution on 25% check
-    // pass 2: for center texels (another 25% check), see if corner interpolation is possible, otherwise compute RSM
-    // pass 3 and 4: same as pass 2, except with edge interpolation
+    rsmUniforms.currentPass = 1;
+    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+    rsmUniforms.currentPass = 2;
+    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+    rsmUniforms.currentPass = 3;
+    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
     GFX::EndCompute();
 
     // shading pass (full screen tri)
@@ -724,7 +734,7 @@ void RenderScene()
     GFX::Cmd::BindSampledImage(0, *gcolorTexView, *nearestSampler);
     GFX::Cmd::BindSampledImage(1, *gnormalTexView, *nearestSampler);
     GFX::Cmd::BindSampledImage(2, *gdepthTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(3, *indirectLightingTexView[1], *nearestSampler);
+    GFX::Cmd::BindSampledImage(3, *indirectLightingTexView, *nearestSampler);
     GFX::Cmd::BindSampledImage(4, *rdepthTexView, *rsmShadowSampler);
     GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
     GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
