@@ -55,6 +55,7 @@ void main()
   vec3 diffuse = albedo * cosTheta * shadingUniforms.sunStrength.rgb;
   diffuse *= Shadow(shadingUniforms.sunViewProj * vec4(worldPos, 1.0));
 
+  //vec3 ambient = vec3(.03) * albedo;
   vec3 ambient = textureLod(s_rsmIndirect, v_uv, 0).rgb;
   vec3 finalColor = diffuse + ambient;
 

@@ -81,6 +81,8 @@ struct alignas(16) RSMUniforms
 };
 
 ////////////////////////////////////// Globals
+//constexpr int gWindowWidth = 1920;
+//constexpr int gWindowHeight = 1080;
 constexpr int gWindowWidth = 1280;
 constexpr int gWindowHeight = 720;
 float gPreviousCursorX = gWindowWidth / 2.0f;
@@ -461,7 +463,7 @@ void RenderScene()
   {
     .textureView = &gnormalTexView.value(),
     .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = true
+    .clearOnLoad = false
   };
   GFX::RenderAttachment gdepthAttachment
   {
@@ -489,13 +491,13 @@ void RenderScene()
   {
     .textureView = &rfluxTexView.value(),
     .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = true
+    .clearOnLoad = false
   };
   GFX::RenderAttachment rnormalAttachment
   {
     .textureView = &rnormalTexView.value(),
     .clearValue = GFX::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = true
+    .clearOnLoad = false
   };
   GFX::RenderAttachment rdepthAttachment
   {

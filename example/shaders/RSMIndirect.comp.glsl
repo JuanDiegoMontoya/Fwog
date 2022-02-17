@@ -60,7 +60,7 @@ vec3 ComputeIndirectIrradiance(vec3 albedo, vec3 normal, vec3 worldPos)
   const vec4 rsmClip = rsm.sunViewProj * vec4(worldPos, 1.0);
   const vec2 rsmUV = (rsmClip.xy / rsmClip.w) * .5 + .5;
 
-  const int SAMPLES = 600;
+  const int SAMPLES = 500;
   for (int i = 0; i < SAMPLES; i++)
   {
     vec2 xi = Hammersley(i, SAMPLES);
