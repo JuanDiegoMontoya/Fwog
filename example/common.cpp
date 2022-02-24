@@ -124,6 +124,21 @@ namespace Utility
     return program;
   }
 
+  GLuint CompileComputeProgram(std::string_view cs)
+  {
+    GLuint vertexShader = CompileShader(GL_COMPUTE_SHADER, cs);
+
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vertexShader);
+
+    try { LinkProgram(program); }
+    catch (std::runtime_error& e) { glDeleteProgram(program); throw e; }
+
+    glDeleteShader(vertexShader);
+    return program;
+  }
+
   GLFWwindow* CreateWindow(const WindowCreateInfo& createInfo)
   {
     if (!glfwInit())

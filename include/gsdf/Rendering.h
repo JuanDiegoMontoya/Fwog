@@ -68,9 +68,14 @@ namespace GFX
     const RenderAttachment* stencilAttachment;
   };
 
+  // begin or end a scope of rendering to a set of render targets
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo);
   void BeginRendering(const RenderInfo& renderInfo);
   void EndRendering();
+
+  // begin a compute scope
+  void BeginCompute();
+  void EndCompute();
 
   void BlitTexture(const TextureView& source, const TextureView& target,
     Offset3D sourceOffset, Offset3D targetOffset, Extent3D sourceExtent, Extent3D targetExtent,
@@ -80,7 +85,8 @@ namespace GFX
   namespace Cmd
   {
     void BindGraphicsPipeline(GraphicsPipeline pipeline);         // sets pipeline state
-    
+    void BindComputePipeline(ComputePipeline pipeline);
+
     // dynamic state
     //void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
     void SetViewport(const Viewport& viewport);                  // glViewport
@@ -96,9 +102,13 @@ namespace GFX
     void BindIndexBuffer(const Buffer& buffer, IndexType indexType);                                      // glVertexArrayElementBuffer
 
     // 'descriptors'
+    // valid in render and compute scopes
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
     void BindImage(uint32_t index, const TextureView& textureView, uint32_t level);                       // glBindImageTexture{s}
+  
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+    void MemoryBarrier(MemoryBarrierAccessBits accessBits);
   }
 }

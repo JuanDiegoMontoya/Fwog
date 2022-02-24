@@ -29,4 +29,8 @@ namespace GFX::detail
   std::optional<GraphicsPipeline> CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info);
   const GraphicsPipelineInfoOwning* GetGraphicsPipelineInternal(GraphicsPipeline pipeline);
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline);
+
+  std::optional<ComputePipeline> CompileComputePipelineInternal(const ComputePipelineInfo& info);
+  const ComputePipelineInfo* GetComputePipelineInternal(ComputePipeline pipeline);
+  bool DestroyComputePipelineInternal(ComputePipeline pipeline);
 }

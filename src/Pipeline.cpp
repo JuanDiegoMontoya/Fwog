@@ -12,4 +12,14 @@ namespace GFX
   {
     return detail::DestroyGraphicsPipelineInternal(pipeline);
   }
+
+  std::optional<ComputePipeline> CompileComputePipeline(const ComputePipelineInfo& info)
+  {
+    return detail::CompileComputePipelineInternal(info);
+  }
+
+  bool DestroyComputePipeline(ComputePipeline pipeline)
+  {
+    return detail::DestroyComputePipelineInternal(pipeline);
+  }
 }

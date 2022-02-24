@@ -655,4 +655,22 @@ namespace GFX::detail
     default: GSDF_UNREACHABLE; return 0;
     }
   }
+
+  GLbitfield BarrierBitsToGL(MemoryBarrierAccessBits bits)
+  {
+    GLbitfield ret = 0;
+    ret |= bits & MemoryBarrierAccessBit::VERTEX_BUFFER_BIT ? GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::INDEX_BUFFER_BIT ? GL_ELEMENT_ARRAY_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::UNIFORM_BUFFER_BIT ? GL_UNIFORM_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::TEXTURE_FETCH_BIT ? GL_TEXTURE_FETCH_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::IMAGE_ACCESS_BIT ? GL_SHADER_IMAGE_ACCESS_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::COMMAND_BUFFER_BIT ? GL_COMMAND_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::TEXTURE_UPDATE_BIT ? GL_TEXTURE_UPDATE_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::BUFFER_UPDATE_BIT ? GL_BUFFER_UPDATE_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::MAPPED_BUFFER_BIT ? GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::FRAMEBUFFER_BIT ? GL_FRAMEBUFFER_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::SHADER_STORAGE_BIT ? GL_SHADER_STORAGE_BARRIER_BIT : 0;
+    ret |= bits & MemoryBarrierAccessBit::QUERY_COUNTER_BIT ? GL_QUERY_BUFFER_BARRIER_BIT : 0;
+    return ret;
+  }
 }
