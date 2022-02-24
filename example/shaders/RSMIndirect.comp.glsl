@@ -22,9 +22,10 @@ layout(binding = 1, std140) uniform RSMUniforms
 {
   mat4 sunViewProj;
   mat4 invSunViewProj;
-  ivec2 targetDim; // input and output texture dimensions
-  float rMax;      // max radius for which indirect lighting will be considered
-  int currentPass; // used to determine which pixels to shade
+  ivec2 targetDim;  // input and output texture dimensions
+  float rMax;       // max radius for which indirect lighting will be considered
+  uint currentPass; // used to determine which pixels to shade
+  uint samples;
 }rsm;
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
@@ -53,30 +54,31 @@ vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, v
   return rsmFlux * geometry / (d * d * d * d);
 }
 
-vec3 ComputeIndirectIrradiance(vec3 albedo, vec3 normal, vec3 worldPos)
+vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surfaceWorldPos)
 {
   vec3 sumC = { 0, 0, 0 };
 
-  const vec4 rsmClip = rsm.sunViewProj * vec4(worldPos, 1.0);
+  const vec4 rsmClip = rsm.sunViewProj * vec4(surfaceWorldPos, 1.0);
   const vec2 rsmUV = (rsmClip.xy / rsmClip.w) * .5 + .5;
 
-  const int SAMPLES = 500;
-  for (int i = 0; i < SAMPLES; i++)
+  for (int i = 0; i < rsm.samples; i++)
   {
-    vec2 xi = Hammersley(i, SAMPLES);
+    // xi can be randomly rotated based on screen position
+    vec2 xi = Hammersley(i, rsm.samples);
     float r = xi.x * rsm.rMax;
     float theta = xi.y * TWO_PI;
     vec2 pixelLightUV = rsmUV + vec2(r * cos(theta), r * sin(theta));
+    float weight = xi.x * xi.x;
 
     vec3 rsmFlux = textureLod(s_rsmFlux, pixelLightUV, 0.0).rgb;
     vec3 rsmNormal = textureLod(s_rsmNormal, pixelLightUV, 0.0).xyz;
     float rsmDepth = textureLod(s_rsmDepth, pixelLightUV, 0.0).x;
     vec3 rsmWorldPos = UnprojectUV(rsmDepth, pixelLightUV, rsm.invSunViewProj);
 
-    sumC += ComputePixelLight(worldPos, normal, rsmFlux, rsmWorldPos, rsmNormal) * (xi.x * xi.x);
+    sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;
   }
   
-  return sumC * albedo / SAMPLES;
+  return sumC * surfaceAlbedo / rsm.samples;
 }
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -136,6 +138,7 @@ void main()
         ivec2( 1, 0));
     }
 
+    // compute weights for each 
     float accum_weight = 0;
     vec3 accum_color = vec3(0);
     for (int i = 0; i < 4; i++)

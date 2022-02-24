@@ -59,5 +59,7 @@ void main()
   vec3 ambient = textureLod(s_rsmIndirect, v_uv, 0).rgb;
   vec3 finalColor = diffuse + ambient;
 
+  // tone mapping (optional)
+  //finalColor = finalColor / (1.0 + finalColor);
   o_color = finalColor;
 }

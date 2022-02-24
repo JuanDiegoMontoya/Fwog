@@ -77,7 +77,8 @@ struct alignas(16) RSMUniforms
   glm::mat4 invSunViewProj;
   glm::ivec2 targetDim;
   float rMax;
-  int currentPass;
+  uint32_t currentPass;
+  uint32_t samples;
 };
 
 ////////////////////////////////////// Globals
@@ -90,6 +91,10 @@ float gPreviousCursorY = gWindowHeight / 2.0f;
 float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
+
+// scene parameters
+uint32_t gRSMSamples = 400;
+float gRMax = 0.08f;
 
 constexpr int gShadowmapWidth = 1024;
 constexpr int gShadowmapHeight = 1024;
@@ -273,7 +278,7 @@ GFX::GraphicsPipeline CreateShadowPipeline()
   auto rasterization = GetDefaultRasterizationState();
   rasterization.depthBiasEnable = true;
   rasterization.depthBiasConstantFactor = 0;
-  rasterization.depthBiasSlopeFactor = 3;
+  rasterization.depthBiasSlopeFactor = 2;
 
   GFX::DepthStencilState depthStencil
   {
@@ -521,13 +526,18 @@ void RenderScene()
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
   std::vector<ObjectUniforms> objectUniforms;
+  // translation, scale, color tuples
   std::tuple<glm::vec3, glm::vec3, glm::vec3> objects[]{
     { { 0, .5, -1 },   { 3, 1, 1 },      { .5, .5, .5 } },
     { { -1, .5, 0 },   { 1, 1, 1 },      { .1, .1, .9 } },
     { { 1, .5, 0 },    { 1, 1, 1 },      { .1, .1, .9 } },
     { { 0, -.5, -.5 }, { 3, 1, 2 },      { .5, .5, .5 } },
     { { 0, 1.5, -.5 }, { 3, 1, 2 },      { .2, .7, .2 } },
-    { { 0, .25, 0 },   { .25, .5, .25 }, { .5, .1, .1 } },
+    { { 0, .25, 0 },   { 0.25, .5, .25 }, { .5, .1, .1 } },
+    //{ { -.25, .25, 0 },   { .01, .5, .7 }, { .5, .1, .1 } },
+    //{ { .25, .25, 0 },   { .01, .5, .7 }, { .5, .1, .1 } },
+    //{ { 0, .25, -.25 },   { .7, .5, .01 }, { .5, .1, .1 } },
+    //{ { 0, .25, .25 },   { .7, .5, .01 }, { .5, .1, .1 } },
   };
   for (const auto& [translation, scale, color] : objects)
   {
@@ -546,7 +556,8 @@ void RenderScene()
   RSMUniforms rsmUniforms
   {
     .targetDim = { gWindowWidth, gWindowHeight },
-    .rMax = 0.08,
+    .rMax = gRMax,
+    .samples = gRSMSamples,
   };
 
   GlobalUniforms globalUniforms;
@@ -624,10 +635,7 @@ void RenderScene()
     camera.pitch += gCursorOffsetY * gSensitivity;
     camera.pitch = glm::clamp(camera.pitch, -glm::half_pi<float>() + 1e-4f, glm::half_pi<float>() - 1e-4f);
 
-    //for (size_t i = 0; i < objectUniforms.size(); i++)
-    //{
-    //  objectUniforms[i].model = glm::rotate(objectUniforms[i].model, dt, { 0, 1, 0 });
-    //}
+    //objectUniforms[5].model = glm::rotate(glm::mat4(1), dt, {0, 1, 0}) * objectUniforms[5].model;
     //objectBuffer->SubData(std::span(objectUniforms), 0);
 
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
@@ -690,6 +698,7 @@ void RenderScene()
 
     rsmUniforms.sunViewProj = shadingUniforms.sunViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
+    rsmUniformBuffer->SubData(rsmUniforms, 0);
 
     // RSM indirect illumination calculation pass
     GFX::BeginCompute();
@@ -709,23 +718,23 @@ void RenderScene()
     const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
     const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
 
-    rsmUniforms.currentPass = 0;
-    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    uint32_t currentPass = 0;
+    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
     GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
     GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    rsmUniforms.currentPass = 1;
-    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    currentPass = 1;
+    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
     GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
     GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    rsmUniforms.currentPass = 2;
-    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    currentPass = 2;
+    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
     GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
     GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    rsmUniforms.currentPass = 3;
-    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    currentPass = 3;
+    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
     GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
     GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
     GFX::EndCompute();
