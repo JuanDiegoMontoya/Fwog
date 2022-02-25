@@ -2,12 +2,12 @@
 
 namespace GFX
 {
-  class DebugMarker
+  class ScopedDebugMarker
   {
   public:
-    DebugMarker(const char* message);
-    ~DebugMarker();
+    ScopedDebugMarker(const char* message);
+    ~ScopedDebugMarker();
 
-    DebugMarker(const DebugMarker&) = delete;
+    ScopedDebugMarker(const ScopedDebugMarker&) = delete;
   };
 }

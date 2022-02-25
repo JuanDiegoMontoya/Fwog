@@ -12,6 +12,8 @@
 #include <gsdf/BasicTypes.h>
 #include <gsdf/Fence.h>
 #include <gsdf/Rendering.h>
+#include <gsdf/DebugMarker.h>
+#include <gsdf/Timer.h>
 
 ////////////////////////////////////// Types
 struct View
@@ -672,25 +674,31 @@ void RenderScene()
 
     // geometry buffer pass
     GFX::BeginRendering(gbufferRenderInfo);
-    GFX::Cmd::BindGraphicsPipeline(scenePipeline);
-    GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-    GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-    GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
-    GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+    {
+      GFX::ScopedDebugMarker marker("Geometry");
+      GFX::Cmd::BindGraphicsPipeline(scenePipeline);
+      GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
+      GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
+      GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+      GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+      GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+    }
     GFX::EndRendering();
 
     globalUniformsBuffer->SubData(shadingUniforms.sunViewProj, 0);
 
     // shadow map (RSM) scene pass
     GFX::BeginRendering(rsmRenderInfo);
-    GFX::Cmd::BindGraphicsPipeline(rsmScenePipeline);
-    GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-    GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-    GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
-    GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
-    GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+    {
+      GFX::ScopedDebugMarker marker("RSM Scene");
+      GFX::Cmd::BindGraphicsPipeline(rsmScenePipeline);
+      GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
+      GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
+      GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+      GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
+      GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+      GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+    }
     GFX::EndRendering();
 
     globalUniformsBuffer->SubData(viewProj, 0);
@@ -702,62 +710,67 @@ void RenderScene()
 
     // RSM indirect illumination calculation pass
     GFX::BeginCompute();
-    GFX::Cmd::BindComputePipeline(rsmIndirectPipeline);
-    GFX::Cmd::BindSampledImage(0, *indirectLightingTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(1, *gcolorTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(2, *gnormalTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(3, *gdepthTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(4, *rfluxTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(5, *rnormalTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(6, *rdepthTexView, *nearestSampler);
-    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-    GFX::Cmd::BindUniformBuffer(1, *rsmUniformBuffer, 0, rsmUniformBuffer->Size());
-    GFX::Cmd::BindImage(0, *indirectLightingTexView, 0);
+    {
+      // uncomment to benchmark
+      //static GFX::TimerQueryAsync timer(5);
+      //if (auto t = timer.Elapsed_ns())
+      //{
+      //  printf("Indirect Illumination: %f ms\n", *t / 10e5);
+      //}
+      //GFX::TimerScoped scopedTimer(timer);
+      GFX::ScopedDebugMarker marker("Indirect Illumination");
+      GFX::Cmd::BindComputePipeline(rsmIndirectPipeline);
+      GFX::Cmd::BindSampledImage(0, *indirectLightingTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(1, *gcolorTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(2, *gnormalTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(3, *gdepthTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(4, *rfluxTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(5, *rnormalTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(6, *rdepthTexView, *nearestSampler);
+      GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+      GFX::Cmd::BindUniformBuffer(1, *rsmUniformBuffer, 0, rsmUniformBuffer->Size());
+      GFX::Cmd::BindImage(0, *indirectLightingTexView, 0);
 
-    const int localSize = 8;
-    const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
-    const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
+      const int localSize = 8;
+      const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
+      const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
 
-    uint32_t currentPass = 0;
-    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
-    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      uint32_t currentPass = 0;
+      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+      GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    currentPass = 1;
-    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
-    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      currentPass = 1;
+      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+      GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    currentPass = 2;
-    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
-    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      currentPass = 2;
+      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+      GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-    currentPass = 3;
-    rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
-    GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-    GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      currentPass = 3;
+      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      GFX::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+      GFX::Cmd::MemoryBarrier(GFX::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+    }
     GFX::EndCompute();
 
     // shading pass (full screen tri)
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
-    GFX::Cmd::BindGraphicsPipeline(shadingPipeline);
-    GFX::Cmd::BindSampledImage(0, *gcolorTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(1, *gnormalTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(2, *gdepthTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(3, *indirectLightingTexView, *nearestSampler);
-    GFX::Cmd::BindSampledImage(4, *rdepthTexView, *rsmShadowSampler);
-    GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-    GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
-    GFX::Cmd::Draw(3, 1, 0, 0);
-
-    //if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-    //{
-    //  GFX::Cmd::BindGraphicsPipeline(...);
-    //  GFX::Cmd::SetViewport(rsmViewport);
-    //  GFX::Cmd::BindSampledImage(0, *rfluxTexView, *sampler);
-    //  GFX::Cmd::Draw(3, 1, 0, 0);
-    //}
+    {
+      GFX::ScopedDebugMarker marker("Shading");
+      GFX::Cmd::BindGraphicsPipeline(shadingPipeline);
+      GFX::Cmd::BindSampledImage(0, *gcolorTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(1, *gnormalTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(2, *gdepthTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(3, *indirectLightingTexView, *nearestSampler);
+      GFX::Cmd::BindSampledImage(4, *rdepthTexView, *rsmShadowSampler);
+      GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+      GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
+      GFX::Cmd::Draw(3, 1, 0, 0);
+    }
     GFX::EndRendering();
 
     glfwSwapBuffers(window);

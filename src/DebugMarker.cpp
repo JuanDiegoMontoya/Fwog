@@ -3,7 +3,7 @@
 
 namespace GFX
 {
-  DebugMarker::DebugMarker(const char* message)
+  ScopedDebugMarker::ScopedDebugMarker(const char* message)
   {
     glPushDebugGroup(
       GL_DEBUG_SOURCE_APPLICATION,
@@ -12,7 +12,7 @@ namespace GFX
       message);
   }
 
-  DebugMarker::~DebugMarker()
+  ScopedDebugMarker::~ScopedDebugMarker()
   {
     glPopDebugGroup();
   }

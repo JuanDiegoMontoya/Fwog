@@ -12,11 +12,11 @@ set(source_files
 	src/Buffer.cpp
 	src/DebugMarker.cpp
 	src/Fence.cpp
-	src/Framebuffer.cpp
 	src/Shader.cpp
 	src/Texture.cpp
 	src/Rendering.cpp
 	src/Pipeline.cpp
+	src/Timer.cpp
 	src/detail/ApiToEnum.cpp
 	src/detail/PipelineManager.cpp
 )
@@ -27,12 +27,12 @@ set(header_files
 	include/gsdf/Buffer.h
 	include/gsdf/DebugMarker.h
 	include/gsdf/Fence.h
-	include/gsdf/Framebuffer.h
 	include/gsdf/Indirect.h
 	include/gsdf/Shader.h
 	include/gsdf/Texture.h
 	include/gsdf/Rendering.h
 	include/gsdf/Pipeline.h
+	include/gsdf/Timer.h
 	include/gsdf/detail/Flags.h
 	include/gsdf/detail/ApiToEnum.h
 	include/gsdf/detail/PipelineManager.h

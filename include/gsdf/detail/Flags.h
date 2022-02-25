@@ -1,7 +1,7 @@
 #pragma once
 
 // Taken from https://github.com/cdgiessen/vk-module/blob/076baa98cba35cd93a6ab56c3fd1b1ea2313f806/codegen_text.py#L53
-// Thanks Thomas!
+// Thanks Charles!
 #define GSDF_DECLARE_FLAG_TYPE(FLAG_TYPE, FLAG_BITS, BASE_TYPE)                            \
                                                                                            \
 struct FLAG_TYPE {                                                                         \

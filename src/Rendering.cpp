@@ -375,11 +375,13 @@ namespace GFX
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
+      GSDF_ASSERT(isComputeActive);
       glDispatchCompute(groupCountX, groupCountY, groupCountZ);
     }
 
     void MemoryBarrier(MemoryBarrierAccessBits accessBits)
     {
+      GSDF_ASSERT(isRendering || isComputeActive);
       glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
     }
   }
