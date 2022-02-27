@@ -15,7 +15,7 @@ namespace GFX
     glDeleteQueries(2, queries);
   }
 
-  uint64_t TimerQuery::Elapsed_ns()
+  uint64_t TimerQuery::GetTimestamp()
   {
     int complete = 0;
     glQueryCounter(queries[1], GL_TIMESTAMP);
@@ -41,7 +41,7 @@ namespace GFX
     delete[] queries;
   }
 
-  void TimerQueryAsync::Begin()
+  void TimerQueryAsync::BeginZone()
   {
     // begin a query if there is at least one inactive
     if (count_ < capacity_)
@@ -50,7 +50,7 @@ namespace GFX
     }
   }
 
-  void TimerQueryAsync::End()
+  void TimerQueryAsync::EndZone()
   {
     // end a query if there is at least one inactive
     if (count_ < capacity_)
@@ -61,7 +61,7 @@ namespace GFX
     }
   }
 
-  std::optional<uint64_t> TimerQueryAsync::Elapsed_ns()
+  std::optional<uint64_t> TimerQueryAsync::PopTimestamp()
   {
     // return nothing if there is no active query
     if (count_ == 0)

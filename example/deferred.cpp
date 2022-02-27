@@ -713,7 +713,7 @@ void RenderScene()
     {
       // uncomment to benchmark
       //static GFX::TimerQueryAsync timer(5);
-      //if (auto t = timer.Elapsed_ns())
+      //if (auto t = timer.PopTimestamp())
       //{
       //  printf("Indirect Illumination: %f ms\n", *t / 10e5);
       //}

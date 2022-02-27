@@ -19,7 +19,7 @@ namespace GFX
     TimerQuery& operator=(TimerQuery&&) = delete;
 
     // returns how (in ns) we blocked for (BLOCKS)
-    uint64_t Elapsed_ns();
+    uint64_t GetTimestamp();
 
   private:
     uint32_t queries[2];
@@ -43,14 +43,14 @@ namespace GFX
     TimerQueryAsync& operator=(TimerQueryAsync&&) = delete;
 
     // begins or ends a query
-    // always call End after Begin
-    // never call Begin or End twice in a row
-    void Begin();
-    void End();
+    // always call EndZone after BeginZone
+    // never call BeginZone or EndZone twice in a row
+    void BeginZone();
+    void EndZone();
 
     // returns oldest query's result, if available
     // otherwise, returns std::nullopt
-    [[nodiscard]] std::optional<uint64_t> Elapsed_ns();
+    [[nodiscard]] std::optional<uint64_t> PopTimestamp();
 
   private:
     uint32_t start_{}; // next timer to be used for measurement
@@ -66,12 +66,12 @@ namespace GFX
   public:
     TimerScoped(T& zone) : zone_(zone)
     {
-      zone_.Begin();
+      zone_.BeginZone();
     }
 
     ~TimerScoped()
     {
-      zone_.End();
+      zone_.EndZone();
     }
 
   private:
