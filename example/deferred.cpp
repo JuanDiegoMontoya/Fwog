@@ -203,6 +203,21 @@ GFX::RasterizationState GetDefaultRasterizationState()
   };
 }
 
+GFX::ColorBlendAttachmentState GetDefaultColorBlendAttachmentState()
+{
+  return GFX::ColorBlendAttachmentState
+  {
+    .blendEnable = false,
+    .srcColorBlendFactor = GFX::BlendFactor::ONE,
+    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
+    .colorBlendOp = GFX::BlendOp::ADD,
+    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
+    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
+    .alphaBlendOp = GFX::BlendOp::ADD,
+    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
+  };
+}
+
 GFX::GraphicsPipeline CreateScenePipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(
@@ -227,17 +242,8 @@ GFX::GraphicsPipeline CreateScenePipeline()
     .depthCompareOp = GFX::CompareOp::LESS,
   };
 
-  GFX::ColorBlendAttachmentState colorBlendAttachment
-  {
-    .blendEnable = true,
-    .srcColorBlendFactor = GFX::BlendFactor::ONE,
-    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
-    .colorBlendOp = GFX::BlendOp::ADD,
-    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
-    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
-    .alphaBlendOp = GFX::BlendOp::ADD,
-    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
-  };
+  GFX::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
+  colorBlendAttachment.blendEnable = true;
   GFX::ColorBlendState colorBlend
   {
     .logicOpEnable = false,
@@ -289,17 +295,7 @@ GFX::GraphicsPipeline CreateShadowPipeline()
     .depthCompareOp = GFX::CompareOp::LESS,
   };
 
-  GFX::ColorBlendAttachmentState colorBlendAttachment
-  {
-    .blendEnable = false,
-    .srcColorBlendFactor = GFX::BlendFactor::ONE,
-    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
-    .colorBlendOp = GFX::BlendOp::ADD,
-    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
-    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
-    .alphaBlendOp = GFX::BlendOp::ADD,
-    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
-  };
+  GFX::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
   GFX::ColorBlendState colorBlend
   {
     .logicOpEnable = false,
@@ -347,17 +343,55 @@ GFX::GraphicsPipeline CreateShadingPipeline()
     .depthWriteEnable = false,
   };
 
-  GFX::ColorBlendAttachmentState colorBlendAttachment
+  GFX::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
+  GFX::ColorBlendState colorBlend
   {
-    .blendEnable = false,
-    .srcColorBlendFactor = GFX::BlendFactor::ONE,
-    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
-    .colorBlendOp = GFX::BlendOp::ADD,
-    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
-    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
-    .alphaBlendOp = GFX::BlendOp::ADD,
-    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
+    .logicOpEnable = false,
+    .logicOp{},
+    .attachments = { &colorBlendAttachment, 1 },
+    .blendConstants = {},
   };
+
+  GFX::GraphicsPipelineInfo pipelineInfo
+  {
+    .shaderProgram = shader,
+    .inputAssemblyState = inputAssembly,
+    .vertexInputState = vertexInput,
+    .rasterizationState = rasterization,
+    .depthStencilState = depthStencil,
+    .colorBlendState = colorBlend
+  };
+
+  auto pipeline = GFX::CompileGraphicsPipeline(pipelineInfo);
+  if (!pipeline)
+    throw std::exception("Invalid pipeline");
+  return *pipeline;
+}
+
+GFX::GraphicsPipeline CreateDebugTexturePipeline()
+{
+  GLuint shader = Utility::CompileVertexFragmentProgram(
+    Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
+    Utility::LoadFile("shaders/Texture.frag.glsl"));
+
+  GFX::InputAssemblyState inputAssembly
+  {
+    .topology = GFX::PrimitiveTopology::TRIANGLE_LIST,
+    .primitiveRestartEnable = false,
+  };
+
+  GFX::VertexInputState vertexInput{};
+
+  auto rasterization = GetDefaultRasterizationState();
+  rasterization.cullMode = GFX::CullMode::NONE;
+
+  GFX::DepthStencilState depthStencil
+  {
+    .depthTestEnable = false,
+    .depthWriteEnable = false,
+  };
+
+  GFX::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
   GFX::ColorBlendState colorBlend
   {
     .logicOpEnable = false,
@@ -602,6 +636,7 @@ void RenderScene()
   GFX::GraphicsPipeline rsmScenePipeline = CreateShadowPipeline();
   GFX::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
   GFX::ComputePipeline rsmIndirectPipeline = CreateRSMIndirectPipeline();
+  GFX::GraphicsPipeline debugTexturePipeline = CreateDebugTexturePipeline();
 
   View camera;
   camera.position = { 0, .5, 1 };
@@ -770,6 +805,22 @@ void RenderScene()
       GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
       GFX::Cmd::Draw(3, 1, 0, 0);
+
+      GFX::TextureView* tex{};
+      if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+        tex = &gcolorTexView.value();
+      if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
+        tex = &gnormalTexView.value();
+      if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
+        tex = &gdepthTexView.value();
+      if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
+        tex = &indirectLightingTexView.value();
+      if (tex)
+      {
+        GFX::Cmd::BindGraphicsPipeline(debugTexturePipeline);
+        GFX::Cmd::BindSampledImage(0, *tex, *nearestSampler);
+        GFX::Cmd::Draw(3, 1, 0, 0);
+      }
     }
     GFX::EndRendering();
 
