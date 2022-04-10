@@ -2,6 +2,7 @@
 #include <gsdf/Common.h>
 #include <gsdf/detail/ApiToEnum.h>
 #include <gsdf/detail/PipelineManager.h>
+#include <gsdf/detail/FramebufferCache.h>
 #include <vector>
 
 // helper function
@@ -38,6 +39,8 @@ namespace GFX
     IndexType sIndexType{};
     GLuint sVao = 0;
     GLuint sFbo = 0;
+
+    detail::FramebufferCache sFboCache;
   }
 
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
@@ -92,18 +95,23 @@ namespace GFX
     sLastRenderInfo = &renderInfo;
 
     const auto& ri = renderInfo;
-    glDeleteFramebuffers(1, &sFbo);
-    glCreateFramebuffers(1, &sFbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
-    std::vector<GLenum> drawBuffers;
-    for (size_t i = 0; i < ri.colorAttachments.size(); i++)
-    {
-      const auto& attachment = ri.colorAttachments[i];
-      glNamedFramebufferTexture(sFbo, GL_COLOR_ATTACHMENT0 + i, attachment.textureView->Handle(), 0);
-      drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-    }
 
-    glNamedFramebufferDrawBuffers(sFbo, drawBuffers.size(), drawBuffers.data());
+    std::vector<const TextureView*> colorAttachments;
+    colorAttachments.reserve(ri.colorAttachments.size());
+    for (const auto& attachment : ri.colorAttachments)
+    {
+      colorAttachments.push_back(attachment.textureView);
+    }
+    detail::RenderAttachments attachments
+    {
+      .colorAttachments = colorAttachments,
+      .depthAttachment = ri.depthAttachment ? ri.depthAttachment->textureView : nullptr,
+      .stencilAttachment = ri.stencilAttachment ? ri.stencilAttachment->textureView : nullptr,
+    };
+
+    sFbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
+    glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
+
     GLSetMaskStates();
 
     for (size_t i = 0; i < ri.colorAttachments.size(); i++)
@@ -127,18 +135,6 @@ namespace GFX
         default: GSDF_UNREACHABLE;
         }
       }
-    }
-    if (ri.depthAttachment && ri.stencilAttachment && ri.depthAttachment->textureView == ri.stencilAttachment->textureView)
-    {
-      glNamedFramebufferTexture(sFbo, GL_DEPTH_STENCIL_ATTACHMENT, ri.depthAttachment->textureView->Handle(), 0);
-    }
-    else if (ri.depthAttachment)
-    {
-      glNamedFramebufferTexture(sFbo, GL_DEPTH_ATTACHMENT, ri.depthAttachment->textureView->Handle(), 0);
-    }
-    else if (ri.stencilAttachment)
-    {
-      glNamedFramebufferTexture(sFbo, GL_STENCIL_ATTACHMENT, ri.stencilAttachment->textureView->Handle(), 0);
     }
 
     if (ri.depthAttachment && ri.depthAttachment->clearOnLoad && ri.stencilAttachment && ri.stencilAttachment->clearOnLoad)

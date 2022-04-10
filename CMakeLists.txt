@@ -19,6 +19,7 @@ set(source_files
 	src/Timer.cpp
 	src/detail/ApiToEnum.cpp
 	src/detail/PipelineManager.cpp
+	src/detail/FramebufferCache.cpp
 )
 
 set(header_files
@@ -36,6 +37,8 @@ set(header_files
 	include/gsdf/detail/Flags.h
 	include/gsdf/detail/ApiToEnum.h
 	include/gsdf/detail/PipelineManager.h
+	include/gsdf/detail/FramebufferCache.h
+	include/gsdf/detail/Hash.h
 )
 
 add_library(lib_gsdf ${source_files} ${header_files})
