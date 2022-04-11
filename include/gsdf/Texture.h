@@ -50,27 +50,21 @@ namespace GFX
     bool operator==(const SamplerState& rhs) const;
 
     SamplerState() {};
-    union
-    {
-      struct
-      {
-        Filter magFilter         : 2 = Filter::LINEAR;
-        Filter minFilter         : 2 = Filter::LINEAR;
-        Filter mipmapFilter      : 2 = Filter::NONE;
-        AddressMode addressModeU : 3 = AddressMode::CLAMP_TO_EDGE;
-        AddressMode addressModeV : 3 = AddressMode::CLAMP_TO_EDGE;
-        AddressMode addressModeW : 3 = AddressMode::CLAMP_TO_EDGE;
-        BorderColor borderColor  : 3 = BorderColor::INT_OPAQUE_WHITE;
-        SampleCount anisotropy   : 3 = SampleCount::SAMPLES_1;
-        bool compareEnable       : 1 = false;
-        CompareOp compareOp      : 3 = CompareOp::NEVER;
-      }asBitField{};
-      uint32_t asUint32;
-    };
 
     float lodBias{ 0 };
     float minLod{ -1000 };
     float maxLod{ 1000 };
+
+    Filter minFilter         = Filter::LINEAR;
+    Filter magFilter         = Filter::LINEAR;
+    Filter mipmapFilter      = Filter::NONE;
+    AddressMode addressModeU = AddressMode::CLAMP_TO_EDGE;
+    AddressMode addressModeV = AddressMode::CLAMP_TO_EDGE;
+    AddressMode addressModeW = AddressMode::CLAMP_TO_EDGE;
+    BorderColor borderColor  = BorderColor::INT_OPAQUE_WHITE;
+    SampleCount anisotropy   = SampleCount::SAMPLES_1;
+    bool compareEnable       = false;
+    CompareOp compareOp      = CompareOp::NEVER;
   };
 
   // serves as lightweight view of an image, cheap to construct, copy, and meant to be passed around

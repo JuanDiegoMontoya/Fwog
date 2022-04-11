@@ -16,35 +16,35 @@ namespace GFX::detail
     uint32_t sampler{};
     glCreateSamplers(1, &sampler);
 
-    glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_MODE, samplerState.asBitField.compareEnable ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+    glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_MODE, samplerState.compareEnable ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
 
-    glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_FUNC, detail::CompareOpToGL(samplerState.asBitField.compareOp));
+    glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_FUNC, detail::CompareOpToGL(samplerState.compareOp));
 
-    GLint magFilter = samplerState.asBitField.magFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+    GLint magFilter = samplerState.magFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
     glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, magFilter);
 
     GLint minFilter{};
-    switch (samplerState.asBitField.mipmapFilter)
+    switch (samplerState.mipmapFilter)
     {
     case (Filter::NONE):
-      minFilter = samplerState.asBitField.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+      minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
       break;
     case (Filter::NEAREST):
-      minFilter = samplerState.asBitField.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
+      minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
       break;
     case (Filter::LINEAR):
-      minFilter = samplerState.asBitField.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
+      minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
       break;
     default: GSDF_UNREACHABLE;
     }
     glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, minFilter);
 
-    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, detail::AddressModeToGL(samplerState.asBitField.addressModeU));
-    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, detail::AddressModeToGL(samplerState.asBitField.addressModeV));
-    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_R, detail::AddressModeToGL(samplerState.asBitField.addressModeW));
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, detail::AddressModeToGL(samplerState.addressModeU));
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, detail::AddressModeToGL(samplerState.addressModeV));
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_R, detail::AddressModeToGL(samplerState.addressModeW));
 
     // TODO: determine whether int white values should be 1 or 255
-    switch (samplerState.asBitField.borderColor)
+    switch (samplerState.borderColor)
     {
     case BorderColor::FLOAT_TRANSPARENT_BLACK:
     {
@@ -87,7 +87,7 @@ namespace GFX::detail
       break;
     }
 
-    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, detail::SampleCountToGL(samplerState.asBitField.anisotropy));
+    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, detail::SampleCountToGL(samplerState.anisotropy));
 
     glSamplerParameterf(sampler, GL_TEXTURE_LOD_BIAS, samplerState.lodBias);
 
@@ -116,6 +116,19 @@ namespace GFX::detail
 
 std::size_t std::hash<GFX::SamplerState>::operator()(const GFX::SamplerState& k) const
 {
-  auto rtup = std::make_tuple(k.asUint32, k.lodBias, k.minLod, k.maxLod);
+  auto rtup = std::make_tuple(
+    k.minFilter, 
+    k.magFilter, 
+    k.mipmapFilter, 
+    k.addressModeU, 
+    k.addressModeV, 
+    k.addressModeW, 
+    k.borderColor, 
+    k.anisotropy, 
+    k.compareEnable, 
+    k.compareOp, 
+    k.lodBias, 
+    k.minLod, 
+    k.maxLod);
   return GFX::detail::hashing::hash<decltype(rtup)>{}(rtup);
 }

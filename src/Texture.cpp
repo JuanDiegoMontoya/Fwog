@@ -293,9 +293,19 @@ namespace GFX
 
   bool SamplerState::operator==(const SamplerState& rhs) const
   {
-    return asUint32 == rhs.asUint32 &&
-      lodBias == rhs.lodBias &&
-      minLod == rhs.minLod &&
-      maxLod == rhs.maxLod;
+    return 
+      minFilter     == rhs.minFilter &&
+      magFilter     == rhs.magFilter &&
+      mipmapFilter  == rhs.mipmapFilter &&
+      addressModeU  == rhs.addressModeU &&
+      addressModeV  == rhs.addressModeV &&
+      addressModeW  == rhs.addressModeW &&
+      borderColor   == rhs.borderColor &&
+      anisotropy    == rhs.anisotropy &&
+      compareEnable == rhs.compareEnable &&
+      compareOp     == rhs.compareOp &&
+      lodBias       == rhs.lodBias &&
+      minLod        == rhs.minLod &&
+      maxLod        == rhs.maxLod;
   }
 }

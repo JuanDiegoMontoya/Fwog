@@ -606,30 +606,30 @@ void RenderScene()
   auto rsmUniformBuffer = GFX::Buffer::Create(rsmUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
 
   GFX::SamplerState ss;
-  ss.asBitField.minFilter = GFX::Filter::NEAREST;
-  ss.asBitField.magFilter = GFX::Filter::NEAREST;
-  ss.asBitField.addressModeU = GFX::AddressMode::REPEAT;
-  ss.asBitField.addressModeV = GFX::AddressMode::REPEAT;
+  ss.minFilter = GFX::Filter::NEAREST;
+  ss.magFilter = GFX::Filter::NEAREST;
+  ss.addressModeU = GFX::AddressMode::REPEAT;
+  ss.addressModeV = GFX::AddressMode::REPEAT;
   auto nearestSampler = GFX::TextureSampler::Create(ss);
 
-  ss.asBitField.minFilter = GFX::Filter::LINEAR;
-  ss.asBitField.magFilter = GFX::Filter::LINEAR;
-  ss.asBitField.borderColor = GFX::BorderColor::FLOAT_TRANSPARENT_BLACK;
-  ss.asBitField.addressModeU = GFX::AddressMode::CLAMP_TO_BORDER;
-  ss.asBitField.addressModeV = GFX::AddressMode::CLAMP_TO_BORDER;
+  ss.minFilter = GFX::Filter::LINEAR;
+  ss.magFilter = GFX::Filter::LINEAR;
+  ss.borderColor = GFX::BorderColor::FLOAT_TRANSPARENT_BLACK;
+  ss.addressModeU = GFX::AddressMode::CLAMP_TO_BORDER;
+  ss.addressModeV = GFX::AddressMode::CLAMP_TO_BORDER;
   auto rsmColorSampler = GFX::TextureSampler::Create(ss);
 
-  ss.asBitField.minFilter = GFX::Filter::NEAREST;
-  ss.asBitField.magFilter = GFX::Filter::NEAREST;
-  ss.asBitField.borderColor = GFX::BorderColor::FLOAT_TRANSPARENT_BLACK;
-  ss.asBitField.addressModeU = GFX::AddressMode::CLAMP_TO_BORDER;
-  ss.asBitField.addressModeV = GFX::AddressMode::CLAMP_TO_BORDER;
+  ss.minFilter = GFX::Filter::NEAREST;
+  ss.magFilter = GFX::Filter::NEAREST;
+  ss.borderColor = GFX::BorderColor::FLOAT_TRANSPARENT_BLACK;
+  ss.addressModeU = GFX::AddressMode::CLAMP_TO_BORDER;
+  ss.addressModeV = GFX::AddressMode::CLAMP_TO_BORDER;
   auto rsmDepthSampler = GFX::TextureSampler::Create(ss);
 
-  ss.asBitField.compareEnable = true;
-  ss.asBitField.compareOp = GFX::CompareOp::LESS;
-  ss.asBitField.minFilter = GFX::Filter::LINEAR;
-  ss.asBitField.magFilter = GFX::Filter::LINEAR;
+  ss.compareEnable = true;
+  ss.compareOp = GFX::CompareOp::LESS;
+  ss.minFilter = GFX::Filter::LINEAR;
+  ss.magFilter = GFX::Filter::LINEAR;
   auto rsmShadowSampler = GFX::TextureSampler::Create(ss);
 
   GFX::GraphicsPipeline scenePipeline = CreateScenePipeline();
