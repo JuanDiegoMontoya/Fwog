@@ -182,7 +182,7 @@ namespace GFX
   };
 
   // multisampling and anisotropy
-  enum class SampleCount : uint32_t
+  enum class SampleCount : uint8_t
   {
     SAMPLES_1,
     SAMPLES_2,
@@ -235,14 +235,14 @@ namespace GFX
     UINT_10_10_10_2_REV,
   };
 
-  enum class Filter : uint32_t
+  enum class Filter : uint8_t
   {
     NONE,
     NEAREST,
     LINEAR,
   };
 
-  enum class AddressMode : uint32_t
+  enum class AddressMode : uint8_t
   {
     REPEAT,
     MIRRORED_REPEAT,
@@ -251,7 +251,7 @@ namespace GFX
     MIRROR_CLAMP_TO_EDGE,
   };
 
-  enum class BorderColor : uint32_t
+  enum class BorderColor : uint8_t
   {
     FLOAT_TRANSPARENT_BLACK,
     INT_TRANSPARENT_BLACK,
@@ -321,7 +321,7 @@ namespace GFX
     COUNTERCLOCKWISE,
   };
 
-  enum class CompareOp : uint32_t
+  enum class CompareOp : uint8_t
   {
     NEVER,
     LESS,

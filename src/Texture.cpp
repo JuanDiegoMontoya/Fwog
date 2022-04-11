@@ -1,5 +1,6 @@
 #include <gsdf/Common.h>
 #include <gsdf/detail/ApiToEnum.h>
+#include <gsdf/detail/SamplerCache.h>
 #include <gsdf/Texture.h>
 #include <utility>
 
@@ -7,6 +8,13 @@
 
 namespace GFX
 {
+  // static objects
+  // TODO: move initialization
+  namespace
+  {
+    detail::SamplerCache sSamplerCache;
+  }
+
   namespace // detail
   {
     void subImage(uint32_t texture, const TextureUpdateInfo& info)
@@ -225,175 +233,9 @@ namespace GFX
 
 
 
-  std::optional<TextureSampler> TextureSampler::Create(const SamplerState& state, std::string_view name)
+  std::optional<TextureSampler> TextureSampler::Create(const SamplerState& samplerState)
   {
-    TextureSampler sampler;
-    glCreateSamplers(1, &sampler.id_);
-    sampler.SetState(state, true);
-    if (!name.empty())
-    {
-      glObjectLabel(GL_SAMPLER, sampler.id_, static_cast<GLsizei>(name.length()), name.data());
-    }
-    return sampler;
-  }
-
-  //TextureSampler::TextureSampler(const TextureSampler& other)
-  //{
-  //  char name[MAX_NAME_LEN]{};
-  //  GLsizei len{};
-  //  glGetObjectLabel(GL_SAMPLER, other.id_, MAX_NAME_LEN, &len, name);
-  //  *this = other;
-  //  if (len > 0)
-  //  {
-  //    glObjectLabel(GL_SAMPLER, id_, len, name);
-  //  }
-  //}
-
-  TextureSampler::TextureSampler(TextureSampler&& old) noexcept
-  {
-    id_ = std::exchange(old.id_, 0);
-    samplerState_ = old.samplerState_;
-  }
-
-  //TextureSampler& TextureSampler::operator=(const TextureSampler& other)
-  //{
-  //  if (&other == this) return *this;
-  //  *this = *Create(other.samplerState_); // invokes move assignment
-  //  return *this;
-  //}
-
-  TextureSampler& TextureSampler::operator=(TextureSampler&& old) noexcept
-  {
-    if (&old == this) return *this;
-    this->~TextureSampler();
-    id_ = std::exchange(old.id_, 0);
-    samplerState_ = old.samplerState_;
-    return *this;
-  }
-
-  TextureSampler::~TextureSampler()
-  {
-    glDeleteSamplers(1, &id_);
-  }
-
-  void TextureSampler::SetState(const SamplerState& state)
-  {
-    SetState(state, false);
-  }
-
-  void TextureSampler::SetState(const SamplerState& state, bool force)
-  {
-    // early out if the new state is equal to the previous
-    if (state.asUint32 == samplerState_.asUint32 &&
-      state.lodBias == samplerState_.lodBias &&
-      state.minLod == samplerState_.minLod &&
-      state.maxLod == samplerState_.maxLod &&
-      !force)
-    {
-      return;
-    }
-
-    if (state.asBitField.compareEnable != samplerState_.asBitField.compareEnable || force)
-    {
-      glSamplerParameteri(id_, GL_TEXTURE_COMPARE_MODE, state.asBitField.compareEnable ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
-    }
-
-    if (state.asBitField.compareOp != samplerState_.asBitField.compareOp || force)
-    {
-      glSamplerParameteri(id_, GL_TEXTURE_COMPARE_FUNC, detail::CompareOpToGL(state.asBitField.compareOp));
-    }
-
-    if (state.asBitField.magFilter != samplerState_.asBitField.magFilter || force)
-    {
-      GLint filter = state.asBitField.magFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
-      glSamplerParameteri(id_, GL_TEXTURE_MAG_FILTER, filter);
-    }
-    if (state.asBitField.minFilter != samplerState_.asBitField.minFilter ||
-      state.asBitField.mipmapFilter != samplerState_.asBitField.mipmapFilter ||
-      force)
-    {
-      GLint filter{};
-      switch (state.asBitField.mipmapFilter)
-      {
-      case (Filter::NONE):
-        filter = state.asBitField.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
-        break;
-      case (Filter::NEAREST):
-        filter = state.asBitField.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
-        break;
-      case (Filter::LINEAR):
-        filter = state.asBitField.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
-        break;
-      default: GSDF_UNREACHABLE;
-      }
-      glSamplerParameteri(id_, GL_TEXTURE_MIN_FILTER, filter);
-    }
-
-    if (state.asBitField.addressModeU != samplerState_.asBitField.addressModeU || force)
-      glSamplerParameteri(id_, GL_TEXTURE_WRAP_S, detail::AddressModeToGL(state.asBitField.addressModeU));
-    if (state.asBitField.addressModeV != samplerState_.asBitField.addressModeV || force)
-      glSamplerParameteri(id_, GL_TEXTURE_WRAP_T, detail::AddressModeToGL(state.asBitField.addressModeV));
-    if (state.asBitField.addressModeW != samplerState_.asBitField.addressModeW || force)
-      glSamplerParameteri(id_, GL_TEXTURE_WRAP_R, detail::AddressModeToGL(state.asBitField.addressModeW));
-
-    if (state.asBitField.borderColor != samplerState_.asBitField.borderColor || force)
-    {
-      // TODO: determine whether int white values should be 1 or 255
-      switch (state.asBitField.borderColor)
-      {
-      case BorderColor::FLOAT_TRANSPARENT_BLACK:
-      {
-        constexpr GLfloat color[4]{ 0, 0, 0, 0 };
-        glSamplerParameterfv(id_, GL_TEXTURE_BORDER_COLOR, color);
-        break;
-      }
-      case BorderColor::INT_TRANSPARENT_BLACK:
-      {
-        constexpr GLint color[4]{ 0, 0, 0, 0 };
-        glSamplerParameteriv(id_, GL_TEXTURE_BORDER_COLOR, color);
-        break;
-      }
-      case BorderColor::FLOAT_OPAQUE_BLACK:
-      {
-        constexpr GLfloat color[4]{ 0, 0, 0, 1 };
-        glSamplerParameterfv(id_, GL_TEXTURE_BORDER_COLOR, color);
-        break;
-      }
-      case BorderColor::INT_OPAQUE_BLACK:
-      {
-        constexpr GLint color[4]{ 0, 0, 0, 255 };
-        glSamplerParameteriv(id_, GL_TEXTURE_BORDER_COLOR, color);
-        break;
-      }
-      case BorderColor::FLOAT_OPAQUE_WHITE:
-      {
-        constexpr GLfloat color[4]{ 1, 1, 1, 1 };
-        glSamplerParameterfv(id_, GL_TEXTURE_BORDER_COLOR, color);
-        break;
-      }
-      case BorderColor::INT_OPAQUE_WHITE:
-      {
-        constexpr GLint color[4]{ 255, 255, 255, 255 };
-        glSamplerParameteriv(id_, GL_TEXTURE_BORDER_COLOR, color);
-        break;
-      }
-      default:
-        GSDF_UNREACHABLE;
-        break;
-      }
-    }
-
-    if (state.asBitField.anisotropy != samplerState_.asBitField.anisotropy || force)
-      glSamplerParameterf(id_, GL_TEXTURE_MAX_ANISOTROPY, detail::SampleCountToGL(state.asBitField.anisotropy));
-
-    if (state.lodBias != samplerState_.lodBias || force)
-      glSamplerParameterf(id_, GL_TEXTURE_LOD_BIAS, state.lodBias);
-    if (state.minLod != samplerState_.minLod || force)
-      glSamplerParameterf(id_, GL_TEXTURE_MIN_LOD, state.minLod);
-    if (state.maxLod != samplerState_.maxLod || force)
-      glSamplerParameterf(id_, GL_TEXTURE_MAX_LOD, state.maxLod);
-
-    samplerState_ = state;
+    return sSamplerCache.CreateOrGetCachedTextureSampler(samplerState);
   }
 
   void BindTextureViewNative(uint32_t slot, uint32_t textureViewAPIHandle, uint32_t samplerAPIHandle)
@@ -447,5 +289,13 @@ namespace GFX
       .sampleCount = SampleCount::SAMPLES_1
     };
     return Texture::Create(createInfo, name);
+  }
+
+  bool SamplerState::operator==(const SamplerState& rhs) const
+  {
+    return asUint32 == rhs.asUint32 &&
+      lodBias == rhs.lodBias &&
+      minLod == rhs.minLod &&
+      maxLod == rhs.maxLod;
   }
 }

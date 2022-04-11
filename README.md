@@ -1,4 +1,5 @@
 # g (working title)
+
 Low-level OpenGL 4.6 abstraction in C++20. The abstraction attempts to mitigate the weak points of OpenGL while providing an interface fit for use in modern renderers (outlined in [my blog post about modern OpenGL best practices](https://juandiegomontoya.github.io/modern_opengl.html)).
 
 The abstraction is inspired by Vulkan in many places while requiring considerably less boilerplate. That being said, this API *adds* boilerplate compared to plain OpenGL as the user **must** explitly state all graphics pipeline state before rendering. The advantage of doing so is that it's impossible to leak pipeline state (with normal usage) and clarity is greatly improved.
@@ -6,6 +7,7 @@ The abstraction is inspired by Vulkan in many places while requiring considerabl
 **Currently this is a proof of concept and should be treated as such**. The abstraction is inefficient with redundant state setting, interfaces are not final, and the code is smelly in more than a few places.
 
 ## Goals
+
 - Reduce potential for error
   - Add type safety
     - Type wrappers with move semantics and no copyability
@@ -27,17 +29,19 @@ The abstraction is inspired by Vulkan in many places while requiring considerabl
 It may be noted that the API heavily resembles Vulkan. This is intentional.
 
 ## Not Goals
+
 - Backwards compatibility
 - High level abstraction (e.g. scene management, frame graph, etc.)
 - Supporting all OpenGL 4.6 features
 
 ## Core Features
+
 - [x] Texture
 - [x] Texture view
 - [x] Sampler
 - [x] Buffer
 - [x] Rendering info (BeginRendering and EndRendering)
-  - https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkRenderingInfo.html
+  - [VkRenderingInfo](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkRenderingInfo.html)
 - [x] Graphics pipeline
 - [x] Compute pipeline
 - [x] Fence sync
@@ -47,13 +51,16 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 - [ ] Shader (this is basically bundled with pipelines so I'm not sure what to do here)
 
 ## Extended Features (which may not come)
+
 - [ ] Automatically reflect shader uniforms
 - [ ] State deduplication
-- [ ] Sampler deduplication
+- [x] Sampler deduplication
 - [ ] Texture view deduplication
 
 ## Example
+
 The draw loop of hello triangle looks like this (WIP):
+
 ```cpp
 GFX::BeginSwapchainRendering(swapchainRenderingInfo);
 GFX::Cmd::BindGraphicsPipeline(pipeline);

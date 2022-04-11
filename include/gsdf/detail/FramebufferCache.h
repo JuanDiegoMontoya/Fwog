@@ -1,7 +1,6 @@
 #pragma once
-#include <unordered_map>
-#include <span>
 #include <vector>
+#include <unordered_map>
 
 namespace GFX
 {
@@ -22,7 +21,7 @@ namespace GFX::detail
 
 namespace std
 {
-  template <>
+  template<>
   struct hash<GFX::detail::RenderAttachments>
   {
     std::size_t operator()(const GFX::detail::RenderAttachments& k) const;
@@ -35,6 +34,7 @@ namespace GFX::detail
   {
   public:
     uint32_t CreateOrGetCachedFramebuffer(const RenderAttachments& attachments);
+    size_t Size() const { return framebufferCache_.size(); }
     void Clear();
 
   private:

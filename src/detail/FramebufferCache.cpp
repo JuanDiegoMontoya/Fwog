@@ -35,11 +35,17 @@ namespace GFX::detail
     {
       glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, attachments.stencilAttachment->Handle(), 0);
     }
-    return framebufferCache_.insert({ attachments, fbo }).second;
+
+    return framebufferCache_.insert({ attachments, fbo }).first->second;
   }
 
   void FramebufferCache::Clear()
   {
+    for (const auto& [_, fbo] : framebufferCache_)
+    {
+      glDeleteFramebuffers(1, &fbo);
+    }
+
     framebufferCache_.clear();
   }
 
@@ -47,15 +53,19 @@ namespace GFX::detail
   {
     if (colorAttachments.size() != rhs.colorAttachments.size())
       return false;
+
     for (size_t i = 0; i < colorAttachments.size(); i++)
     {
       if (colorAttachments[i] != rhs.colorAttachments[i])
         return false;
     }
+
     if (depthAttachment != rhs.depthAttachment)
       return false;
+
     if (stencilAttachment != rhs.stencilAttachment)
       return false;
+
     return true;
   }
 }

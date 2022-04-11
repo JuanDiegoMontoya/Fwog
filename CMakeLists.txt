@@ -20,6 +20,7 @@ set(source_files
 	src/detail/ApiToEnum.cpp
 	src/detail/PipelineManager.cpp
 	src/detail/FramebufferCache.cpp
+	src/detail/SamplerCache.cpp
 )
 
 set(header_files
@@ -39,6 +40,7 @@ set(header_files
 	include/gsdf/detail/PipelineManager.h
 	include/gsdf/detail/FramebufferCache.h
 	include/gsdf/detail/Hash.h
+	include/gsdf/detail/SamplerCache.h
 )
 
 add_library(lib_gsdf ${source_files} ${header_files})

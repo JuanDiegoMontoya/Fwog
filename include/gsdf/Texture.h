@@ -6,6 +6,11 @@
 
 namespace GFX
 {
+  namespace detail
+  {
+    class SamplerCache;
+  }
+
   class TextureSampler;
   class Texture;
 
@@ -42,6 +47,8 @@ namespace GFX
 
   struct SamplerState
   {
+    bool operator==(const SamplerState& rhs) const;
+
     SamplerState() {};
     union
     {
@@ -99,7 +106,6 @@ namespace GFX
   };
 
   // serves as the physical storage for textures
-  // cannot be used directly for samplers
   class Texture
   {
   public:
@@ -125,29 +131,20 @@ namespace GFX
     TextureCreateInfo createInfo_{};
   };
 
-  // stores texture sampling parameters
-  // copy + move constructible
+  // trivially copy + move constructible
   class TextureSampler
   {
   public:
-    [[nodiscard]] static std::optional<TextureSampler> Create(const SamplerState& initialState, std::string_view name = "");
-    TextureSampler(TextureSampler&& old) noexcept;
-    TextureSampler& operator=(TextureSampler&& old) noexcept;
-    ~TextureSampler();
-
-    void SetState(const SamplerState& samplerState);
-    [[nodiscard]] const SamplerState& GetState() const noexcept { return samplerState_; }
+    [[nodiscard]] static std::optional<TextureSampler> Create(const SamplerState& samplerState);
     [[nodiscard]] uint32_t Handle() const { return id_; }
 
-    TextureSampler(const TextureSampler& other) = delete;
-    TextureSampler& operator=(const TextureSampler& other) = delete;
-
   private:
-    TextureSampler() {};
-    void SetState(const SamplerState& samplerState, bool force);
+    friend class detail::SamplerCache;
+
+    TextureSampler() {}; // you cannot create samplers out of thin air
+    explicit TextureSampler(uint32_t id) : id_(id) {};
 
     uint32_t id_{};
-    SamplerState samplerState_{};
   };
 
   // unsafe way to bind texture view and sampler using only API handles
@@ -158,7 +155,7 @@ namespace GFX
 
   void BindImage(uint32_t slot, const TextureView& textureView, uint32_t level);
 
-  // convenience function
+  // convenience functions
   std::optional<Texture> CreateTexture2D(Extent2D size, Format format, std::string_view name = "");
   std::optional<Texture> CreateTexture2DMip(Extent2D size, Format format, uint32_t mipLevels, std::string_view name = "");
 }
