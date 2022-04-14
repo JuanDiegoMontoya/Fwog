@@ -87,7 +87,7 @@ namespace GFX::detail
       break;
     }
 
-    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, detail::SampleCountToGL(samplerState.anisotropy));
+    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, static_cast<GLfloat>(detail::SampleCountToGL(samplerState.anisotropy)));
 
     glSamplerParameterf(sampler, GL_TEXTURE_LOD_BIAS, samplerState.lodBias);
 

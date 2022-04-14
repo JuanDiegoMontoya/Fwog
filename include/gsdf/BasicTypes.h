@@ -261,26 +261,6 @@ namespace GFX
     INT_OPAQUE_WHITE,
   };
 
-  // TODO: remove
-  enum class Attachment : uint32_t
-  {
-    NONE,
-    COLOR_0,
-    COLOR_1,
-    COLOR_2,
-    COLOR_3,
-    COLOR_ATTACHMENT_MAX = COLOR_3,
-
-    DEPTH,
-    STENCIL,
-    DEPTH_STENCIL,
-  };
-
-  template<typename T>
-  Attachment operator+(Attachment a, T b) { return static_cast<Attachment>(static_cast<T>(a) + b); }
-  template<typename T>
-  Attachment operator+(T b, Attachment a) { return a + b; }
-
   enum class AspectMaskBit : uint32_t
   {
     COLOR_BUFFER_BIT    = 1 << 0,

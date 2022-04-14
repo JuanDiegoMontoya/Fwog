@@ -6,8 +6,6 @@
 namespace GFX::detail
 {
   ////////////////////////////////////////////////////////// framebuffer
-  GLenum AttachmentToGL(Attachment attachment);
-
   GLenum FilterToGL(Filter filter);
 
   GLbitfield AspectMaskToGL(AspectMask bits);

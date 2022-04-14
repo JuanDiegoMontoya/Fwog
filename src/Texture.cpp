@@ -3,6 +3,7 @@
 #include <gsdf/detail/SamplerCache.h>
 #include <gsdf/Texture.h>
 #include <utility>
+#include <array>
 
 #define MAX_NAME_LEN 256
 
@@ -140,6 +141,11 @@ namespace GFX
     return Create(createInfo, texture.id_, texture.createInfo_.extent, name);
   }
 
+  std::optional<TextureView> TextureView::Create(const TextureViewCreateInfo& createInfo, const TextureView& textureView, std::string_view name)
+  {
+    return Create(createInfo, textureView.id_, textureView.extent_, name);
+  }
+
   std::optional<TextureView> TextureView::Create(const Texture& texture, std::string_view name)
   {
     TextureViewCreateInfo createInfo
@@ -173,13 +179,13 @@ namespace GFX
 
   TextureView::TextureView(const TextureView& other)
   {
-    char name[MAX_NAME_LEN]{};
+    std::array<char, MAX_NAME_LEN> name{};
     GLsizei len{};
-    glGetObjectLabel(GL_TEXTURE, other.id_, MAX_NAME_LEN, &len, name);
+    glGetObjectLabel(GL_TEXTURE, other.id_, MAX_NAME_LEN, &len, name.data());
     *this = other;
     if (len > 0)
     {
-      glObjectLabel(GL_TEXTURE, id_, len, name);
+      glObjectLabel(GL_TEXTURE, id_, len, name.data());
     }
   }
 
@@ -216,20 +222,6 @@ namespace GFX
   {
     subImage(id_, info);
   }
-
-  //std::optional<TextureView> TextureView::MipView(uint32_t level) const
-  //{
-  //  TextureViewCreateInfo createInfo
-  //  {
-  //    .viewType = createInfo_.imageType,
-  //    .format = createInfo_.format,
-  //    .minLevel = level,
-  //    .numLevels = 1,
-  //    .minLayer = 0,
-  //    .numLayers = createInfo_.arrayLayers
-  //  };
-  //  return TextureView::Create(createInfo, id_, extent_);
-  //}
 
 
 

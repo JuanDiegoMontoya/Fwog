@@ -7,17 +7,17 @@
 namespace GFX
 {
   // used to constrain types accepted by Buffer
-  class cool_bytes : public std::span<const std::byte>
+  class TriviallyCopyableByteSpan : public std::span<const std::byte>
   {
   public:
     template<typename T> requires std::is_trivially_copyable_v<T>
-    cool_bytes(const T& t) : std::span<const std::byte>(std::as_bytes(std::span{ &t, 1 })) {}
+    TriviallyCopyableByteSpan(const T& t) : std::span<const std::byte>(std::as_bytes(std::span{ &t, 1 })) {}
 
     template<typename T> requires std::is_trivially_copyable_v<T>
-    cool_bytes(std::span<const T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
+    TriviallyCopyableByteSpan(std::span<const T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
     
     template<typename T> requires std::is_trivially_copyable_v<T>
-    cool_bytes(std::span<T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
+    TriviallyCopyableByteSpan(std::span<T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
   };
 
   enum class BufferFlag : uint32_t
@@ -33,7 +33,6 @@ namespace GFX
   };
   GSDF_DECLARE_FLAG_TYPE(BufferFlags, BufferFlag, uint32_t)
 
-  // general-purpose immutable graphics buffer storage
   class Buffer
   {
   public:
@@ -42,31 +41,28 @@ namespace GFX
       return CreateInternal(nullptr, size, flags);
     }
 
-    [[nodiscard]] static std::optional<Buffer> Create(cool_bytes data, BufferFlags flags = BufferFlag::NONE)
+    [[nodiscard]] static std::optional<Buffer> Create(TriviallyCopyableByteSpan data, BufferFlags flags = BufferFlag::NONE)
     {
       return CreateInternal(data.data(), data.size_bytes(), flags);
     }
 
-    // copies another buffer's data store and contents
     Buffer(const Buffer& other) = delete;
     Buffer(Buffer&& other) noexcept;
     Buffer& operator=(const Buffer&) = delete;
     Buffer& operator=(Buffer&& other) noexcept;
     ~Buffer();
 
-    void SubData(cool_bytes data, size_t destOffsetBytes)
+    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes)
     {
       SubData(data.data(), data.size_bytes(), destOffsetBytes);
     }
 
-    // returns persistently mapped read/write pointer
     [[nodiscard]] void* GetMappedPointer();
 
     void UnmapPointer();
 
     [[nodiscard]] bool IsMapped() { return isMapped_; }
 
-    // gets the OpenGL handle of this object
     [[nodiscard]] auto Handle() const { return id_; }
 
     [[nodiscard]] auto Size() const { return size_; }
@@ -75,7 +71,6 @@ namespace GFX
     Buffer() {}
     static std::optional<Buffer> CreateInternal(const void* data, size_t size, BufferFlags flags);
 
-    // updates a subset of the buffer's data store
     void SubData(const void* data, size_t size, size_t offset = 0);
 
     uint32_t id_{};

@@ -67,12 +67,13 @@ namespace GFX
     CompareOp compareOp      = CompareOp::NEVER;
   };
 
-  // serves as lightweight view of an image, cheap to construct, copy, and meant to be passed around
+  // serves as lightweight view of an image, cheap to construct, copy, and meant to be passed by value
   class TextureView
   {
   public:
     // make a texture view with explicit parameters
     [[nodiscard]] static std::optional<TextureView> Create(const TextureViewCreateInfo& createInfo, const Texture& texture, std::string_view name = "");
+    [[nodiscard]] static std::optional<TextureView> Create(const TextureViewCreateInfo& createInfo, const TextureView& textureView, std::string_view name = "");
 
     // make a texture view with automatic parameters (view of whole texture, same type)
     [[nodiscard]] static std::optional<TextureView> Create(const Texture& texture, std::string_view name = "");
@@ -87,7 +88,6 @@ namespace GFX
     [[nodiscard]] uint32_t Handle() const { return id_; }
     [[nodiscard]] TextureViewCreateInfo CreateInfo() const { return createInfo_; }
     [[nodiscard]] Extent3D Extent() const { return extent_; }
-    //[[nodiscard]] std::optional<TextureView> MipView(uint32_t level) const;
 
   private:
     friend class Framebuffer;

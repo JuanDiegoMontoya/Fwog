@@ -3,22 +3,6 @@
 
 namespace GFX::detail
 {
-  GLenum AttachmentToGL(Attachment attachment)
-  {
-    switch (attachment)
-    {
-    case Attachment::NONE:          return GL_NONE;
-    case Attachment::COLOR_0:       return GL_COLOR_ATTACHMENT0;
-    case Attachment::COLOR_1:       return GL_COLOR_ATTACHMENT1;
-    case Attachment::COLOR_2:       return GL_COLOR_ATTACHMENT2;
-    case Attachment::COLOR_3:       return GL_COLOR_ATTACHMENT3;
-    case Attachment::DEPTH:         return GL_DEPTH_ATTACHMENT;
-    case Attachment::STENCIL:       return GL_STENCIL_ATTACHMENT;
-    case Attachment::DEPTH_STENCIL: return GL_DEPTH_STENCIL_ATTACHMENT;
-    default: GSDF_UNREACHABLE; return 0;
-    }
-  }
-
   GLenum FilterToGL(Filter filter)
   {
     switch (filter)

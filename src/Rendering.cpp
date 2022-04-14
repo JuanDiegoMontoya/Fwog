@@ -114,7 +114,7 @@ namespace GFX
 
     GLSetMaskStates();
 
-    for (size_t i = 0; i < ri.colorAttachments.size(); i++)
+    for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
     {
       const auto& attachment = ri.colorAttachments[i];
       if (attachment.clearOnLoad)
@@ -270,7 +270,7 @@ namespace GFX
         glLogicOp(detail::LogicOpToGL(cb.logicOp));
       }
       glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
-      for (size_t i = 0; i < cb.attachments.size(); i++)
+      for (GLuint i = 0; i < static_cast<GLuint>(cb.attachments.size()); i++)
       {
         const auto& cba = cb.attachments[i];
         glBlendFuncSeparatei(i, 
@@ -300,15 +300,23 @@ namespace GFX
     void SetViewport(const Viewport& viewport)
     {
       GSDF_ASSERT(isRendering);
-      glViewport(viewport.drawRect.offset.x, viewport.drawRect.offset.y,
-        viewport.drawRect.extent.width, viewport.drawRect.extent.height);
+      glViewport(
+        viewport.drawRect.offset.x,
+        viewport.drawRect.offset.y,
+        viewport.drawRect.extent.width,
+        viewport.drawRect.extent.height);
       glDepthRangef(viewport.minDepth, viewport.maxDepth);
     }
 
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)
     {
       GSDF_ASSERT(isRendering);
-      glVertexArrayVertexBuffer(sVao, bindingIndex, buffer.Handle(), offset, stride);
+      glVertexArrayVertexBuffer(
+        sVao,
+        bindingIndex,
+        buffer.Handle(),
+        static_cast<GLintptr>(offset),
+        static_cast<GLsizei>(stride));
     }
 
     void BindIndexBuffer(const Buffer& buffer, IndexType indexType)
@@ -337,7 +345,7 @@ namespace GFX
         detail::PrimitiveTopologyToGL(sTopology),
         indexCount,
         detail::IndexTypeToGL(sIndexType),
-        reinterpret_cast<void*>(firstIndex),
+        reinterpret_cast<void*>(static_cast<uintptr_t>(firstIndex)), // double cast is needed to prevent compiler from complaining about 32->64 bit pointer cast
         instanceCount,
         vertexOffset,
         firstInstance);
