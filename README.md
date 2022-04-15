@@ -57,6 +57,15 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 - [x] Sampler deduplication
 - [ ] Texture view deduplication
 
+## Build Instructions
+
+```bash
+$ git clone https://github.com/JuanDiegoMontoya/g.git
+$ mkdir g
+$ cd g
+$ cmake ..
+```
+
 ## Example
 
 The draw loop of hello triangle looks like this (WIP):
