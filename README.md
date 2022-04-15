@@ -61,8 +61,8 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 
 ```bash
 $ git clone https://github.com/JuanDiegoMontoya/g.git
-$ mkdir g
-$ cd g
+$ mkdir build
+$ cd build
 $ cmake ..
 ```
 
