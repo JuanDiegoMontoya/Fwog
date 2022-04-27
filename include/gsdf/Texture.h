@@ -42,7 +42,7 @@ namespace GFX
     Extent3D size{};
     UploadFormat format{};
     UploadType type{};
-    void* pixels{};
+    const void* pixels{};
   };
 
   struct SamplerState

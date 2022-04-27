@@ -1,6 +1,23 @@
+/* gltf_viewer.cpp
+* 
+* A viewer of glTF files.
+* 
+* The app has three optional arguments that must appear in order.
+* If a later option is used, the previous options must be use used as well.
+* 
+* Options
+* Filename (string) : name of the glTF file you wish to view.
+* Scale (real)      : uniform scale factor in case the model is tiny or huge. Default: 1.0
+* Binary (int)      : whether the input file is binary glTF. Default: false
+* 
+* If no options are specified, the default scene "models/hierarchyTest.glb" will be loaded.
+*/
+
 #include "common.h"
 
 #include <array>
+#include <charconv>
+#include <exception>
 
 #include <gsdf/BasicTypes.h>
 #include <gsdf/Fence.h>
@@ -55,7 +72,6 @@ struct View
 struct ObjectUniforms
 {
   glm::mat4 model;
-  glm::vec4 color;
 };
 
 struct Vertex
@@ -69,6 +85,7 @@ struct GlobalUniforms
 {
   glm::mat4 viewProj;
   glm::mat4 invViewProj;
+  glm::vec4 cameraPos;
 };
 
 struct ShadingUniforms
@@ -105,67 +122,6 @@ float gRMax = 0.08f;
 
 constexpr int gShadowmapWidth = 1024;
 constexpr int gShadowmapHeight = 1024;
-
-std::array<Vertex, 24> gCubeVertices
-{
-  // front (+z)
-  Vertex
-  { { -0.5, -0.5, 0.5 }, { 0, 0, 1 }, { 0, 0 } },
-  { {  0.5, -0.5, 0.5 }, { 0, 0, 1 }, { 1, 0 } },
-  { {  0.5, 0.5,  0.5 }, { 0, 0, 1 }, { 1, 1 } },
-  { { -0.5, 0.5,  0.5 }, { 0, 0, 1 }, { 0, 1 } },
-
-  // back (-z)
-  { { -0.5, 0.5,  -0.5 }, { 0, 0, -1 }, { 1, 1 } },
-  { {  0.5, 0.5,  -0.5 }, { 0, 0, -1 }, { 0, 1 } },
-  { {  0.5, -0.5, -0.5 }, { 0, 0, -1 }, { 0, 0 } },
-  { { -0.5, -0.5, -0.5 }, { 0, 0, -1 }, { 1, 0 } },
-
-  // left (-x)
-  { { -0.5, -0.5,-0.5 }, { -1, 0, 0 }, { 0, 0 } },
-  { { -0.5, -0.5, 0.5 }, { -1, 0, 0 }, { 1, 0 } },
-  { { -0.5, 0.5,  0.5 }, { -1, 0, 0 }, { 1, 1 } },
-  { { -0.5, 0.5, -0.5 }, { -1, 0, 0 }, { 0, 1 } },
-
-  // right (+x)
-  { { 0.5, 0.5,  -0.5 }, { 1, 0, 0 }, { 1, 1 } },
-  { { 0.5, 0.5,   0.5 }, { 1, 0, 0 }, { 0, 1 } },
-  { { 0.5, -0.5,  0.5 }, { 1, 0, 0 }, { 0, 0 } },
-  { { 0.5, -0.5, -0.5 }, { 1, 0, 0 }, { 1, 0 } },
-
-  // top (+y)
-  { {-0.5, 0.5, 0.5 }, { 0, 1, 0 }, { 0, 0 } },
-  { { 0.5, 0.5, 0.5 }, { 0, 1, 0 }, { 1, 0 } },
-  { { 0.5, 0.5,-0.5 }, { 0, 1, 0 }, { 1, 1 } },
-  { {-0.5, 0.5,-0.5 }, { 0, 1, 0 }, { 0, 1 } },
-
-  // bottom (-y)
-  { {-0.5, -0.5,-0.5 }, { 0, -1, 0 }, { 0, 0 } },
-  { { 0.5, -0.5,-0.5 }, { 0, -1, 0 }, { 1, 0 } },
-  { { 0.5, -0.5, 0.5 }, { 0, -1, 0 }, { 1, 1 } },
-  { {-0.5, -0.5, 0.5 }, { 0, -1, 0 }, { 0, 1 } },
-};
-
-std::array<uint16_t, 36> gCubeIndices
-{
-  0, 1, 2,
-  2, 3, 0,
-
-  4, 5, 6,
-  6, 7, 4,
-
-  8, 9, 10,
-  10, 11, 8,
-
-  12, 13, 14,
-  14, 15, 12,
-
-  16, 17, 18,
-  18, 19, 16,
-
-  20, 21, 22,
-  22, 23, 20,
-};
 
 std::array<GFX::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 {
@@ -226,8 +182,8 @@ GFX::ColorBlendAttachmentState GetDefaultColorBlendAttachmentState()
 GFX::GraphicsPipeline CreateScenePipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
-    Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
+    Utility::LoadFile("shaders/SceneDeferredPbr.vert.glsl"),
+    Utility::LoadFile("shaders/SceneDeferredPbr.frag.glsl"));
 
   GFX::InputAssemblyState inputAssembly
   {
@@ -276,8 +232,8 @@ GFX::GraphicsPipeline CreateScenePipeline()
 GFX::GraphicsPipeline CreateShadowPipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
-    Utility::LoadFile("shaders/RSMScene.frag.glsl"));
+    Utility::LoadFile("shaders/SceneDeferredPbr.vert.glsl"),
+    Utility::LoadFile("shaders/RSMScenePbr.frag.glsl"));
 
   GFX::InputAssemblyState inputAssembly
   {
@@ -290,8 +246,8 @@ GFX::GraphicsPipeline CreateShadowPipeline()
 
   auto rasterization = GetDefaultRasterizationState();
   rasterization.depthBiasEnable = true;
-  rasterization.depthBiasConstantFactor = 0;
-  rasterization.depthBiasSlopeFactor = 2;
+  rasterization.depthBiasConstantFactor = 10;
+  rasterization.depthBiasSlopeFactor = 7;
 
   GFX::DepthStencilState depthStencil
   {
@@ -329,7 +285,7 @@ GFX::GraphicsPipeline CreateShadingPipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(
     Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
-    Utility::LoadFile("shaders/ShadeDeferred.frag.glsl"));
+    Utility::LoadFile("shaders/ShadeDeferredPbr.frag.glsl"));
 
   GFX::InputAssemblyState inputAssembly
   {
@@ -449,10 +405,10 @@ void CursorPosCallback(GLFWwindow* window, double currentCursorX, double current
 
 
 
-void RenderScene()
+void RenderScene(std::optional<std::string_view> fileName, float scale, bool binary)
 {
   GLFWwindow* window = Utility::CreateWindow({
-    .name = "Deferred Example",
+    .name = "glTF Viewer Example",
     .maximize = false,
     .decorate = true,
     .width = gWindowWidth,
@@ -568,36 +524,21 @@ void RenderScene()
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
-  std::vector<ObjectUniforms> objectUniforms;
-  // translation, scale, color tuples
-  std::tuple<glm::vec3, glm::vec3, glm::vec3> objects[]{
-    { { 0, .5, -1 },   { 3, 1, 1 },      { .5, .5, .5 } },
-    { { -1, .5, 0 },   { 1, 1, 1 },      { .1, .1, .9 } },
-    { { 1, .5, 0 },    { 1, 1, 1 },      { .1, .1, .9 } },
-    { { 0, -.5, -.5 }, { 3, 1, 2 },      { .5, .5, .5 } },
-    { { 0, 1.5, -.5 }, { 3, 1, 2 },      { .2, .7, .2 } },
-    { { 0, .25, 0 },   { 0.25, .5, .25 }, { .5, .1, .1 } },
-    //{ { -.25, .25, 0 },   { .01, .5, .7 }, { .5, .1, .1 } },
-    //{ { .25, .25, 0 },   { .01, .5, .7 }, { .5, .1, .1 } },
-    //{ { 0, .25, -.25 },   { .7, .5, .01 }, { .5, .1, .1 } },
-    //{ { 0, .25, .25 },   { .7, .5, .01 }, { .5, .1, .1 } },
-  };
-  for (const auto& [translation, scale, color] : objects)
+  std::optional<Utility::Scene> scene;
+
+  if (!fileName)
   {
-    glm::mat4 model{ 1 };
-    model = glm::translate(model, translation);
-    model = glm::scale(model, scale);
-    objectUniforms.push_back({ model, glm::vec4{ color, 0.0f } });
+    scene = Utility::LoadModelFromFile("models/hierarchyTest.glb", glm::mat4{ .5 }, true);
+  }
+  else
+  {
+    scene = Utility::LoadModelFromFile(*fileName, glm::scale(glm::vec3{ scale }), binary);
   }
 
-  auto scene = Utility::LoadModelFromFile("models/Duck/glTF/Duck.gltf");
   std::vector<ObjectUniforms> meshUniforms;
   for (size_t i = 0; i < scene->meshes.size(); i++)
   {
-    glm::mat4 model{ 1 };
-    model = glm::translate(model, glm::vec3(i * 2, 0, 2));
-    model = glm::scale(model, glm::vec3(.01));
-    meshUniforms.push_back({ model, glm::vec4(1, 1, 1, 0) });
+    meshUniforms.push_back({ scene->meshes[i].transform });
   }
 
   ShadingUniforms shadingUniforms
@@ -615,12 +556,10 @@ void RenderScene()
 
   GlobalUniforms globalUniforms;
 
-  auto vertexBuffer = GFX::Buffer::Create(gCubeVertices);
-  auto indexBuffer = GFX::Buffer::Create(gCubeIndices);
-  auto objectBuffer = GFX::Buffer::Create(std::span(objectUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
   auto globalUniformsBuffer = GFX::Buffer::Create(sizeof(globalUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
   auto shadingUniformsBuffer = GFX::Buffer::Create(shadingUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
   auto rsmUniformBuffer = GFX::Buffer::Create(rsmUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
+  auto materialUniformsBuffer = GFX::Buffer::Create(sizeof(Utility::GpuMaterial), GFX::BufferFlag::DYNAMIC_STORAGE);
 
   auto meshUniformBuffer = GFX::Buffer::Create(std::span(meshUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
 
@@ -715,8 +654,12 @@ void RenderScene()
       shadingUniforms.sunDir = glm::rotate(glm::quarter_pi<float>() * dt, glm::vec3{ -1, 0, 0 }) * shadingUniforms.sunDir;
     }
 
-    glm::mat4 viewProj = proj * camera.GetViewMatrix();
-    globalUniformsBuffer->SubData(viewProj, 0);
+    GlobalUniforms mainCameraUniforms;
+    mainCameraUniforms.viewProj = proj * camera.GetViewMatrix();
+    mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
+    mainCameraUniforms.cameraPos = glm::vec4(camera.position, 0.0);
+
+    globalUniformsBuffer->SubData(mainCameraUniforms, 0);
 
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
     float eyeWidth = 2.5f;
@@ -732,17 +675,21 @@ void RenderScene()
       GFX::ScopedDebugMarker marker("Geometry");
       GFX::Cmd::BindGraphicsPipeline(scenePipeline);
       GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-      GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
-      GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-      GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-      GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+      GFX::Cmd::BindUniformBuffer(2, *materialUniformsBuffer, 0, materialUniformsBuffer->Size());
 
       GFX::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
       for (size_t i = 0; i < scene->meshes.size(); i++)
       {
-        GFX::Cmd::BindVertexBuffer(0, *scene->meshes[i].vertexBuffer, 0, sizeof(Vertex));
-        GFX::Cmd::BindIndexBuffer(*scene->meshes[i].indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-        GFX::Cmd::DrawIndexed(scene->meshes[i].indexBuffer->Size() / sizeof(uint16_t), 1, 0, 0, i);
+        const auto& mesh = scene->meshes[i];
+        const auto& material = *mesh.material;
+        materialUniformsBuffer->SubData(material.gpuMaterial, 0);
+        if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
+        {
+          GFX::Cmd::BindSampledImage(0, *material.baseColorTexture->textureView, *material.baseColorTexture->sampler);
+        }
+        GFX::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Vertex));
+        GFX::Cmd::BindIndexBuffer(*mesh.indexBuffer, GFX::IndexType::UNSIGNED_INT);
+        GFX::Cmd::DrawIndexed(mesh.indexBuffer->Size() / sizeof(uint32_t), 1, 0, 0, i);
       }
     }
     GFX::EndRendering();
@@ -756,23 +703,26 @@ void RenderScene()
       GFX::Cmd::BindGraphicsPipeline(rsmScenePipeline);
       GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
-      GFX::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
-      GFX::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-      GFX::Cmd::BindIndexBuffer(*indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-      GFX::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+      GFX::Cmd::BindUniformBuffer(2, *materialUniformsBuffer, 0, materialUniformsBuffer->Size());
 
       GFX::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
       for (size_t i = 0; i < scene->meshes.size(); i++)
       {
-        GFX::Cmd::BindVertexBuffer(0, *scene->meshes[i].vertexBuffer, 0, sizeof(Vertex));
-        GFX::Cmd::BindIndexBuffer(*scene->meshes[i].indexBuffer, GFX::IndexType::UNSIGNED_SHORT);
-        GFX::Cmd::DrawIndexed(scene->meshes[i].indexBuffer->Size() / sizeof(uint16_t), 1, 0, 0, i);
+        const auto& mesh = scene->meshes[i];
+        const auto& material = *mesh.material;
+        materialUniformsBuffer->SubData(material.gpuMaterial, 0);
+        if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
+        {
+          GFX::Cmd::BindSampledImage(0, *material.baseColorTexture->textureView, *material.baseColorTexture->sampler);
+        }
+        GFX::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Vertex));
+        GFX::Cmd::BindIndexBuffer(*mesh.indexBuffer, GFX::IndexType::UNSIGNED_INT);
+        GFX::Cmd::DrawIndexed(mesh.indexBuffer->Size() / sizeof(uint32_t), 1, 0, 0, i);
       }
     }
     GFX::EndRendering();
 
-    globalUniformsBuffer->SubData(viewProj, 0);
-    globalUniformsBuffer->SubData(glm::inverse(viewProj), sizeof(glm::mat4));
+    globalUniformsBuffer->SubData(mainCameraUniforms, 0);
 
     rsmUniforms.sunViewProj = shadingUniforms.sunViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
@@ -865,20 +815,47 @@ void RenderScene()
   glfwTerminate();
 }
 
-int main()
+int main(int argc, const char* const* argv)
 {
   try
   {
-    RenderScene();
+    std::optional<std::string_view> fileName;
+    float scale = 1.0f;
+    bool binary = false;
+
+    if (argc > 1)
+    {
+      fileName = argv[1];
+    }
+    if (argc > 2)
+    {
+      auto [ptr, ec] = std::from_chars(argv[2], argv[2] + strlen(argv[2]), scale);
+      if (ec != std::errc{})
+      {
+        throw std::exception("Scale should be a real number");
+      }
+    }
+    if (argc > 3)
+    {
+      int val = 0;
+      auto [ptr, ec] = std::from_chars(argv[3], argv[3] + strlen(argv[3]), val);
+      binary = static_cast<bool>(val);
+      if (ec != std::errc{})
+      {
+        throw std::exception("Binary should be 0 or 1");
+      }
+    }
+
+    RenderScene(fileName, scale, binary);
   }
   catch (std::exception e)
   {
-    printf("Error: %s", e.what());
+    printf("Error: %s\n", e.what());
     throw;
   }
   catch (...)
   {
-    printf("Unknown error");
+    printf("Unknown error\n");
     throw;
   }
 
