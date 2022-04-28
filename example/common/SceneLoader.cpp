@@ -54,6 +54,17 @@ namespace Utility
       timepoint_t timepoint_;
     };
 
+    glm::vec2 signNotZero(glm::vec2 v)
+    {
+      return glm::vec2((v.x >= 0.0f) ? +1.0f : -1.0f, (v.y >= 0.0f) ? +1.0f : -1.0f);
+    }
+
+    glm::vec2 float32x3_to_oct(glm::vec3 v)
+    {
+      glm::vec2 p = glm::vec2{ v.x, v.y } * (1.0f / (abs(v.x) + abs(v.y) + abs(v.z)));
+      return (v.z <= 0.0f) ? ((1.0f - glm::abs(glm::vec2{ p.y, p.x })) * signNotZero(p)) : p;
+    }
+
     auto ConvertGlAddressMode(uint32_t wrap) -> GFX::AddressMode
     {
       switch (wrap)
@@ -190,7 +201,7 @@ namespace Utility
   {
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> normals;
-    std::vector<glm::vec3> texcoords;
+    std::vector<glm::vec2> texcoords;
 
     for (const auto& [name, accessorIndex] : primitive.attributes)
     {
@@ -299,7 +310,11 @@ namespace Utility
 
     for (size_t i = 0; i < positions.size(); i++)
     {
-      vertices[i] = { positions[i], normals[i], texcoords[i] };
+      vertices[i] = {
+        positions[i],
+        glm::packSnorm2x16(float32x3_to_oct(normals[i])),
+        texcoords[i]
+      };
     }
 
     return vertices;
@@ -391,13 +406,13 @@ namespace Utility
     return textureSamplers;
   }
 
-  std::vector<Material> LoadMaterials(const tinygltf::Model& model, const std::vector<CombinedTextureSampler>& textureSamplers)
+  std::vector<Material> LoadMaterials(const tinygltf::Model& model, const std::vector<CombinedTextureSampler>& textureSamplers, int baseTextureSamplerIndex)
   {
     std::vector<Material> materials;
 
     for (const auto& loaderMaterial : model.materials)
     {
-      int baseColorTextureIndex = loaderMaterial.pbrMetallicRoughness.baseColorTexture.index;
+      int baseColorTextureIndex = baseTextureSamplerIndex + loaderMaterial.pbrMetallicRoughness.baseColorTexture.index;
       
       glm::vec4 baseColorFactor{};
       for (int i = 0; i < 4; i++)
@@ -410,7 +425,7 @@ namespace Utility
       if (baseColorTextureIndex >= 0)
       {
         material.gpuMaterial.flags |= MaterialFlagBit::HAS_BASE_COLOR_TEXTURE;
-        material.baseColorTexture = &textureSamplers[baseColorTextureIndex];
+        material.baseColorTextureIdx = baseColorTextureIndex;
       }
 
       material.gpuMaterial.baseColorFactor = baseColorFactor;
@@ -421,8 +436,11 @@ namespace Utility
     return materials;
   }
 
-  std::optional<Scene> LoadModelFromFile(std::string_view fileName, glm::mat4 rootTransform, bool binary)
+  bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
   {
+    const int baseMaterialIndex = scene.materials.size();
+    const int baseTextureSamplerIndex = scene.textureSamplers.size();
+
     tinygltf::TinyGLTF loader;
     tinygltf::Model model;
     std::string error;
@@ -456,22 +474,47 @@ namespace Utility
     if (result == false)
     {
       std::cout << "Failed to load glTF: " << fileName << '\n';
-      return std::nullopt;
+      return false;
     }
 
     bool loadImageResult = LoadImageDataParallel(rawImageData, model.images, { .preserve_channels = false });
     if (loadImageResult == false)
     {
       std::cout << "Failed to load glTF images" << '\n';
+      return false;
     }
 
     auto ms = timer.Elapsed_us() / 1000;
     std::cout << "Loading took " << ms << " ms\n";
 
-    Scene scene;
+    // TODO: use this
+    //for (const auto& mesh : model.meshes)
+    //{
+    //  for (const auto& primitive : mesh.primitives)
+    //  {
+    //    auto vertices = ConvertVertexBufferFormat(model, primitive);
+    //    auto indices = ConvertIndexBufferFormat(model, primitive);
 
-    scene.textureSamplers = LoadTextureSamplers(model);
-    scene.materials = LoadMaterials(model, scene.textureSamplers);
+    //    auto vertexBuffer = GFX::Buffer::Create(std::span(vertices));
+    //    auto indexBuffer = GFX::Buffer::Create(std::span(indices));
+
+    //    scene.geometry.emplace_back(
+    //      std::move(vertexBuffer),
+    //      std::move(indexBuffer));
+    //  }
+    //}
+
+    auto textureSamplers = LoadTextureSamplers(model);
+    for (auto& textureSampler : textureSamplers)
+    {
+      scene.textureSamplers.emplace_back(std::move(textureSampler));
+    }
+
+    auto materials = LoadMaterials(model, scene.textureSamplers, baseTextureSamplerIndex);
+    for (auto&& material : materials)
+    {
+      scene.materials.emplace_back(material);
+    }
     
     GSDF_ASSERT(!model.scenes.empty());
 
@@ -515,35 +558,15 @@ namespace Utility
             {
               std::move(vertexBuffer),
               std::move(indexBuffer),
-              &scene.materials[std::max(primitive.material, 0)],
+              baseMaterialIndex + std::max(primitive.material, 0),
               globalTransform
             });
         }
       }
     }
 
-    // TODO: use this code
-    //for (const auto& mesh : model.meshes)
-    //{
-    //  for (const auto& primitive : mesh.primitives)
-    //  {
-    //    auto vertices = ConvertVertexBufferFormat(model, primitive);
-    //    auto indices = ConvertIndexBufferFormat(model, primitive);
-
-    //    auto vertexBuffer = GFX::Buffer::Create(std::span(vertices));
-    //    auto indexBuffer = GFX::Buffer::Create(std::span(indices));
-    //    
-    //    scene.meshes.emplace_back(Mesh
-    //      {
-    //        std::move(vertexBuffer),
-    //        std::move(indexBuffer),
-    //        &scene.materials[primitive.material]
-    //      });
-    //  }
-    //}
-
     std::cout << "Loaded glTF: " << fileName << '\n';
 
-    return scene;
+    return true;
   }
 }

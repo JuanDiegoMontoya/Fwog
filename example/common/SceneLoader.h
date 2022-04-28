@@ -15,7 +15,7 @@ namespace Utility
   struct Vertex
   {
     glm::vec3 position;
-    glm::vec3 normal;
+    uint32_t normal;
     glm::vec2 texcoord;
   };
 
@@ -44,30 +44,32 @@ namespace Utility
   struct Material
   {
     GpuMaterial gpuMaterial;
-    const CombinedTextureSampler* baseColorTexture;
+    int baseColorTextureIdx;
   };
+
+  //struct GeometryBuffers
+  //{
+  //  std::optional<GFX::Buffer> vertexBuffer;
+  //  std::optional<GFX::Buffer> indexBuffer;
+  //  GFX::IndexType indexType;
+  //};
 
   struct Mesh
   {
+    //const GeometryBuffers* buffers;
     std::optional<GFX::Buffer> vertexBuffer;
     std::optional<GFX::Buffer> indexBuffer;
-    //GFX::IndexType indexType;
-    const Material* material;
-    glm::mat4 transform; // temp lol
+    int materialIdx;
+    glm::mat4 transform;
   };
-
-  //struct MeshInstance
-  //{
-  //  glm::mat4 transform;
-  //  const Mesh* mesh;
-  //};
 
   struct Scene
   {
     std::vector<Mesh> meshes;
+    //std::vector<GeometryBuffers> geometry;
     std::vector<Material> materials;
     std::vector<CombinedTextureSampler> textureSamplers;
   };
 
-  std::optional<Scene> LoadModelFromFile(std::string_view fileName, glm::mat4 rootTransform = glm::mat4{ 1 }, bool binary = false);
+  bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform = glm::mat4{ 1 }, bool binary = false);
 }

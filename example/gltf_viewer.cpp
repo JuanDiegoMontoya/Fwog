@@ -74,13 +74,6 @@ struct ObjectUniforms
   glm::mat4 model;
 };
 
-struct Vertex
-{
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec2 uv;
-};
-
 struct GlobalUniforms
 {
   glm::mat4 viewProj;
@@ -130,21 +123,21 @@ std::array<GFX::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
     .location = 0,
     .binding = 0,
     .format = GFX::Format::R32G32B32_FLOAT,
-    .offset = offsetof(Vertex, position),
+    .offset = offsetof(Utility::Vertex, position),
   };
   GFX::VertexInputBindingDescription descNormal
   {
     .location = 1,
     .binding = 0,
-    .format = GFX::Format::R32G32B32_FLOAT,
-    .offset = offsetof(Vertex, normal),
+    .format = GFX::Format::R16G16_SNORM,
+    .offset = offsetof(Utility::Vertex, normal),
   };
   GFX::VertexInputBindingDescription descUV
   {
     .location = 2,
     .binding = 0,
     .format = GFX::Format::R32G32_FLOAT,
-    .offset = offsetof(Vertex, uv),
+    .offset = offsetof(Utility::Vertex, texcoord),
   };
 
   return { descPos, descNormal, descUV };
@@ -524,21 +517,21 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
-  std::optional<Utility::Scene> scene;
+  Utility::Scene scene;
 
   if (!fileName)
   {
-    scene = Utility::LoadModelFromFile("models/hierarchyTest.glb", glm::mat4{ .5 }, true);
+    bool success = Utility::LoadModelFromFile(scene, "models/hierarchyTest.glb", glm::mat4{ .5 }, true);
   }
   else
   {
-    scene = Utility::LoadModelFromFile(*fileName, glm::scale(glm::vec3{ scale }), binary);
+    bool success = Utility::LoadModelFromFile(scene, *fileName, glm::scale(glm::vec3{ scale }), binary);
   }
 
   std::vector<ObjectUniforms> meshUniforms;
-  for (size_t i = 0; i < scene->meshes.size(); i++)
+  for (size_t i = 0; i < scene.meshes.size(); i++)
   {
-    meshUniforms.push_back({ scene->meshes[i].transform });
+    meshUniforms.push_back({ scene.meshes[i].transform });
   }
 
   ShadingUniforms shadingUniforms
@@ -678,16 +671,17 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       GFX::Cmd::BindUniformBuffer(2, *materialUniformsBuffer, 0, materialUniformsBuffer->Size());
 
       GFX::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
-      for (size_t i = 0; i < scene->meshes.size(); i++)
+      for (size_t i = 0; i < scene.meshes.size(); i++)
       {
-        const auto& mesh = scene->meshes[i];
-        const auto& material = *mesh.material;
+        const auto& mesh = scene.meshes[i];
+        const auto& material = scene.materials[mesh.materialIdx];
         materialUniformsBuffer->SubData(material.gpuMaterial, 0);
         if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
         {
-          GFX::Cmd::BindSampledImage(0, *material.baseColorTexture->textureView, *material.baseColorTexture->sampler);
+          const auto& textureSampler = scene.textureSamplers[material.baseColorTextureIdx];
+          GFX::Cmd::BindSampledImage(0, *textureSampler.textureView, *textureSampler.sampler);
         }
-        GFX::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Vertex));
+        GFX::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
         GFX::Cmd::BindIndexBuffer(*mesh.indexBuffer, GFX::IndexType::UNSIGNED_INT);
         GFX::Cmd::DrawIndexed(mesh.indexBuffer->Size() / sizeof(uint32_t), 1, 0, 0, i);
       }
@@ -706,16 +700,17 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       GFX::Cmd::BindUniformBuffer(2, *materialUniformsBuffer, 0, materialUniformsBuffer->Size());
 
       GFX::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
-      for (size_t i = 0; i < scene->meshes.size(); i++)
+      for (size_t i = 0; i < scene.meshes.size(); i++)
       {
-        const auto& mesh = scene->meshes[i];
-        const auto& material = *mesh.material;
+        const auto& mesh = scene.meshes[i];
+        const auto& material = scene.materials[mesh.materialIdx];
         materialUniformsBuffer->SubData(material.gpuMaterial, 0);
         if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
         {
-          GFX::Cmd::BindSampledImage(0, *material.baseColorTexture->textureView, *material.baseColorTexture->sampler);
+          const auto& textureSampler = scene.textureSamplers[material.baseColorTextureIdx];
+          GFX::Cmd::BindSampledImage(0, *textureSampler.textureView, *textureSampler.sampler);
         }
-        GFX::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Vertex));
+        GFX::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
         GFX::Cmd::BindIndexBuffer(*mesh.indexBuffer, GFX::IndexType::UNSIGNED_INT);
         GFX::Cmd::DrawIndexed(mesh.indexBuffer->Size() / sizeof(uint32_t), 1, 0, 0, i);
       }

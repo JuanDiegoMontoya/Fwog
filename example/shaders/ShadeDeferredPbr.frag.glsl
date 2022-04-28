@@ -62,7 +62,7 @@ void main()
   vec3 specular = albedo * spec * shadingUniforms.sunStrength.rgb;
 
   //vec3 ambient = vec3(.03) * albedo;
-  vec3 ambient = vec3(.00) * albedo + textureLod(s_rsmIndirect, v_uv, 0).rgb;
+  vec3 ambient = vec3(.01) * albedo + textureLod(s_rsmIndirect, v_uv, 0).rgb;
   vec3 finalColor = shadow * (diffuse + specular) + ambient;
 
   // tone mapping (optional)
