@@ -11,20 +11,20 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/g-truc/glm
     GIT_TAG        0.9.9.8
 )
+
+FetchContent_Declare(
+    tinygltf
+    GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
+    GIT_TAG        v2.5.0
+)
 FetchContent_MakeAvailable(glm)
+FetchContent_MakeAvailable(tinygltf)
 
 add_executable(deferred deferred.cpp common.cpp common.h)
 target_link_libraries(deferred PRIVATE glfw lib_glad lib_gsdf glm)
 add_dependencies(deferred copy_shaders)
 
-FetchContent_Declare(
-    tinygltf
-    GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
-    GIT_TAG        83bb1a48d79729f2688d9c63e2754ce976a65f72
-)
-FetchContent_GetProperties(tinygltf)
-
 add_executable(gltf_viewer gltf_viewer.cpp common.cpp common.h common/SceneLoader.cpp common/SceneLoader.h)
-target_include_directories(gltf_viewer PRIVATE ${tinygltf_SOURCE_DIR})
+target_include_directories(gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR})
 target_link_libraries(gltf_viewer PRIVATE glfw lib_glad lib_gsdf glm)
 add_dependencies(gltf_viewer copy_shaders copy_models tinygltf)
