@@ -21,6 +21,7 @@ set(source_files
 	src/detail/PipelineManager.cpp
 	src/detail/FramebufferCache.cpp
 	src/detail/SamplerCache.cpp
+	src/detail/VertexArrayCache.cpp
 )
 
 set(header_files
@@ -41,6 +42,7 @@ set(header_files
 	include/gsdf/detail/FramebufferCache.h
 	include/gsdf/detail/Hash.h
 	include/gsdf/detail/SamplerCache.h
+	include/gsdf/detail/VertexArrayCache.h
 )
 
 add_library(lib_gsdf ${source_files} ${header_files})

@@ -3,6 +3,7 @@
 #include <gsdf/detail/ApiToEnum.h>
 #include <gsdf/detail/PipelineManager.h>
 #include <gsdf/detail/FramebufferCache.h>
+#include <gsdf/detail/VertexArrayCache.h>
 #include <vector>
 
 // helper function
@@ -41,6 +42,7 @@ namespace GFX
     GLuint sFbo = 0;
 
     detail::FramebufferCache sFboCache;
+    detail::VertexArrayCache sVaoCache;
   }
 
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
@@ -204,35 +206,9 @@ namespace GFX
       const auto& ias = pipelineState->inputAssemblyState;
       GLEnableOrDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX, ias.primitiveRestartEnable);
       sTopology = ias.topology;
-
+      
       //////////////////////////////////////////////////////////////// vertex input
-      const auto& vis = pipelineState->vertexInputState;
-      glDeleteVertexArrays(1, &sVao);
-      glCreateVertexArrays(1, &sVao);
-      for (uint32_t i = 0; i < vis.vertexBindingDescriptions.size(); i++)
-      {
-        const auto& desc = vis.vertexBindingDescriptions[i];
-        glEnableVertexArrayAttrib(sVao, i);
-        glVertexArrayAttribBinding(sVao, i, desc.binding);
-
-        auto type = detail::FormatToTypeGL(desc.format);
-        auto size = detail::FormatToSizeGL(desc.format);
-        auto normalized = detail::IsFormatNormalizedGL(desc.format);
-        auto internalType = detail::FormatToFormatClass(desc.format);
-        switch (internalType)
-        {
-        case detail::GlFormatClass::FLOAT:
-          glVertexArrayAttribFormat(sVao, i, size, type, normalized, desc.offset);
-          break;
-        case detail::GlFormatClass::INT:
-          glVertexArrayAttribIFormat(sVao, i, size, type, desc.offset);
-          break;
-        case detail::GlFormatClass::LONG:
-          glVertexArrayAttribLFormat(sVao, i, size, type, desc.offset);
-          break;
-        default: GSDF_UNREACHABLE;
-        }
-      }
+      sVao = sVaoCache.CreateOrGetCachedVertexArray(pipelineState->vertexInputState);
       glBindVertexArray(sVao);
 
       //////////////////////////////////////////////////////////////// rasterization

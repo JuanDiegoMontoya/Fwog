@@ -19,6 +19,7 @@
 // thanks Microsoft
 #ifdef WIN32
 #define NOUSER
+#define NOMINMAX
 #endif
 //#define TINYGLTF_NO_EXTERNAL_IMAGE
 #define TINYGLTF_USE_CPP14
@@ -384,7 +385,12 @@ namespace Utility
 
       GFX::Extent2D dims = { static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height) };
 
-      auto textureData = GFX::CreateTexture2D(dims, GFX::Format::R8G8B8A8_SRGB, image.name);
+      auto textureData = GFX::CreateTexture2DMip(
+        dims,
+        GFX::Format::R8G8B8A8_SRGB,
+        //ceil(log2(glm::max(dims.width, dims.height))),
+        1,
+        image.name);
 
       GFX::TextureUpdateInfo updateInfo
       {
@@ -397,6 +403,7 @@ namespace Utility
         .pixels = image.image.data()
       };
       textureData->SubImage(updateInfo);
+      //textureData->GenMipmaps();
 
       auto view = textureData->View();
 
@@ -516,7 +523,8 @@ namespace Utility
       scene.materials.emplace_back(material);
     }
     
-    GSDF_ASSERT(!model.scenes.empty());
+    // let's not deal with glTFs containing multiple scenes right now
+    GSDF_ASSERT(model.scenes.size() == 1);
 
     // <node*, global transform>
     std::stack<std::pair<const tinygltf::Node*, glm::mat4>> nodeStack;
