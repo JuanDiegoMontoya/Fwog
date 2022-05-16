@@ -1,5 +1,6 @@
 #pragma once
 #include <gsdf/detail/Flags.h>
+#include <gsdf/BasicTypes.h>
 #include <optional>
 #include <span>
 #include <type_traits>
@@ -60,6 +61,8 @@ namespace GFX
     [[nodiscard]] void* GetMappedPointer();
 
     void UnmapPointer();
+
+    void ClearSubData(size_t offset, size_t size, Format internalFormat, UploadFormat uploadFormat, UploadType uploadType, const void* data);
 
     [[nodiscard]] bool IsMapped() { return isMapped_; }
 

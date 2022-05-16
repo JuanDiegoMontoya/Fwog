@@ -24,6 +24,18 @@ layout(binding = 1, std140) uniform ShadingUniforms
   vec4 sunStrength;
 }shadingUniforms;
 
+struct Light
+{
+  vec4 position;
+  vec3 intensity;
+  float invRadius;
+};
+
+layout(binding = 0, std430) readonly buffer LightBuffer
+{
+  Light lights[];
+}lightBuffer;
+
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
   float z = depth * 2.0 - 1.0; // OpenGL Z convention
@@ -35,6 +47,38 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 float Shadow(vec4 clip)
 {
   return textureProj(s_rsmDepthShadow, clip * .5 + .5);
+}
+
+float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
+{
+  float distanceSquared = dot(posToLight, posToLight);
+  float factor = distanceSquared * lightInvRadius * lightInvRadius;
+  float smoothFactor = max(1.0 - factor * factor, 0.0);
+  return (smoothFactor * smoothFactor) / max(distanceSquared, 1e-4);
+}
+
+vec3 LocalLightIntensity(vec3 fragWorldPos, vec3 N, vec3 V, vec3 albedo)
+{
+  vec3 color = { 0, 0, 0 };
+
+  for (int i = 0; i < lightBuffer.lights.length(); i++)
+  {
+    Light light = lightBuffer.lights[i];
+    vec3 L = normalize(light.position.xyz - fragWorldPos);
+    float NoL = max(dot(N, L), 0.0);
+    vec3 diffuse = albedo * NoL * light.intensity;
+
+    vec3 H = normalize(V + L);
+    float spec = pow(max(dot(N, H), 0.0), 64.0);
+    vec3 specular = albedo * spec * light.intensity;
+
+    vec3 localColor = diffuse + specular;
+    localColor *= GetSquareFalloffAttenuation(light.position.xyz - fragWorldPos, light.invRadius);
+
+    color += localColor;
+  }
+
+  return color;
 }
 
 void main()
@@ -49,21 +93,24 @@ void main()
     return;
   }
 
-  vec3 worldPos = UnprojectUV(depth, v_uv, invViewProj);
+  vec3 fragWorldPos = UnprojectUV(depth, v_uv, invViewProj);
   
   vec3 incidentDir = -shadingUniforms.sunDir.xyz;
   float cosTheta = max(0.0, dot(incidentDir, normal));
   vec3 diffuse = albedo * cosTheta * shadingUniforms.sunStrength.rgb;
-  float shadow = Shadow(shadingUniforms.sunViewProj * vec4(worldPos, 1.0));
+  float shadow = Shadow(shadingUniforms.sunViewProj * vec4(fragWorldPos, 1.0));
   
-  vec3 viewDir = normalize(cameraPos.xyz - worldPos);
-  vec3 reflectDir = reflect(-incidentDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+  vec3 viewDir = normalize(cameraPos.xyz - fragWorldPos);
+  //vec3 reflectDir = reflect(-incidentDir, normal);
+  vec3 halfDir = normalize(viewDir + incidentDir);
+  float spec = pow(max(dot(normal, halfDir), 0.0), 64.0);
   vec3 specular = albedo * spec * shadingUniforms.sunStrength.rgb;
 
   //vec3 ambient = vec3(.03) * albedo;
   vec3 ambient = vec3(.01) * albedo + textureLod(s_rsmIndirect, v_uv, 0).rgb;
   vec3 finalColor = shadow * (diffuse + specular) + ambient;
+  
+  finalColor += LocalLightIntensity(fragWorldPos, normal, viewDir, albedo);
 
   // tone mapping (optional)
   //finalColor = finalColor / (1.0 + finalColor);

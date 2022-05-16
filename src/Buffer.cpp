@@ -46,6 +46,7 @@ namespace GFX
 
   void* Buffer::GetMappedPointer()
   {
+    GSDF_ASSERT(!IsMapped() && "Buffers cannot be mapped more than once at a time");
     isMapped_ = true;
     return glMapNamedBuffer(id_, GL_READ_WRITE);
   }
@@ -55,5 +56,17 @@ namespace GFX
     GSDF_ASSERT(IsMapped() && "Buffers that aren't mapped cannot be unmapped");
     isMapped_ = false;
     glUnmapNamedBuffer(id_);
+  }
+
+  void Buffer::ClearSubData(size_t offset, size_t size, Format internalFormat, UploadFormat uploadFormat, UploadType uploadType, const void* data)
+  {
+    glClearNamedBufferSubData(
+      id_,
+      detail::FormatToGL(internalFormat),
+      offset,
+      size,
+      detail::UploadFormatToGL(uploadFormat),
+      detail::UploadTypeToGL(uploadType),
+      data);
   }
 }

@@ -177,8 +177,6 @@ namespace Utility
         }
 
         glm::mat4 rotationMat = glm::mat4_cast(rotation);
-        glm::mat4 translationMat = glm::translate(translation);
-        glm::mat4 scaleMat = glm::scale(scale);
 
         // T * R * S
         transform = glm::scale(glm::translate(translation) * rotationMat, scale);

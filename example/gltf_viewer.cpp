@@ -98,6 +98,14 @@ struct alignas(16) RSMUniforms
   uint32_t samples;
 };
 
+struct alignas(16) Light
+{
+  glm::vec4 position;
+  glm::vec3 intensity;
+  float invRadius;
+  //uint32_t mode; // 0 = point, 1 = spot
+};
+
 ////////////////////////////////////// Globals
 //constexpr int gWindowWidth = 1920;
 //constexpr int gWindowHeight = 1080;
@@ -239,8 +247,8 @@ GFX::GraphicsPipeline CreateShadowPipeline()
 
   auto rasterization = GetDefaultRasterizationState();
   rasterization.depthBiasEnable = true;
-  rasterization.depthBiasConstantFactor = 10;
-  rasterization.depthBiasSlopeFactor = 7;
+  rasterization.depthBiasConstantFactor = 5;
+  rasterization.depthBiasSlopeFactor = 3;
 
   GFX::DepthStencilState depthStencil
   {
@@ -547,14 +555,38 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     .samples = gRSMSamples,
   };
 
-  GlobalUniforms globalUniforms;
+  //////////////////////////////////////// Clustered rendering stuff
+  std::vector<Light> lights;
+  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
+  lights.push_back(Light{ .position = { 3, -2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
+  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
 
-  auto globalUniformsBuffer = GFX::Buffer::Create(sizeof(globalUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
+  GFX::TextureCreateInfo clusterTexInfo
+  {
+    .imageType = GFX::ImageType::TEX_3D,
+    .format = GFX::Format::R16G16_UINT,
+    .extent = { 16, 9, 24 },
+    .mipLevels = 1,
+    .arrayLayers = 1,
+    .sampleCount = GFX::SampleCount::SAMPLES_1
+  };
+
+  auto clusterTexture = GFX::Texture::Create(clusterTexInfo, "Cluster Texture");
+  auto clusterTextureView = clusterTexture->View();
+
+  // atomic counter + uint array
+  auto clusterIndicesBuffer = GFX::Buffer::Create(sizeof(uint32_t) + sizeof(uint32_t) * 10000);
+  const uint32_t zero = 0; // what it says on the tin
+  clusterIndicesBuffer->ClearSubData(0, clusterIndicesBuffer->Size(), GFX::Format::R32_UINT, GFX::UploadFormat::R, GFX::UploadType::UINT, &zero);
+  
+  auto globalUniformsBuffer = GFX::Buffer::Create(sizeof(GlobalUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
   auto shadingUniformsBuffer = GFX::Buffer::Create(shadingUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
   auto rsmUniformBuffer = GFX::Buffer::Create(rsmUniforms, GFX::BufferFlag::DYNAMIC_STORAGE);
   auto materialUniformsBuffer = GFX::Buffer::Create(sizeof(Utility::GpuMaterial), GFX::BufferFlag::DYNAMIC_STORAGE);
 
   auto meshUniformBuffer = GFX::Buffer::Create(std::span(meshUniforms), GFX::BufferFlag::DYNAMIC_STORAGE);
+
+  auto lightBuffer = GFX::Buffer::Create(std::span(lights), GFX::BufferFlag::DYNAMIC_STORAGE);
 
   GFX::SamplerState ss;
   ss.minFilter = GFX::Filter::NEAREST;
@@ -722,7 +754,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     rsmUniforms.sunViewProj = shadingUniforms.sunViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
     rsmUniformBuffer->SubData(rsmUniforms, 0);
-
+    char* oof = const_cast<char*>("oof");
     // RSM indirect illumination calculation pass
     GFX::BeginCompute();
     {
@@ -772,6 +804,16 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     }
     GFX::EndCompute();
 
+    // clear cluster indices atomic counter
+    clusterIndicesBuffer->ClearSubData(0, sizeof(uint32_t), GFX::Format::R32_UINT, GFX::UploadFormat::R, GFX::UploadType::UINT, &zero);
+
+    // record active clusters
+    // TODO
+
+    // light culling+cluster assignment
+
+    //
+
     // shading pass (full screen tri)
     GFX::BeginSwapchainRendering(swapchainRenderingInfo);
     {
@@ -784,6 +826,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       GFX::Cmd::BindSampledImage(4, *rdepthTexView, *rsmShadowSampler);
       GFX::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       GFX::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
+      GFX::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
       GFX::Cmd::Draw(3, 1, 0, 0);
 
       GFX::TextureView* tex{};
