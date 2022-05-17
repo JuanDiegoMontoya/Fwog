@@ -60,7 +60,7 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 ## Build Instructions
 
 ```bash
-$ git clone https://github.com/JuanDiegoMontoya/g.git
+$ git clone https://github.com/JuanDiegoMontoya/Fwog.git
 $ mkdir build
 $ cd build
 $ cmake ..
