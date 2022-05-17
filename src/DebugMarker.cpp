@@ -1,7 +1,7 @@
-#include <gsdf/Common.h>
-#include <gsdf/DebugMarker.h>
+#include <fwog/Common.h>
+#include <fwog/DebugMarker.h>
 
-namespace GFX
+namespace Fwog
 {
   ScopedDebugMarker::ScopedDebugMarker(const char* message)
   {

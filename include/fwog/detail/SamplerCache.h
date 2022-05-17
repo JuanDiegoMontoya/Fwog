@@ -1,18 +1,18 @@
 #pragma once
-#include "gsdf/BasicTypes.h"
-#include "gsdf/Texture.h"
+#include "fwog/BasicTypes.h"
+#include "fwog/Texture.h"
 #include <unordered_map>
 
 namespace std
 {
   template<>
-  struct hash<GFX::SamplerState>
+  struct hash<Fwog::SamplerState>
   {
-    std::size_t operator()(const GFX::SamplerState& k) const;
+    std::size_t operator()(const Fwog::SamplerState& k) const;
   };
 }
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   class SamplerCache
   {

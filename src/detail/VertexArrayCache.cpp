@@ -1,11 +1,11 @@
-#include "gsdf/detail/VertexArrayCache.h"
-#include "gsdf/detail/Hash.h"
-#include "gsdf/detail/ApiToEnum.h"
-#include "gsdf/detail/PipelineManager.h"
-#include "gsdf/Pipeline.h"
-#include "gsdf/Common.h"
+#include "fwog/detail/VertexArrayCache.h"
+#include "fwog/detail/Hash.h"
+#include "fwog/detail/ApiToEnum.h"
+#include "fwog/detail/PipelineManager.h"
+#include "fwog/Pipeline.h"
+#include "fwog/Common.h"
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   namespace
   {
@@ -16,8 +16,8 @@ namespace GFX::detail
       for (const auto& desc : k.vertexBindingDescriptions)
       {
         auto cctup = std::make_tuple(desc.location, desc.binding, desc.format, desc.offset);
-        auto chashVal = GFX::detail::hashing::hash<decltype(cctup)>{}(cctup);
-        GFX::detail::hashing::hash_combine(hashVal, chashVal);
+        auto chashVal = Fwog::detail::hashing::hash<decltype(cctup)>{}(cctup);
+        Fwog::detail::hashing::hash_combine(hashVal, chashVal);
       }
 
       return hashVal;
@@ -55,7 +55,7 @@ namespace GFX::detail
       case detail::GlFormatClass::LONG:
         glVertexArrayAttribLFormat(vao, i, size, type, desc.offset);
         break;
-      default: GSDF_UNREACHABLE;
+      default: FWOG_UNREACHABLE;
       }
     }
 

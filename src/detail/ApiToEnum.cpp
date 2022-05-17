@@ -1,7 +1,7 @@
-#include <gsdf/Common.h>
-#include <gsdf/detail/ApiToEnum.h>
+#include <fwog/Common.h>
+#include <fwog/detail/ApiToEnum.h>
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   GLenum FilterToGL(Filter filter)
   {
@@ -9,7 +9,7 @@ namespace GFX::detail
     {
     case Filter::NEAREST: return GL_NEAREST;
     case Filter::LINEAR:  return GL_LINEAR;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -46,7 +46,7 @@ namespace GFX::detail
     case ImageType::TEX_CUBEMAP:              return GL_TEXTURE_CUBE_MAP;
     case ImageType::TEX_2D_MULTISAMPLE:       return GL_TEXTURE_2D_MULTISAMPLE;
     case ImageType::TEX_2D_MULTISAMPLE_ARRAY: return GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -122,7 +122,7 @@ namespace GFX::detail
     case Format::D16_UNORM:          return GL_DEPTH_COMPONENT16;
     case Format::D32_FLOAT_S8_UINT:  return GL_DEPTH32F_STENCIL8;
     case Format::D24_UNORM_S8_UINT:  return GL_DEPTH24_STENCIL8;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -138,7 +138,7 @@ namespace GFX::detail
     case UploadFormat::BGRA:            return GL_BGRA;
     case UploadFormat::DEPTH_COMPONENT: return GL_DEPTH_COMPONENT;
     case UploadFormat::STENCIL_INDEX:   return GL_STENCIL_INDEX;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -165,7 +165,7 @@ namespace GFX::detail
     case UploadType::UINT_8_8_8_8_REV:    return GL_UNSIGNED_INT_8_8_8_8_REV;
     case UploadType::UINT_10_10_10_2:     return GL_UNSIGNED_INT_10_10_10_2;
     case UploadType::UINT_10_10_10_2_REV: return GL_UNSIGNED_INT_2_10_10_10_REV;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -178,7 +178,7 @@ namespace GFX::detail
     case AddressMode::CLAMP_TO_EDGE:        return GL_CLAMP_TO_EDGE;
     case AddressMode::CLAMP_TO_BORDER:      return GL_CLAMP_TO_BORDER;
     case AddressMode::MIRROR_CLAMP_TO_EDGE: return GL_MIRROR_CLAMP_TO_EDGE;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -191,7 +191,7 @@ namespace GFX::detail
     case SampleCount::SAMPLES_4: return 4;
     case SampleCount::SAMPLES_8: return 8;
     case SampleCount::SAMPLES_16: return 16;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -203,7 +203,7 @@ namespace GFX::detail
     case CullMode::FRONT: return GL_FRONT;
     case CullMode::BACK: return GL_BACK;
     case CullMode::FRONT_AND_BACK: return GL_FRONT_AND_BACK;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -214,7 +214,7 @@ namespace GFX::detail
     case PolygonMode::FILL: return GL_FILL;
     case PolygonMode::LINE: return GL_LINE;
     case PolygonMode::POINT: return GL_POINT;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -224,7 +224,7 @@ namespace GFX::detail
     {
     case FrontFace::CLOCKWISE: return GL_CW;
     case FrontFace::COUNTERCLOCKWISE: return GL_CCW;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -248,7 +248,7 @@ namespace GFX::detail
     case LogicOp::OR_REVERSE: return GL_OR_REVERSE;
     case LogicOp::AND_INVERTED: return GL_AND_INVERTED;
     case LogicOp::OR_INVERTED: return GL_OR_INVERTED;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -275,7 +275,7 @@ namespace GFX::detail
     case BlendFactor::ONE_MINUS_SRC1_COLOR: return GL_ONE_MINUS_SRC1_COLOR;
     case BlendFactor::SRC1_ALPHA: return GL_SRC1_ALPHA;
     case BlendFactor::ONE_MINUS_SRC1_ALPHA: return GL_ONE_MINUS_SRC1_ALPHA;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -288,7 +288,7 @@ namespace GFX::detail
     case BlendOp::REVERSE_SUBTRACT: return GL_FUNC_REVERSE_SUBTRACT;
     case BlendOp::MIN: return GL_MIN;
     case BlendOp::MAX: return GL_MAX;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -350,7 +350,7 @@ namespace GFX::detail
     case Format::R32G32B32_UINT:
     case Format::R32G32B32A32_UINT:
       return GL_UNSIGNED_INT;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -409,7 +409,7 @@ namespace GFX::detail
     case Format::R16G16B16A16_UINT:
     case Format::R32G32B32A32_UINT:
       return 4;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -466,7 +466,7 @@ namespace GFX::detail
     case Format::R16G16B16A16_UINT:
     case Format::R32G32B32A32_UINT:
       return GL_FALSE;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -523,7 +523,7 @@ namespace GFX::detail
     case Format::R16G16B16A16_UINT:
     case Format::R32G32B32A32_UINT:
       return GlFormatClass::INT;
-    default: GSDF_UNREACHABLE; return GlFormatClass::LONG;
+    default: FWOG_UNREACHABLE; return GlFormatClass::LONG;
     }
   }
 
@@ -595,7 +595,7 @@ namespace GFX::detail
     case Format::R16G16B16A16_UINT:
     case Format::R32G32B32A32_UINT:
       return GlBaseTypeClass::UINT;
-    default: GSDF_UNREACHABLE; return GlBaseTypeClass::FLOAT;
+    default: FWOG_UNREACHABLE; return GlBaseTypeClass::FLOAT;
     }
   }
 
@@ -609,7 +609,7 @@ namespace GFX::detail
     case PrimitiveTopology::TRIANGLE_LIST: return GL_TRIANGLES;
     case PrimitiveTopology::TRIANGLE_STRIP: return GL_TRIANGLE_STRIP;
     case PrimitiveTopology::TRIANGLE_FAN: return GL_TRIANGLE_FAN;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -620,7 +620,7 @@ namespace GFX::detail
     case IndexType::UNSIGNED_BYTE: return GL_UNSIGNED_BYTE;
     case IndexType::UNSIGNED_SHORT: return GL_UNSIGNED_SHORT;
     case IndexType::UNSIGNED_INT: return GL_UNSIGNED_INT;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 
@@ -636,7 +636,7 @@ namespace GFX::detail
     case CompareOp::NOT_EQUAL: return GL_NOTEQUAL;
     case CompareOp::GREATER_OR_EQUAL: return GL_GEQUAL;
     case CompareOp::ALWAYS: return GL_ALWAYS;
-    default: GSDF_UNREACHABLE; return 0;
+    default: FWOG_UNREACHABLE; return 0;
     }
   }
 

@@ -1,9 +1,9 @@
-#include <gsdf/Rendering.h>
-#include <gsdf/Common.h>
-#include <gsdf/detail/ApiToEnum.h>
-#include <gsdf/detail/PipelineManager.h>
-#include <gsdf/detail/FramebufferCache.h>
-#include <gsdf/detail/VertexArrayCache.h>
+#include <fwog/Rendering.h>
+#include <fwog/Common.h>
+#include <fwog/detail/ApiToEnum.h>
+#include <fwog/detail/PipelineManager.h>
+#include <fwog/detail/FramebufferCache.h>
+#include <fwog/detail/VertexArrayCache.h>
 #include <vector>
 
 // helper function
@@ -22,7 +22,7 @@ static void GLSetMaskStates()
   glStencilMask(true);
 }
 
-namespace GFX
+namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
   // since only one rendering instance can be active at a time, we store some state here
@@ -47,8 +47,8 @@ namespace GFX
 
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
   {
-    GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
-    GSDF_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
+    FWOG_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
+    FWOG_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
     isRendering = true;
     sLastRenderInfo = nullptr;
 
@@ -85,8 +85,8 @@ namespace GFX
 
   void BeginRendering(const RenderInfo& renderInfo)
   {
-    GSDF_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
-    GSDF_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
+    FWOG_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
+    FWOG_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
     isRendering = true;
 
     //if (sLastRenderInfo == &renderInfo)
@@ -134,7 +134,7 @@ namespace GFX
         case detail::GlBaseTypeClass::UINT:
           glClearNamedFramebufferuiv(sFbo, GL_COLOR, i, attachment.clearValue.color.ui);
           break;
-        default: GSDF_UNREACHABLE;
+        default: FWOG_UNREACHABLE;
         }
       }
     }
@@ -163,7 +163,7 @@ namespace GFX
 
   void EndRendering()
   {
-    GSDF_ASSERT(isRendering && "Cannot call EndRendering when not rendering");
+    FWOG_ASSERT(isRendering && "Cannot call EndRendering when not rendering");
     isPipelineBound = false;
     isRendering = false;
     isIndexBufferBound = false;
@@ -171,14 +171,14 @@ namespace GFX
 
   void BeginCompute()
   {
-    GSDF_ASSERT(!isComputeActive);
-    GSDF_ASSERT(!isRendering && "Cannot nest compute and rendering");
+    FWOG_ASSERT(!isComputeActive);
+    FWOG_ASSERT(!isRendering && "Cannot nest compute and rendering");
     isComputeActive = true;
   }
 
   void EndCompute()
   {
-    GSDF_ASSERT(isComputeActive);
+    FWOG_ASSERT(isComputeActive);
     isComputeActive = false;
   }
 
@@ -186,7 +186,7 @@ namespace GFX
   {
     void BindGraphicsPipeline(GraphicsPipeline pipeline)
     {
-      GSDF_ASSERT(isRendering);
+      FWOG_ASSERT(isRendering);
       isPipelineBound = true;
 
       auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
@@ -265,7 +265,7 @@ namespace GFX
 
     void BindComputePipeline(ComputePipeline pipeline)
     {
-      GSDF_ASSERT(isComputeActive);
+      FWOG_ASSERT(isComputeActive);
 
       auto pipelineState = detail::GetComputePipelineInternal(pipeline);
       assert(pipelineState);
@@ -275,7 +275,7 @@ namespace GFX
     
     void SetViewport(const Viewport& viewport)
     {
-      GSDF_ASSERT(isRendering);
+      FWOG_ASSERT(isRendering);
       glViewport(
         viewport.drawRect.offset.x,
         viewport.drawRect.offset.y,
@@ -286,7 +286,7 @@ namespace GFX
 
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)
     {
-      GSDF_ASSERT(isRendering);
+      FWOG_ASSERT(isRendering);
       glVertexArrayVertexBuffer(
         sVao,
         bindingIndex,
@@ -297,7 +297,7 @@ namespace GFX
 
     void BindIndexBuffer(const Buffer& buffer, IndexType indexType)
     {
-      GSDF_ASSERT(isRendering);
+      FWOG_ASSERT(isRendering);
       isIndexBufferBound = true;
       sIndexType = indexType;
       glVertexArrayElementBuffer(sVao, buffer.Handle());
@@ -305,7 +305,7 @@ namespace GFX
 
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
-      GSDF_ASSERT(isRendering);
+      FWOG_ASSERT(isRendering);
       glDrawArraysInstancedBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         firstVertex,
@@ -316,7 +316,7 @@ namespace GFX
 
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
     {
-      GSDF_ASSERT(isRendering && isIndexBufferBound);
+      FWOG_ASSERT(isRendering && isIndexBufferBound);
       glDrawElementsInstancedBaseVertexBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         indexCount,
@@ -329,39 +329,39 @@ namespace GFX
 
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
-      GSDF_ASSERT(isRendering || isComputeActive);
+      FWOG_ASSERT(isRendering || isComputeActive);
       glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
-      GSDF_ASSERT(isRendering || isComputeActive);
+      FWOG_ASSERT(isRendering || isComputeActive);
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler)
     {
-      GSDF_ASSERT(isRendering || isComputeActive);
+      FWOG_ASSERT(isRendering || isComputeActive);
       glBindTextureUnit(index, textureView.Handle());
       glBindSampler(index, sampler.Handle());
     }
 
     void BindImage(uint32_t index, const TextureView& textureView, uint32_t level)
     {
-      GSDF_ASSERT(isRendering || isComputeActive);
-      GSDF_ASSERT(level < textureView.CreateInfo().numLevels);
+      FWOG_ASSERT(isRendering || isComputeActive);
+      FWOG_ASSERT(level < textureView.CreateInfo().numLevels);
       glBindImageTexture(index, textureView.Handle(), level, GL_TRUE, 0, GL_READ_WRITE, detail::FormatToGL(textureView.CreateInfo().format));
     }
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-      GSDF_ASSERT(isComputeActive);
+      FWOG_ASSERT(isComputeActive);
       glDispatchCompute(groupCountX, groupCountY, groupCountZ);
     }
 
     void MemoryBarrier(MemoryBarrierAccessBits accessBits)
     {
-      GSDF_ASSERT(isRendering || isComputeActive);
+      FWOG_ASSERT(isRendering || isComputeActive);
       glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
     }
   }

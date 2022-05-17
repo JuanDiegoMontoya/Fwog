@@ -1,8 +1,8 @@
-#include <gsdf/Common.h>
-#include <gsdf/Timer.h>
+#include <fwog/Common.h>
+#include <fwog/Timer.h>
 #include <numeric>
 
-namespace GFX
+namespace Fwog
 {
   TimerQuery::TimerQuery()
   {
@@ -30,7 +30,7 @@ namespace GFX
   TimerQueryAsync::TimerQueryAsync(uint32_t N)
     : capacity_(N)
   {
-    GSDF_ASSERT(capacity_ > 0);
+    FWOG_ASSERT(capacity_ > 0);
     queries = new uint32_t[capacity_ * 2];
     glGenQueries(capacity_ * 2, queries);
   }

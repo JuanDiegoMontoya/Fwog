@@ -1,10 +1,10 @@
-#include "gsdf/detail/SamplerCache.h"
-#include "gsdf/detail/ApiToEnum.h"
-#include "gsdf/detail/Hash.h"
+#include "fwog/detail/SamplerCache.h"
+#include "fwog/detail/ApiToEnum.h"
+#include "fwog/detail/Hash.h"
 #include "glad/gl.h"
-#include "gsdf/Common.h"
+#include "fwog/Common.h"
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   TextureSampler SamplerCache::CreateOrGetCachedTextureSampler(const SamplerState& samplerState)
   {
@@ -35,7 +35,7 @@ namespace GFX::detail
     case (Filter::LINEAR):
       minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
       break;
-    default: GSDF_UNREACHABLE;
+    default: FWOG_UNREACHABLE;
     }
     glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, minFilter);
 
@@ -83,7 +83,7 @@ namespace GFX::detail
       break;
     }
     default:
-      GSDF_UNREACHABLE;
+      FWOG_UNREACHABLE;
       break;
     }
 
@@ -114,7 +114,7 @@ namespace GFX::detail
   }
 }
 
-std::size_t std::hash<GFX::SamplerState>::operator()(const GFX::SamplerState& k) const
+std::size_t std::hash<Fwog::SamplerState>::operator()(const Fwog::SamplerState& k) const
 {
   auto rtup = std::make_tuple(
     k.minFilter, 
@@ -130,5 +130,5 @@ std::size_t std::hash<GFX::SamplerState>::operator()(const GFX::SamplerState& k)
     k.lodBias, 
     k.minLod, 
     k.maxLod);
-  return GFX::detail::hashing::hash<decltype(rtup)>{}(rtup);
+  return Fwog::detail::hashing::hash<decltype(rtup)>{}(rtup);
 }

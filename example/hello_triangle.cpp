@@ -2,9 +2,9 @@
 
 #include <array>
 
-#include <gsdf/BasicTypes.h>
-#include <gsdf/Fence.h>
-#include <gsdf/Rendering.h>
+#include <fwog/BasicTypes.h>
+#include <fwog/Fence.h>
+#include <fwog/Rendering.h>
 
 ////////////////////////////////////// Globals
 const char* gVertexSource = R"(
@@ -38,62 +38,62 @@ void main()
 std::array<float, 6> gTriVertices = { -0, -0, 1, -1, 1, 1 };
 std::array<uint8_t, 9> gTriColors = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
-GFX::GraphicsPipeline CreatePipeline()
+Fwog::GraphicsPipeline CreatePipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(gVertexSource, gFragmentSource);
 
-  GFX::InputAssemblyState inputAssembly
+  Fwog::InputAssemblyState inputAssembly
   {
-    .topology = GFX::PrimitiveTopology::TRIANGLE_LIST,
+    .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
     .primitiveRestartEnable = false,
   };
 
-  GFX::VertexInputBindingDescription descPos
+  Fwog::VertexInputBindingDescription descPos
   {
     .location = 0,
     .binding = 0,
-    .format = GFX::Format::R32G32_FLOAT,
+    .format = Fwog::Format::R32G32_FLOAT,
     .offset = 0,
   };
-  GFX::VertexInputBindingDescription descColor
+  Fwog::VertexInputBindingDescription descColor
   {
     .location = 1,
     .binding = 1,
-    .format = GFX::Format::R8G8B8_UNORM,
+    .format = Fwog::Format::R8G8B8_UNORM,
     .offset = 0,
   };
-  GFX::VertexInputBindingDescription inputDescs[] = { descPos, descColor };
-  GFX::VertexInputState vertexInput{ inputDescs };
+  Fwog::VertexInputBindingDescription inputDescs[] = { descPos, descColor };
+  Fwog::VertexInputState vertexInput{ inputDescs };
 
-  GFX::RasterizationState rasterization
+  Fwog::RasterizationState rasterization
   {
     .depthClampEnable = false,
-    .polygonMode = GFX::PolygonMode::FILL,
-    .cullMode = GFX::CullMode::BACK,
-    .frontFace = GFX::FrontFace::COUNTERCLOCKWISE,
+    .polygonMode = Fwog::PolygonMode::FILL,
+    .cullMode = Fwog::CullMode::BACK,
+    .frontFace = Fwog::FrontFace::COUNTERCLOCKWISE,
     .depthBiasEnable = false,
     .lineWidth = 1.0f,
     .pointSize = 1.0f,
   };
 
-  GFX::DepthStencilState depthStencil
+  Fwog::DepthStencilState depthStencil
   {
     .depthTestEnable = false,
     .depthWriteEnable = false,
   };
 
-  GFX::ColorBlendAttachmentState colorBlendAttachment
+  Fwog::ColorBlendAttachmentState colorBlendAttachment
   {
     .blendEnable = true,
-    .srcColorBlendFactor = GFX::BlendFactor::ONE,
-    .dstColorBlendFactor = GFX::BlendFactor::ZERO,
-    .colorBlendOp = GFX::BlendOp::ADD,
-    .srcAlphaBlendFactor = GFX::BlendFactor::ONE,
-    .dstAlphaBlendFactor = GFX::BlendFactor::ZERO,
-    .alphaBlendOp = GFX::BlendOp::ADD,
-    .colorWriteMask = GFX::ColorComponentFlag::RGBA_BITS
+    .srcColorBlendFactor = Fwog::BlendFactor::ONE,
+    .dstColorBlendFactor = Fwog::BlendFactor::ZERO,
+    .colorBlendOp = Fwog::BlendOp::ADD,
+    .srcAlphaBlendFactor = Fwog::BlendFactor::ONE,
+    .dstAlphaBlendFactor = Fwog::BlendFactor::ZERO,
+    .alphaBlendOp = Fwog::BlendOp::ADD,
+    .colorWriteMask = Fwog::ColorComponentFlag::RGBA_BITS
   };
-  GFX::ColorBlendState colorBlend
+  Fwog::ColorBlendState colorBlend
   {
     .logicOpEnable = false,
     .logicOp{},
@@ -101,7 +101,7 @@ GFX::GraphicsPipeline CreatePipeline()
     .blendConstants = {},
   };
 
-  GFX::GraphicsPipelineInfo pipelineInfo
+  Fwog::GraphicsPipelineInfo pipelineInfo
   {
     .shaderProgram = shader,
     .inputAssemblyState = inputAssembly,
@@ -111,7 +111,7 @@ GFX::GraphicsPipeline CreatePipeline()
     .colorBlendState = colorBlend
   };
 
-  auto pipeline = GFX::CompileGraphicsPipeline(pipelineInfo);
+  auto pipeline = Fwog::CompileGraphicsPipeline(pipelineInfo);
   if (!pipeline)
     throw std::exception("Invalid pipeline");
   return *pipeline;
@@ -124,7 +124,7 @@ int main()
 
   glEnable(GL_FRAMEBUFFER_SRGB);
 
-  GFX::Viewport viewport
+  Fwog::Viewport viewport
   {
     .drawRect
     {
@@ -135,19 +135,19 @@ int main()
     .maxDepth = 0.0f,
   };
 
-  GFX::SwapchainRenderInfo swapchainRenderingInfo
+  Fwog::SwapchainRenderInfo swapchainRenderingInfo
   {
     .viewport = &viewport,
     .clearColorOnLoad = true,
-    .clearColorValue = GFX::ClearColorValue {.f = { .2, .0, .2, 1 }},
+    .clearColorValue = Fwog::ClearColorValue {.f = { .2, .0, .2, 1 }},
     .clearDepthOnLoad = false,
     .clearStencilOnLoad = false,
   };
 
-  auto vertexPosBuffer = GFX::Buffer::Create(gTriVertices);
-  auto vertexColorBuffer = GFX::Buffer::Create(gTriColors);
+  auto vertexPosBuffer = Fwog::Buffer::Create(gTriVertices);
+  auto vertexColorBuffer = Fwog::Buffer::Create(gTriColors);
 
-  GFX::GraphicsPipeline pipeline = CreatePipeline();
+  Fwog::GraphicsPipeline pipeline = CreatePipeline();
 
   while (!glfwWindowShouldClose(window))
   {
@@ -157,12 +157,12 @@ int main()
       glfwSetWindowShouldClose(window, true);
     }
 
-    GFX::BeginSwapchainRendering(swapchainRenderingInfo);
-    GFX::Cmd::BindGraphicsPipeline(pipeline);
-    GFX::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
-    GFX::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
-    GFX::Cmd::Draw(3, 1, 0, 0);
-    GFX::EndRendering();
+    Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
+    Fwog::Cmd::BindGraphicsPipeline(pipeline);
+    Fwog::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
+    Fwog::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+    Fwog::Cmd::Draw(3, 1, 0, 0);
+    Fwog::EndRendering();
 
     glfwSwapBuffers(window);
   }

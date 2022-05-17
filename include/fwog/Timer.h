@@ -1,7 +1,7 @@
 #pragma once
 #include <optional>
 
-namespace GFX
+namespace Fwog
 {
   // Synchronous single-buffered GPU-timeline timer.
   // Will induce massive pipeline stalls when using.

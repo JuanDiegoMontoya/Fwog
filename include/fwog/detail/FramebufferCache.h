@@ -2,12 +2,12 @@
 #include <vector>
 #include <unordered_map>
 
-namespace GFX
+namespace Fwog
 {
   class TextureView;
 }
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   struct RenderAttachments
   {
@@ -22,13 +22,13 @@ namespace GFX::detail
 namespace std
 {
   template<>
-  struct hash<GFX::detail::RenderAttachments>
+  struct hash<Fwog::detail::RenderAttachments>
   {
-    std::size_t operator()(const GFX::detail::RenderAttachments& k) const;
+    std::size_t operator()(const Fwog::detail::RenderAttachments& k) const;
   };
 }
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   class FramebufferCache
   {

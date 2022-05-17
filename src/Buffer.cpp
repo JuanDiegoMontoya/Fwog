@@ -1,8 +1,8 @@
-#include <gsdf/Common.h>
-#include <gsdf/detail/ApiToEnum.h>
-#include <gsdf/Buffer.h>
+#include <fwog/Common.h>
+#include <fwog/detail/ApiToEnum.h>
+#include <fwog/Buffer.h>
 
-namespace GFX
+namespace Fwog
 {
   std::optional<Buffer> Buffer::CreateInternal(const void* data, size_t size, BufferFlags flags)
   {
@@ -32,7 +32,7 @@ namespace GFX
 
   Buffer::~Buffer()
   {
-    GSDF_ASSERT(!IsMapped() && "Buffers must not be mapped at time of destruction");
+    FWOG_ASSERT(!IsMapped() && "Buffers must not be mapped at time of destruction");
     if (id_)
     {
       glDeleteBuffers(1, &id_);
@@ -46,14 +46,14 @@ namespace GFX
 
   void* Buffer::GetMappedPointer()
   {
-    GSDF_ASSERT(!IsMapped() && "Buffers cannot be mapped more than once at a time");
+    FWOG_ASSERT(!IsMapped() && "Buffers cannot be mapped more than once at a time");
     isMapped_ = true;
     return glMapNamedBuffer(id_, GL_READ_WRITE);
   }
 
   void Buffer::UnmapPointer()
   {
-    GSDF_ASSERT(IsMapped() && "Buffers that aren't mapped cannot be unmapped");
+    FWOG_ASSERT(IsMapped() && "Buffers that aren't mapped cannot be unmapped");
     isMapped_ = false;
     glUnmapNamedBuffer(id_);
   }

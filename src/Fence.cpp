@@ -1,8 +1,8 @@
-#include <gsdf/Common.h>
-#include <gsdf/Fence.h>
+#include <fwog/Common.h>
+#include <fwog/Fence.h>
 #include <numeric>
 
-namespace GFX
+namespace Fwog
 {
 
   std::optional<Fence> Fence::Create()
@@ -40,12 +40,12 @@ namespace GFX
 
   uint64_t Fence::Wait()
   {
-    GSDF_ASSERT(sync_ != nullptr);
+    FWOG_ASSERT(sync_ != nullptr);
     GLuint id;
     glGenQueries(1, &id);
     glBeginQuery(GL_TIME_ELAPSED, id);
     GLenum result = glClientWaitSync(reinterpret_cast<GLsync>(sync_), GL_SYNC_FLUSH_COMMANDS_BIT, std::numeric_limits<GLuint64>::max());
-    GSDF_ASSERT(result == GL_CONDITION_SATISFIED);
+    FWOG_ASSERT(result == GL_CONDITION_SATISFIED);
     glEndQuery(GL_TIME_ELAPSED);
     uint64_t elapsed;
     glGetQueryObjectui64v(id, GL_QUERY_RESULT, &elapsed);

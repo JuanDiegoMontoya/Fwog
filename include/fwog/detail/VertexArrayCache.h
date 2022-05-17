@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   struct VertexInputStateOwning;
 

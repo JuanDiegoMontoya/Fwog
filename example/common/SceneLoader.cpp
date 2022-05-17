@@ -8,7 +8,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glad/gl.h>
-#include <gsdf/Common.h>
+#include <fwog/Common.h>
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -66,48 +66,48 @@ namespace Utility
       return (v.z <= 0.0f) ? ((1.0f - glm::abs(glm::vec2{ p.y, p.x })) * signNotZero(p)) : p;
     }
 
-    auto ConvertGlAddressMode(uint32_t wrap) -> GFX::AddressMode
+    auto ConvertGlAddressMode(uint32_t wrap) -> Fwog::AddressMode
     {
       switch (wrap)
       {
-      case GL_CLAMP_TO_EDGE: return GFX::AddressMode::CLAMP_TO_EDGE;
-      case GL_MIRRORED_REPEAT: return GFX::AddressMode::MIRRORED_REPEAT;
-      case GL_REPEAT: return GFX::AddressMode::REPEAT;
+      case GL_CLAMP_TO_EDGE: return Fwog::AddressMode::CLAMP_TO_EDGE;
+      case GL_MIRRORED_REPEAT: return Fwog::AddressMode::MIRRORED_REPEAT;
+      case GL_REPEAT: return Fwog::AddressMode::REPEAT;
       default:
-        GSDF_UNREACHABLE; return GFX::AddressMode::REPEAT;
+        FWOG_UNREACHABLE; return Fwog::AddressMode::REPEAT;
       }
     }
 
-    auto ConvertGlFilterMode(uint32_t filter) -> GFX::Filter
+    auto ConvertGlFilterMode(uint32_t filter) -> Fwog::Filter
     {
       switch (filter)
       {
       case GL_LINEAR_MIPMAP_LINEAR: //[[fallthrough]]
       case GL_LINEAR_MIPMAP_NEAREST: //[[fallthrough]]
       case GL_LINEAR:
-        return GFX::Filter::LINEAR;
+        return Fwog::Filter::LINEAR;
       case GL_NEAREST_MIPMAP_LINEAR: //[[fallthrough]]
       case GL_NEAREST_MIPMAP_NEAREST: //[[fallthrough]]
       case GL_NEAREST:
-        return GFX::Filter::NEAREST;
-      default: GSDF_UNREACHABLE; return GFX::Filter::LINEAR;
+        return Fwog::Filter::NEAREST;
+      default: FWOG_UNREACHABLE; return Fwog::Filter::LINEAR;
       }
     }
 
-    auto GetGlMipmapFilter(uint32_t minFilter) -> GFX::Filter
+    auto GetGlMipmapFilter(uint32_t minFilter) -> Fwog::Filter
     {
       switch (minFilter)
       {
       case GL_LINEAR_MIPMAP_LINEAR: //[[fallthrough]]
       case GL_NEAREST_MIPMAP_LINEAR:
-        return GFX::Filter::LINEAR;
+        return Fwog::Filter::LINEAR;
       case GL_LINEAR_MIPMAP_NEAREST: //[[fallthrough]]
       case GL_NEAREST_MIPMAP_NEAREST:
-        return GFX::Filter::NEAREST;
+        return Fwog::Filter::NEAREST;
       case GL_LINEAR: //[[fallthrough]]
       case GL_NEAREST:
-        return GFX::Filter::NONE;
-      default: GSDF_UNREACHABLE; return GFX::Filter::NONE;
+        return Fwog::Filter::NONE;
+      default: FWOG_UNREACHABLE; return Fwog::Filter::NONE;
       }
     }
 
@@ -247,7 +247,7 @@ namespace Utility
           case GL_UNSIGNED_SHORT: AddElements.operator()<USvec>(); break;
           case GL_UNSIGNED_INT:   AddElements.operator()<UIvec>(); break;
           case GL_FLOAT:          AddElements.operator()<Fvec>(); break;
-          default: GSDF_UNREACHABLE;
+          default: FWOG_UNREACHABLE;
           }
           
         }
@@ -270,39 +270,39 @@ namespace Utility
           case GL_UNSIGNED_SHORT: AddElementsNorm.operator()<USvec>(); break;
           case GL_UNSIGNED_INT:   AddElementsNorm.operator()<UIvec>(); break;
           //case GL_FLOAT:          AddElementsNorm.operator()<Fvec>(); break;
-          default: GSDF_UNREACHABLE;
+          default: FWOG_UNREACHABLE;
           }
         }
         else
         {
-          GSDF_UNREACHABLE;
+          FWOG_UNREACHABLE;
         }
       };
 
       if (name == "POSITION")
       {
-        GSDF_ASSERT(accessor.type == 3);
+        FWOG_ASSERT(accessor.type == 3);
         InsertData(positions);
       }
       else if (name == "NORMAL")
       {
-        GSDF_ASSERT(accessor.type == 3);
+        FWOG_ASSERT(accessor.type == 3);
         InsertData(normals);
       }
       else if (name == "TEXCOORD_0")
       {
-        GSDF_ASSERT(accessor.type == 2);
+        FWOG_ASSERT(accessor.type == 2);
         InsertData(texcoords);
       }
       else
       {
         std::cout << "Unsupported attribute: " << name << '\n';
-        //GSDF_UNREACHABLE;
+        //FWOG_UNREACHABLE;
       }
     }
     
     texcoords.resize(positions.size()); // TEMP HACK
-    GSDF_ASSERT(positions.size() == normals.size() && positions.size() == texcoords.size());
+    FWOG_ASSERT(positions.size() == normals.size() && positions.size() == texcoords.size());
     
     std::vector<Vertex> vertices;
     vertices.resize(positions.size());
@@ -348,7 +348,7 @@ namespace Utility
     }
     else
     {
-      GSDF_UNREACHABLE;
+      FWOG_UNREACHABLE;
     }
 
     return indices;
@@ -362,7 +362,7 @@ namespace Utility
     {
       const tinygltf::Image& image = model.images[texture.source];
 
-      GFX::SamplerState samplerState;
+      Fwog::SamplerState samplerState;
 
       // sampler isn't null
       if (texture.sampler >= 0)
@@ -375,29 +375,29 @@ namespace Utility
         samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
       }
 
-      auto sampler = GFX::TextureSampler::Create(samplerState);
+      auto sampler = Fwog::TextureSampler::Create(samplerState);
 
-      GSDF_ASSERT(image.component == 4);
-      GSDF_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
-      GSDF_ASSERT(image.bits == 8);
+      FWOG_ASSERT(image.component == 4);
+      FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
+      FWOG_ASSERT(image.bits == 8);
 
-      GFX::Extent2D dims = { static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height) };
+      Fwog::Extent2D dims = { static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height) };
 
-      auto textureData = GFX::CreateTexture2DMip(
+      auto textureData = Fwog::CreateTexture2DMip(
         dims,
-        GFX::Format::R8G8B8A8_SRGB,
+        Fwog::Format::R8G8B8A8_SRGB,
         //ceil(log2(glm::max(dims.width, dims.height))),
         1,
         image.name);
 
-      GFX::TextureUpdateInfo updateInfo
+      Fwog::TextureUpdateInfo updateInfo
       {
-        .dimension = GFX::UploadDimension::TWO,
+        .dimension = Fwog::UploadDimension::TWO,
         .level = 0,
         .offset = {},
         .size = { dims.width, dims.height, 1 },
-        .format = GFX::UploadFormat::RGBA,
-        .type = GFX::UploadType::UBYTE,
+        .format = Fwog::UploadFormat::RGBA,
+        .type = Fwog::UploadType::UBYTE,
         .pixels = image.image.data()
       };
       textureData->SubImage(updateInfo);
@@ -500,8 +500,8 @@ namespace Utility
     //    auto vertices = ConvertVertexBufferFormat(model, primitive);
     //    auto indices = ConvertIndexBufferFormat(model, primitive);
 
-    //    auto vertexBuffer = GFX::Buffer::Create(std::span(vertices));
-    //    auto indexBuffer = GFX::Buffer::Create(std::span(indices));
+    //    auto vertexBuffer = Fwog::Buffer::Create(std::span(vertices));
+    //    auto indexBuffer = Fwog::Buffer::Create(std::span(indices));
 
     //    scene.geometry.emplace_back(
     //      std::move(vertexBuffer),
@@ -522,7 +522,7 @@ namespace Utility
     }
     
     // let's not deal with glTFs containing multiple scenes right now
-    GSDF_ASSERT(model.scenes.size() == 1);
+    FWOG_ASSERT(model.scenes.size() == 1);
 
     // <node*, global transform>
     std::stack<std::pair<const tinygltf::Node*, glm::mat4>> nodeStack;
@@ -557,8 +557,8 @@ namespace Utility
           auto vertices = ConvertVertexBufferFormat(model, primitive);
           auto indices = ConvertIndexBufferFormat(model, primitive);
 
-          auto vertexBuffer = GFX::Buffer::Create(std::span(vertices));
-          auto indexBuffer = GFX::Buffer::Create(std::span(indices));
+          auto vertexBuffer = Fwog::Buffer::Create(std::span(vertices));
+          auto indexBuffer = Fwog::Buffer::Create(std::span(indices));
 
           scene.meshes.emplace_back(Mesh
             {

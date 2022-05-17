@@ -1,8 +1,8 @@
-//#include <gsdf/Common.h>
-//#include <gsdf/Shader.h>
+//#include <fwog/Common.h>
+//#include <fwog/Shader.h>
 //#include <glm/gtc/type_ptr.hpp>
 //
-//namespace GFX
+//namespace Fwog
 //{
 //  void Shader::Bind() const
 //  {

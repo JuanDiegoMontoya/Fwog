@@ -1,8 +1,8 @@
-#include <gsdf/detail/PipelineManager.h>
-#include <gsdf/detail/Hash.h>
+#include <fwog/detail/PipelineManager.h>
+#include <fwog/detail/Hash.h>
 #include <unordered_map>
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   namespace
   {

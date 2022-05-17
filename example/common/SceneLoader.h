@@ -6,9 +6,9 @@
 #include <glm/vec4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
-#include <gsdf/Buffer.h>
-#include <gsdf/Texture.h>
-#include <gsdf/detail/Flags.h>
+#include <fwog/Buffer.h>
+#include <fwog/Texture.h>
+#include <fwog/detail/Flags.h>
 
 namespace Utility
 {
@@ -21,16 +21,16 @@ namespace Utility
 
   struct CombinedTextureSampler
   {
-    std::optional<GFX::Texture> texture;
-    std::optional<GFX::TextureView> textureView;
-    std::optional<GFX::TextureSampler> sampler;
+    std::optional<Fwog::Texture> texture;
+    std::optional<Fwog::TextureView> textureView;
+    std::optional<Fwog::TextureSampler> sampler;
   };
 
   enum class MaterialFlagBit
   {
     HAS_BASE_COLOR_TEXTURE = 1 << 0,
   };
-  GSDF_DECLARE_FLAG_TYPE(MaterialFlags, MaterialFlagBit, uint32_t)
+  FWOG_DECLARE_FLAG_TYPE(MaterialFlags, MaterialFlagBit, uint32_t)
 
   struct GpuMaterial
   {
@@ -49,16 +49,16 @@ namespace Utility
 
   //struct GeometryBuffers
   //{
-  //  std::optional<GFX::Buffer> vertexBuffer;
-  //  std::optional<GFX::Buffer> indexBuffer;
-  //  GFX::IndexType indexType;
+  //  std::optional<Fwog::Buffer> vertexBuffer;
+  //  std::optional<Fwog::Buffer> indexBuffer;
+  //  Fwog::IndexType indexType;
   //};
 
   struct Mesh
   {
     //const GeometryBuffers* buffers;
-    std::optional<GFX::Buffer> vertexBuffer;
-    std::optional<GFX::Buffer> indexBuffer;
+    std::optional<Fwog::Buffer> vertexBuffer;
+    std::optional<Fwog::Buffer> indexBuffer;
     int materialIdx;
     glm::mat4 transform;
   };

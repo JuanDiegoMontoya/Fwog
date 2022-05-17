@@ -1,4 +1,4 @@
-# g (working title)
+# Fwog (previously g)
 
 Low-level OpenGL 4.6 abstraction in C++20. The abstraction attempts to mitigate the weak points of OpenGL while providing an interface fit for use in modern renderers (outlined in [my blog post about modern OpenGL best practices](https://juandiegomontoya.github.io/modern_opengl.html)).
 

@@ -1,13 +1,13 @@
-#include <gsdf/Common.h>
-#include <gsdf/detail/ApiToEnum.h>
-#include <gsdf/detail/SamplerCache.h>
-#include <gsdf/Texture.h>
+#include <fwog/Common.h>
+#include <fwog/detail/ApiToEnum.h>
+#include <fwog/detail/SamplerCache.h>
+#include <fwog/Texture.h>
 #include <utility>
 #include <array>
 
 #define MAX_NAME_LEN 256
 
-namespace GFX
+namespace Fwog
 {
   // static objects
   // TODO: move initialization
@@ -250,7 +250,7 @@ namespace GFX
 
   void BindImage(uint32_t slot, const TextureView& textureView, uint32_t level)
   {
-    GSDF_ASSERT(level < textureView.CreateInfo().numLevels);
+    FWOG_ASSERT(level < textureView.CreateInfo().numLevels);
     glBindImageTexture(slot, textureView.Handle(), level, GL_TRUE, 0,
       GL_READ_WRITE, detail::FormatToGL(textureView.CreateInfo().format));
   }

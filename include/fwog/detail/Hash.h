@@ -2,7 +2,7 @@
 #include <tuple>
 #include <functional>
 
-namespace GFX::detail::hashing
+namespace Fwog::detail::hashing
 {
   template<typename T> struct hash;
 

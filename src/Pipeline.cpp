@@ -1,7 +1,7 @@
-#include <gsdf/Pipeline.h>
-#include <gsdf/detail/PipelineManager.h>
+#include <fwog/Pipeline.h>
+#include <fwog/detail/PipelineManager.h>
 
-namespace GFX
+namespace Fwog
 {
   std::optional<GraphicsPipeline> CompileGraphicsPipeline(const GraphicsPipelineInfo& info)
   {

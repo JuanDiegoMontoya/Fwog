@@ -1,9 +1,9 @@
-#include "gsdf/detail/FramebufferCache.h"
-#include "gsdf/detail/Hash.h"
-#include "gsdf/Texture.h"
+#include "fwog/detail/FramebufferCache.h"
+#include "fwog/detail/Hash.h"
+#include "fwog/Texture.h"
 #include "glad/gl.h"
 
-namespace GFX::detail
+namespace Fwog::detail
 {
   uint32_t FramebufferCache::CreateOrGetCachedFramebuffer(const RenderAttachments& attachments)
   {
@@ -70,17 +70,17 @@ namespace GFX::detail
   }
 }
 
-std::size_t std::hash<GFX::detail::RenderAttachments>::operator()(const GFX::detail::RenderAttachments& k) const
+std::size_t std::hash<Fwog::detail::RenderAttachments>::operator()(const Fwog::detail::RenderAttachments& k) const
 {
   auto rtup = std::make_tuple(k.depthAttachment, k.stencilAttachment);
 
-  auto hashVal = GFX::detail::hashing::hash<decltype(rtup)>{}(rtup);
+  auto hashVal = Fwog::detail::hashing::hash<decltype(rtup)>{}(rtup);
 
   for (size_t i = 0; i < k.colorAttachments.size(); i++)
   {
     auto cctup = std::make_tuple(k.colorAttachments[i], i);
-    auto chashVal = GFX::detail::hashing::hash<decltype(cctup)>{}(cctup);
-    GFX::detail::hashing::hash_combine(hashVal, chashVal);
+    auto chashVal = Fwog::detail::hashing::hash<decltype(cctup)>{}(cctup);
+    Fwog::detail::hashing::hash_combine(hashVal, chashVal);
   }
 
   return hashVal;
