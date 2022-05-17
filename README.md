@@ -71,10 +71,10 @@ $ cmake ..
 The draw loop of hello triangle looks like this (WIP):
 
 ```cpp
-GFX::BeginSwapchainRendering(swapchainRenderingInfo);
-GFX::Cmd::BindGraphicsPipeline(pipeline);
-GFX::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
-GFX::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
-GFX::Cmd::Draw(3, 1, 0, 0);
-GFX::EndRendering();
+Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
+Fwog::Cmd::BindGraphicsPipeline(pipeline);
+Fwog::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
+Fwog::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+Fwog::Cmd::Draw(3, 1, 0, 0);
+Fwog::EndRendering();
 ```
