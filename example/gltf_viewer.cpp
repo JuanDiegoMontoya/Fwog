@@ -13,7 +13,7 @@
 * If no options are specified, the default scene "models/hierarchyTest.glb" will be loaded.
 */
 
-#include "common.h"
+#include "common/common.h"
 
 #include <array>
 #include <charconv>
