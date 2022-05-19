@@ -139,7 +139,7 @@ int main()
   {
     .viewport = &viewport,
     .clearColorOnLoad = true,
-    .clearColorValue = Fwog::ClearColorValue {.f = { .2, .0, .2, 1 }},
+    .clearColorValue = Fwog::ClearColorValue {.f = { .2f, .0f, .2f, 1.0f }},
     .clearDepthOnLoad = false,
     .clearStencilOnLoad = false,
   };

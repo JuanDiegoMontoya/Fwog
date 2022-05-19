@@ -431,15 +431,15 @@ void CursorPosCallback(GLFWwindow* window, double currentCursorX, double current
   static bool firstFrame = true;
   if (firstFrame)
   {
-    gPreviousCursorX = currentCursorX;
-    gPreviousCursorY = currentCursorY;
+    gPreviousCursorX = static_cast<float>(currentCursorX);
+    gPreviousCursorY = static_cast<float>(currentCursorY);
     firstFrame = false;
   }
 
-  gCursorOffsetX = currentCursorX - gPreviousCursorX;
-  gCursorOffsetY = gPreviousCursorY - currentCursorY;
-  gPreviousCursorX = currentCursorX;
-  gPreviousCursorY = currentCursorY;
+  gCursorOffsetX = static_cast<float>(currentCursorX) - gPreviousCursorX;
+  gCursorOffsetY = gPreviousCursorY - static_cast<float>(currentCursorY);
+  gPreviousCursorX = static_cast<float>(currentCursorX);
+  gPreviousCursorY = static_cast<float>(currentCursorY);
 }
 
 void RenderScene()
@@ -497,7 +497,7 @@ void RenderScene()
   Fwog::RenderAttachment gcolorAttachment
   {
     .textureView = &gcolorTexView.value(),
-    .clearValue = Fwog::ClearValue{.color{.f{ .1, .3, .5, 0 } } },
+    .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
     .clearOnLoad = true
   };
   Fwog::RenderAttachment gnormalAttachment
@@ -596,7 +596,7 @@ void RenderScene()
     .samples = gRSMSamples,
   };
 
-  GlobalUniforms globalUniforms;
+  GlobalUniforms globalUniforms{};
 
   auto vertexBuffer = Fwog::Buffer::Create(gCubeVertices);
   auto indexBuffer = Fwog::Buffer::Create(gCubeIndices);
@@ -642,10 +642,10 @@ void RenderScene()
   camera.position = { 0, .5, 1 };
   camera.yaw = -glm::half_pi<float>();
 
-  float prevFrame = glfwGetTime();
+  float prevFrame = static_cast<float>(glfwGetTime());
   while (!glfwWindowShouldClose(window))
   {
-    float curFrame = glfwGetTime();
+    float curFrame = static_cast<float>(glfwGetTime());
     float dt = curFrame - prevFrame;
     prevFrame = curFrame;
 
@@ -677,12 +677,12 @@ void RenderScene()
 
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
     {
-      rsmUniforms.rMax -= .15 * dt;
+      rsmUniforms.rMax -= .15f * dt;
       printf("rMax: %f\n", rsmUniforms.rMax);
     }
     if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
     {
-      rsmUniforms.rMax += .15 * dt;
+      rsmUniforms.rMax += .15f * dt;
       printf("rMax: %f\n", rsmUniforms.rMax);
     }
     rsmUniforms.rMax = glm::clamp(rsmUniforms.rMax, 0.02f, 0.3f);
@@ -716,7 +716,7 @@ void RenderScene()
       Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
       Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       Fwog::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
-      Fwog::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+      Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), static_cast<uint32_t>(objectUniforms.size()), 0, 0, 0);
     }
     Fwog::EndRendering();
 
@@ -732,7 +732,7 @@ void RenderScene()
       Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
       Fwog::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
-      Fwog::Cmd::DrawIndexed(gCubeIndices.size(), objectUniforms.size(), 0, 0, 0);
+      Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), static_cast<uint32_t>(objectUniforms.size()), 0, 0, 0);
     }
     Fwog::EndRendering();
 

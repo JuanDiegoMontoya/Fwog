@@ -48,7 +48,7 @@ namespace Utility
       double Elapsed_us() const
       {
         timepoint_t beg_ = timepoint_;
-        return std::chrono::duration_cast<microsecond_t>(myclock_t::now() - beg_).count();
+        return static_cast<double>(std::chrono::duration_cast<microsecond_t>(myclock_t::now() - beg_).count());
       }
 
     private:

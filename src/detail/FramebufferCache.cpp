@@ -18,10 +18,10 @@ namespace Fwog::detail
     for (size_t i = 0; i < attachments.colorAttachments.size(); i++)
     {
       const auto& attachment = attachments.colorAttachments[i];
-      glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0 + i, attachment->Handle(), 0);
-      drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+      glNamedFramebufferTexture(fbo, static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + i), attachment->Handle(), 0);
+      drawBuffers.push_back(static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + i));
     }
-    glNamedFramebufferDrawBuffers(fbo, drawBuffers.size(), drawBuffers.data());
+    glNamedFramebufferDrawBuffers(fbo, static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
 
     if (attachments.depthAttachment && attachments.stencilAttachment && attachments.depthAttachment == attachments.stencilAttachment)
     {

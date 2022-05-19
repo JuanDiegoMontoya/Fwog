@@ -679,7 +679,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       shadingUniforms.sunDir = glm::rotate(glm::quarter_pi<float>() * dt, glm::vec3{ -1, 0, 0 }) * shadingUniforms.sunDir;
     }
 
-    GlobalUniforms mainCameraUniforms;
+    GlobalUniforms mainCameraUniforms{};
     mainCameraUniforms.viewProj = proj * camera.GetViewMatrix();
     mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
     mainCameraUniforms.cameraPos = glm::vec4(camera.position, 0.0);

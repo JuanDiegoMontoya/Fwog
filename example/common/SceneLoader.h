@@ -35,16 +35,16 @@ namespace Utility
   struct GpuMaterial
   {
     MaterialFlags flags{};
-    float alphaCutoff;
-    uint32_t pad01;
-    uint32_t pad02;
+    float alphaCutoff{};
+    uint32_t pad01{};
+    uint32_t pad02{};
     glm::vec4 baseColorFactor{};
   };
 
   struct Material
   {
-    GpuMaterial gpuMaterial;
-    int baseColorTextureIdx;
+    GpuMaterial gpuMaterial{};
+    int baseColorTextureIdx{};
   };
 
   //struct GeometryBuffers
@@ -59,8 +59,8 @@ namespace Utility
     //const GeometryBuffers* buffers;
     std::optional<Fwog::Buffer> vertexBuffer;
     std::optional<Fwog::Buffer> indexBuffer;
-    int materialIdx;
-    glm::mat4 transform;
+    int materialIdx{};
+    glm::mat4 transform{};
   };
 
   struct Scene
