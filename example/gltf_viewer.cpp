@@ -393,15 +393,15 @@ void CursorPosCallback(GLFWwindow* window, double currentCursorX, double current
   static bool firstFrame = true;
   if (firstFrame)
   {
-    gPreviousCursorX = currentCursorX;
-    gPreviousCursorY = currentCursorY;
+    gPreviousCursorX = static_cast<float>(currentCursorX);
+    gPreviousCursorY = static_cast<float>(currentCursorY);
     firstFrame = false;
   }
 
-  gCursorOffsetX = currentCursorX - gPreviousCursorX;
-  gCursorOffsetY = gPreviousCursorY - currentCursorY;
-  gPreviousCursorX = currentCursorX;
-  gPreviousCursorY = currentCursorY;
+  gCursorOffsetX = static_cast<float>(currentCursorX) - gPreviousCursorX;
+  gCursorOffsetY = gPreviousCursorY - static_cast<float>(currentCursorY);
+  gPreviousCursorX = static_cast<float>(currentCursorX);
+  gPreviousCursorY = static_cast<float>(currentCursorY);
 }
 
 
@@ -461,7 +461,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   Fwog::RenderAttachment gcolorAttachment
   {
     .textureView = &gcolorTexView.value(),
-    .clearValue = Fwog::ClearValue{.color{.f{ .1, .3, .5, 0 } } },
+    .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
     .clearOnLoad = true
   };
   Fwog::RenderAttachment gnormalAttachment
@@ -625,10 +625,10 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   camera.position = { 0, .5, 1 };
   camera.yaw = -glm::half_pi<float>();
 
-  float prevFrame = glfwGetTime();
+  float prevFrame = static_cast<float>(glfwGetTime());
   while (!glfwWindowShouldClose(window))
   {
-    float curFrame = glfwGetTime();
+    float curFrame = static_cast<float>(glfwGetTime());
     float dt = curFrame - prevFrame;
     prevFrame = curFrame;
 
@@ -660,12 +660,12 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
     {
-      rsmUniforms.rMax -= .15 * dt;
+      rsmUniforms.rMax -= .15f * dt;
       printf("rMax: %f\n", rsmUniforms.rMax);
     }
     if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
     {
-      rsmUniforms.rMax += .15 * dt;
+      rsmUniforms.rMax += .15f * dt;
       printf("rMax: %f\n", rsmUniforms.rMax);
     }
     rsmUniforms.rMax = glm::clamp(rsmUniforms.rMax, 0.02f, 0.3f);
@@ -703,7 +703,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::Cmd::BindUniformBuffer(2, *materialUniformsBuffer, 0, materialUniformsBuffer->Size());
 
       Fwog::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
-      for (size_t i = 0; i < scene.meshes.size(); i++)
+      for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
       {
         const auto& mesh = scene.meshes[i];
         const auto& material = scene.materials[mesh.materialIdx];
@@ -715,7 +715,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         }
         Fwog::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
         Fwog::Cmd::BindIndexBuffer(*mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-        Fwog::Cmd::DrawIndexed(mesh.indexBuffer->Size() / sizeof(uint32_t), 1, 0, 0, i);
+        Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer->Size()) / sizeof(uint32_t), 1, 0, 0, i);
       }
     }
     Fwog::EndRendering();
@@ -732,7 +732,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::Cmd::BindUniformBuffer(2, *materialUniformsBuffer, 0, materialUniformsBuffer->Size());
 
       Fwog::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
-      for (size_t i = 0; i < scene.meshes.size(); i++)
+      for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
       {
         const auto& mesh = scene.meshes[i];
         const auto& material = scene.materials[mesh.materialIdx];
@@ -744,7 +744,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         }
         Fwog::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
         Fwog::Cmd::BindIndexBuffer(*mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-        Fwog::Cmd::DrawIndexed(mesh.indexBuffer->Size() / sizeof(uint32_t), 1, 0, 0, i);
+        Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer->Size()) / sizeof(uint32_t), 1, 0, 0, i);
       }
     }
     Fwog::EndRendering();

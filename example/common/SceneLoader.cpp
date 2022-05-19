@@ -221,7 +221,6 @@ namespace Utility
         using Svec = glm::vec<N, int16_t>;
         using USvec = glm::vec<N, uint16_t>;
         using UIvec = glm::vec<N, uint32_t>;
-        Fvec::length();
 
         attributeBuffer.resize(accessor.count);
 
@@ -258,7 +257,7 @@ namespace Utility
             for (size_t i = 0; i < accessor.count; i++)
             {
               // this doesn't actually work exactly for signed types
-              attributeBuffer[i] = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride)) / Fvec(std::numeric_limits<Vec::value_type>::max());
+              attributeBuffer[i] = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride)) / Fvec(static_cast<float>(std::numeric_limits<Vec::value_type>::max()));
             }
           };
 
@@ -422,7 +421,7 @@ namespace Utility
       glm::vec4 baseColorFactor{};
       for (int i = 0; i < 4; i++)
       {
-        baseColorFactor[i] = loaderMaterial.pbrMetallicRoughness.baseColorFactor[i];
+        baseColorFactor[i] = static_cast<float>(loaderMaterial.pbrMetallicRoughness.baseColorFactor[i]);
       }
 
       Material material;
@@ -434,7 +433,7 @@ namespace Utility
       }
 
       material.gpuMaterial.baseColorFactor = baseColorFactor;
-      material.gpuMaterial.alphaCutoff = loaderMaterial.alphaCutoff;
+      material.gpuMaterial.alphaCutoff = static_cast<float>(loaderMaterial.alphaCutoff);
       materials.emplace_back(material);
     }
 
@@ -443,8 +442,8 @@ namespace Utility
 
   bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
   {
-    const int baseMaterialIndex = scene.materials.size();
-    const int baseTextureSamplerIndex = scene.textureSamplers.size();
+    const int baseMaterialIndex = static_cast<int>(scene.materials.size());
+    const int baseTextureSamplerIndex = static_cast<int>(scene.textureSamplers.size());
 
     tinygltf::TinyGLTF loader;
     tinygltf::Model model;
