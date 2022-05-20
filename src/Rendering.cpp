@@ -1,5 +1,8 @@
-#include <fwog/Rendering.h>
 #include <fwog/Common.h>
+#include <fwog/Rendering.h>
+#include <fwog/Texture.h>
+#include <fwog/Buffer.h>
+#include <fwog/Pipeline.h>
 #include <fwog/detail/ApiToEnum.h>
 #include <fwog/detail/PipelineManager.h>
 #include <fwog/detail/FramebufferCache.h>

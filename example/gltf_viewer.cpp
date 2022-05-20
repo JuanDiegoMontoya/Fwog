@@ -20,20 +20,18 @@
 #include <exception>
 
 #include <fwog/BasicTypes.h>
-#include <fwog/Fence.h>
 #include <fwog/Rendering.h>
+#include <fwog/Pipeline.h>
+#include <fwog/DebugMarker.h>
+#include <fwog/Timer.h>
+#include <fwog/Texture.h>
+#include <fwog/Buffer.h>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include <fwog/BasicTypes.h>
-#include <fwog/Fence.h>
-#include <fwog/Rendering.h>
-#include <fwog/DebugMarker.h>
-#include <fwog/Timer.h>
 
 #include "common/SceneLoader.h"
 
@@ -754,7 +752,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     rsmUniforms.sunViewProj = shadingUniforms.sunViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
     rsmUniformBuffer->SubData(rsmUniforms, 0);
-    char* oof = const_cast<char*>("oof");
+
     // RSM indirect illumination calculation pass
     Fwog::BeginCompute();
     {

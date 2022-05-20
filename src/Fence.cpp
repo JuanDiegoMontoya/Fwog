@@ -1,6 +1,7 @@
 #include <fwog/Common.h>
 #include <fwog/Fence.h>
 #include <numeric>
+#include <optional>
 
 namespace Fwog
 {

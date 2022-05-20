@@ -7,10 +7,9 @@
 #include <tuple>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
-#include <glad/gl.h>
 #include <fwog/Common.h>
 
-#include <glm/gtx/string_cast.hpp>
+//#include <glm/gtx/string_cast.hpp>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION

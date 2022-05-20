@@ -10,10 +10,12 @@
 #include <glm/gtx/transform.hpp>
 
 #include <fwog/BasicTypes.h>
-#include <fwog/Fence.h>
 #include <fwog/Rendering.h>
 #include <fwog/DebugMarker.h>
 #include <fwog/Timer.h>
+#include <fwog/Pipeline.h>
+#include <fwog/Texture.h>
+#include <fwog/Buffer.h>
 
 ////////////////////////////////////// Types
 struct View

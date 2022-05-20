@@ -6,9 +6,9 @@
 #include <glm/vec4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
+#include <fwog/detail/Flags.h>
 #include <fwog/Buffer.h>
 #include <fwog/Texture.h>
-#include <fwog/detail/Flags.h>
 
 namespace Utility
 {

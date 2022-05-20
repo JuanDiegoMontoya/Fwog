@@ -1,16 +1,17 @@
 #pragma once
-#include <fwog/BasicTypes.h>
-
-// these can probably be forward declarations instead
-#include <fwog/Texture.h>
-#include <fwog/Pipeline.h>
-#include <fwog/Buffer.h>
-
 #include <span>
 #include <optional>
+#include <fwog/BasicTypes.h>
 
 namespace Fwog
 {
+  class Texture;
+  class TextureView;
+  class TextureSampler;
+  class Buffer;
+  struct GraphicsPipeline;
+  struct ComputePipeline;
+
   struct ClearColorValue
   {
     union
@@ -81,7 +82,7 @@ namespace Fwog
     Offset3D sourceOffset, Offset3D targetOffset, Extent3D sourceExtent, Extent3D targetExtent,
     Filter filter);
 
-  // Cmd:: functions can only be called within a rendering context/scope
+  // Cmd:: functions can only be called within a rendering scope
   namespace Cmd
   {
     void BindGraphicsPipeline(GraphicsPipeline pipeline);         // sets pipeline state

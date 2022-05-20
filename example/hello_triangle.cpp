@@ -3,8 +3,9 @@
 #include <array>
 
 #include <fwog/BasicTypes.h>
-#include <fwog/Fence.h>
 #include <fwog/Rendering.h>
+#include <fwog/Pipeline.h>
+#include <fwog/Buffer.h>
 
 ////////////////////////////////////// Globals
 const char* gVertexSource = R"(

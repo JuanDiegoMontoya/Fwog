@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include "BasicTypes.h"
+#include <fwog/BasicTypes.h>
 
 namespace Fwog
 {
