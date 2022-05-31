@@ -90,7 +90,6 @@ namespace Fwog
     [[nodiscard]] Extent3D Extent() const { return extent_; }
 
   private:
-    friend class Framebuffer;
     friend class Texture;
     static std::optional<TextureView> Create(const TextureViewCreateInfo& createInfo, uint32_t texture, Extent3D extent, std::string_view name = "");
     TextureView() {};

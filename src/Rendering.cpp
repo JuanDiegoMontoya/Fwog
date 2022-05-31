@@ -35,6 +35,7 @@ namespace Fwog
     bool isRendering = false;
     bool isPipelineBound = false;
     bool isIndexBufferBound = false;
+    bool isRenderingToSwapchain = false;
 
     GraphicsPipeline sLastGraphicsPipeline{}; // TODO: way to reset this in case the user wants to do own OpenGL operations (basically invalidate cached state)
     const RenderInfo* sLastRenderInfo{};
@@ -53,6 +54,7 @@ namespace Fwog
     FWOG_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
     FWOG_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
     isRendering = true;
+    isRenderingToSwapchain = true;
     sLastRenderInfo = nullptr;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -170,6 +172,7 @@ namespace Fwog
     isPipelineBound = false;
     isRendering = false;
     isIndexBufferBound = false;
+    isRenderingToSwapchain = false;
   }
 
   void BeginCompute()
@@ -235,7 +238,7 @@ namespace Fwog
       glPointSize(rs.pointSize);
 
       //////////////////////////////////////////////////////////////// depth + stencil
-      const auto& ds = pipelineState->depthStencilState;
+      const auto& ds = pipelineState->depthState;
       GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       glDepthMask(ds.depthWriteEnable);
       glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
@@ -249,20 +252,40 @@ namespace Fwog
         glLogicOp(detail::LogicOpToGL(cb.logicOp));
       }
       glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
+      FWOG_ASSERT((cb.attachments.empty()
+        || (isRenderingToSwapchain && !cb.attachments.empty()))
+        || sLastRenderInfo->colorAttachments.size() > cb.attachments.size()
+        && "There must be at least a color blend attachment for each render target, or none");
+      
+      if (cb.attachments.empty())
+      {
+        glDisable(GL_BLEND);
+      }
+      
       for (GLuint i = 0; i < static_cast<GLuint>(cb.attachments.size()); i++)
       {
         const auto& cba = cb.attachments[i];
-        glBlendFuncSeparatei(i, 
-          detail::BlendFactorToGL(cba.srcColorBlendFactor),
-          detail::BlendFactorToGL(cba.dstColorBlendFactor),
-          detail::BlendFactorToGL(cba.srcAlphaBlendFactor),
-          detail::BlendFactorToGL(cba.dstAlphaBlendFactor));
-        glBlendEquationSeparatei(i, detail::BlendOpToGL(cba.colorBlendOp), detail::BlendOpToGL(cba.alphaBlendOp));
-        glColorMaski(i, 
-          (cba.colorWriteMask & ColorComponentFlag::R_BIT) != ColorComponentFlag::NONE,
-          (cba.colorWriteMask & ColorComponentFlag::G_BIT) != ColorComponentFlag::NONE,
-          (cba.colorWriteMask & ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
-          (cba.colorWriteMask & ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
+        if (cba.blendEnable)
+        {
+          glBlendFuncSeparatei(i,
+            detail::BlendFactorToGL(cba.srcColorBlendFactor),
+            detail::BlendFactorToGL(cba.dstColorBlendFactor),
+            detail::BlendFactorToGL(cba.srcAlphaBlendFactor),
+            detail::BlendFactorToGL(cba.dstAlphaBlendFactor));
+          glBlendEquationSeparatei(i, detail::BlendOpToGL(cba.colorBlendOp), detail::BlendOpToGL(cba.alphaBlendOp));
+        }
+        else
+        {
+          // "no blending" blend state
+          glBlendFuncSeparatei(i, GL_SRC_COLOR, GL_ZERO, GL_SRC_ALPHA, GL_ZERO);
+          glBlendEquationSeparatei(i, GL_FUNC_ADD, GL_FUNC_ADD);
+        }
+
+        glColorMaski(i,
+          (cba.colorWriteMask& ColorComponentFlag::R_BIT) != ColorComponentFlag::NONE,
+          (cba.colorWriteMask& ColorComponentFlag::G_BIT) != ColorComponentFlag::NONE,
+          (cba.colorWriteMask& ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
+          (cba.colorWriteMask& ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
       }
     }
 

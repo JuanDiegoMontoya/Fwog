@@ -40,9 +40,9 @@ namespace Fwog::detail
         info.rasterizationState.depthBiasSlopeFactor,
         info.rasterizationState.lineWidth,
         info.rasterizationState.pointSize,
-        info.depthStencilState.depthTestEnable,
-        info.depthStencilState.depthWriteEnable,
-        info.depthStencilState.depthCompareOp,
+        info.depthState.depthTestEnable,
+        info.depthState.depthWriteEnable,
+        info.depthState.depthCompareOp,
         info.colorBlendState.logicOpEnable,
         info.colorBlendState.logicOp,
         info.colorBlendState.blendConstants[0],
@@ -90,7 +90,7 @@ namespace Fwog::detail
         .inputAssemblyState = info.inputAssemblyState,
         .vertexInputState = { { info.vertexInputState.vertexBindingDescriptions.begin(), info.vertexInputState.vertexBindingDescriptions.end() } },
         .rasterizationState = info.rasterizationState,
-        .depthStencilState = info.depthStencilState,
+        .depthState = info.depthState,
         .colorBlendState
         {
           .logicOpEnable = info.colorBlendState.logicOpEnable,

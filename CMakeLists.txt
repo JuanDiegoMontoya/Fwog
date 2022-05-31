@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(external)
 
-set(source_files
+set(fwog_source_files
 	src/Buffer.cpp
 	src/DebugMarker.cpp
 	src/Fence.cpp
@@ -24,7 +24,7 @@ set(source_files
 	src/detail/VertexArrayCache.cpp
 )
 
-set(header_files
+set(fwog_header_files
 	include/fwog/Common.h
 	include/fwog/BasicTypes.h
 	include/fwog/Buffer.h
@@ -45,7 +45,7 @@ set(header_files
 	include/fwog/detail/VertexArrayCache.h
 )
 
-add_library(lib_fwog ${source_files} ${header_files})
+add_library(lib_fwog ${fwog_source_files} ${fwog_header_files})
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT lib_fwog)
 target_include_directories(lib_fwog PUBLIC include)

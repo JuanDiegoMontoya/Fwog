@@ -25,7 +25,7 @@ namespace Fwog::detail
     InputAssemblyState inputAssemblyState;
     VertexInputStateOwning vertexInputState;
     RasterizationState rasterizationState;
-    DepthStencilState depthStencilState;
+    DepthState depthState;
     ColorBlendStateOwning colorBlendState;
   };
 
