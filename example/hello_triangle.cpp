@@ -64,55 +64,14 @@ Fwog::GraphicsPipeline CreatePipeline()
     .offset = 0,
   };
   Fwog::VertexInputBindingDescription inputDescs[] = { descPos, descColor };
-  Fwog::VertexInputState vertexInput{ inputDescs };
 
-  Fwog::RasterizationState rasterization
-  {
-    .depthClampEnable = false,
-    .polygonMode = Fwog::PolygonMode::FILL,
-    .cullMode = Fwog::CullMode::BACK,
-    .frontFace = Fwog::FrontFace::COUNTERCLOCKWISE,
-    .depthBiasEnable = false,
-    .lineWidth = 1.0f,
-    .pointSize = 1.0f,
-  };
+  auto pipeline = Fwog::CompileGraphicsPipeline(
+    {
+      .shaderProgram = shader,
+      .vertexInputState = inputDescs,
+      .depthState = { .depthTestEnable = false, .depthWriteEnable = false }
+    });
 
-  Fwog::DepthStencilState depthStencil
-  {
-    .depthTestEnable = false,
-    .depthWriteEnable = false,
-  };
-
-  Fwog::ColorBlendAttachmentState colorBlendAttachment
-  {
-    .blendEnable = true,
-    .srcColorBlendFactor = Fwog::BlendFactor::ONE,
-    .dstColorBlendFactor = Fwog::BlendFactor::ZERO,
-    .colorBlendOp = Fwog::BlendOp::ADD,
-    .srcAlphaBlendFactor = Fwog::BlendFactor::ONE,
-    .dstAlphaBlendFactor = Fwog::BlendFactor::ZERO,
-    .alphaBlendOp = Fwog::BlendOp::ADD,
-    .colorWriteMask = Fwog::ColorComponentFlag::RGBA_BITS
-  };
-  Fwog::ColorBlendState colorBlend
-  {
-    .logicOpEnable = false,
-    .logicOp{},
-    .attachments = { &colorBlendAttachment, 1 },
-    .blendConstants = {},
-  };
-
-  Fwog::GraphicsPipelineInfo pipelineInfo
-  {
-    .shaderProgram = shader,
-    .inputAssemblyState = inputAssembly,
-    .vertexInputState = vertexInput,
-    .rasterizationState = rasterization,
-    .depthStencilState = depthStencil,
-    .colorBlendState = colorBlend
-  };
-
-  auto pipeline = Fwog::CompileGraphicsPipeline(pipelineInfo);
   if (!pipeline)
     throw std::exception("Invalid pipeline");
   return *pipeline;

@@ -149,80 +149,18 @@ std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
   return { descPos, descNormal, descUV };
 }
 
-Fwog::RasterizationState GetDefaultRasterizationState()
-{
-  return Fwog::RasterizationState
-  {
-    .depthClampEnable = false,
-    .polygonMode = Fwog::PolygonMode::FILL,
-    .cullMode = Fwog::CullMode::BACK,
-    .frontFace = Fwog::FrontFace::COUNTERCLOCKWISE,
-    .depthBiasEnable = false,
-    .lineWidth = 1.0f,
-    .pointSize = 1.0f,
-  };
-}
-
-Fwog::ColorBlendAttachmentState GetDefaultColorBlendAttachmentState()
-{
-  return Fwog::ColorBlendAttachmentState
-  {
-    .blendEnable = false,
-    .srcColorBlendFactor = Fwog::BlendFactor::ONE,
-    .dstColorBlendFactor = Fwog::BlendFactor::ZERO,
-    .colorBlendOp = Fwog::BlendOp::ADD,
-    .srcAlphaBlendFactor = Fwog::BlendFactor::ONE,
-    .dstAlphaBlendFactor = Fwog::BlendFactor::ZERO,
-    .alphaBlendOp = Fwog::BlendOp::ADD,
-    .colorWriteMask = Fwog::ColorComponentFlag::RGBA_BITS
-  };
-}
-
 Fwog::GraphicsPipeline CreateScenePipeline()
 {
   GLuint shader = Utility::CompileVertexFragmentProgram(
     Utility::LoadFile("shaders/SceneDeferredPbr.vert.glsl"),
     Utility::LoadFile("shaders/SceneDeferredPbr.frag.glsl"));
 
-  Fwog::InputAssemblyState inputAssembly
-  {
-    .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
-    .primitiveRestartEnable = false,
-  };
+  auto pipeline = Fwog::CompileGraphicsPipeline(
+    {
+      .shaderProgram = shader,
+      .vertexInputState = GetSceneInputBindingDescs(),
+    });
 
-  auto inputDescs = GetSceneInputBindingDescs();
-  Fwog::VertexInputState vertexInput{ inputDescs };
-
-  auto rasterization = GetDefaultRasterizationState();
-
-  Fwog::DepthStencilState depthStencil
-  {
-    .depthTestEnable = true,
-    .depthWriteEnable = true,
-    .depthCompareOp = Fwog::CompareOp::LESS,
-  };
-
-  Fwog::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
-  colorBlendAttachment.blendEnable = true;
-  Fwog::ColorBlendState colorBlend
-  {
-    .logicOpEnable = false,
-    .logicOp{},
-    .attachments = { &colorBlendAttachment, 1 },
-    .blendConstants = {},
-  };
-
-  Fwog::GraphicsPipelineInfo pipelineInfo
-  {
-    .shaderProgram = shader,
-    .inputAssemblyState = inputAssembly,
-    .vertexInputState = vertexInput,
-    .rasterizationState = rasterization,
-    .depthStencilState = depthStencil,
-    .colorBlendState = colorBlend
-  };
-
-  auto pipeline = Fwog::CompileGraphicsPipeline(pipelineInfo);
   if (!pipeline)
     throw std::exception("Invalid pipeline");
   return *pipeline;
@@ -234,47 +172,18 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
     Utility::LoadFile("shaders/SceneDeferredPbr.vert.glsl"),
     Utility::LoadFile("shaders/RSMScenePbr.frag.glsl"));
 
-  Fwog::InputAssemblyState inputAssembly
-  {
-    .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
-    .primitiveRestartEnable = false,
-  };
+  auto pipeline = Fwog::CompileGraphicsPipeline(
+    {
+      .shaderProgram = shader,
+      .vertexInputState = GetSceneInputBindingDescs(),
+      .rasterizationState =
+      {
+        .depthBiasEnable = true,
+        .depthBiasConstantFactor = 3.0f,
+        .depthBiasSlopeFactor = 5.0f,
+      }
+    });
 
-  auto inputDescs = GetSceneInputBindingDescs();
-  Fwog::VertexInputState vertexInput{ inputDescs };
-
-  auto rasterization = GetDefaultRasterizationState();
-  rasterization.depthBiasEnable = true;
-  rasterization.depthBiasConstantFactor = 5;
-  rasterization.depthBiasSlopeFactor = 3;
-
-  Fwog::DepthStencilState depthStencil
-  {
-    .depthTestEnable = true,
-    .depthWriteEnable = true,
-    .depthCompareOp = Fwog::CompareOp::LESS,
-  };
-
-  Fwog::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
-  Fwog::ColorBlendState colorBlend
-  {
-    .logicOpEnable = false,
-    .logicOp{},
-    .attachments = { &colorBlendAttachment, 1 },
-    .blendConstants = {},
-  };
-
-  Fwog::GraphicsPipelineInfo pipelineInfo
-  {
-    .shaderProgram = shader,
-    .inputAssemblyState = inputAssembly,
-    .vertexInputState = vertexInput,
-    .rasterizationState = rasterization,
-    .depthStencilState = depthStencil,
-    .colorBlendState = colorBlend
-  };
-
-  auto pipeline = Fwog::CompileGraphicsPipeline(pipelineInfo);
   if (!pipeline)
     throw std::exception("Invalid pipeline");
   return *pipeline;
@@ -286,43 +195,13 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
     Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
     Utility::LoadFile("shaders/ShadeDeferredPbr.frag.glsl"));
 
-  Fwog::InputAssemblyState inputAssembly
-  {
-    .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
-    .primitiveRestartEnable = false,
-  };
+  auto pipeline = Fwog::CompileGraphicsPipeline(
+    {
+      .shaderProgram = shader,
+      .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
+    });
 
-  Fwog::VertexInputState vertexInput{};
-
-  auto rasterization = GetDefaultRasterizationState();
-  rasterization.cullMode = Fwog::CullMode::NONE;
-
-  Fwog::DepthStencilState depthStencil
-  {
-    .depthTestEnable = false,
-    .depthWriteEnable = false,
-  };
-
-  Fwog::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
-  Fwog::ColorBlendState colorBlend
-  {
-    .logicOpEnable = false,
-    .logicOp{},
-    .attachments = { &colorBlendAttachment, 1 },
-    .blendConstants = {},
-  };
-
-  Fwog::GraphicsPipelineInfo pipelineInfo
-  {
-    .shaderProgram = shader,
-    .inputAssemblyState = inputAssembly,
-    .vertexInputState = vertexInput,
-    .rasterizationState = rasterization,
-    .depthStencilState = depthStencil,
-    .colorBlendState = colorBlend
-  };
-
-  auto pipeline = Fwog::CompileGraphicsPipeline(pipelineInfo);
   if (!pipeline)
     throw std::exception("Invalid pipeline");
   return *pipeline;
@@ -334,43 +213,13 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
     Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
     Utility::LoadFile("shaders/Texture.frag.glsl"));
 
-  Fwog::InputAssemblyState inputAssembly
-  {
-    .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
-    .primitiveRestartEnable = false,
-  };
+  auto pipeline = Fwog::CompileGraphicsPipeline(
+    {
+      .shaderProgram = shader,
+      .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
+    });
 
-  Fwog::VertexInputState vertexInput{};
-
-  auto rasterization = GetDefaultRasterizationState();
-  rasterization.cullMode = Fwog::CullMode::NONE;
-
-  Fwog::DepthStencilState depthStencil
-  {
-    .depthTestEnable = false,
-    .depthWriteEnable = false,
-  };
-
-  Fwog::ColorBlendAttachmentState colorBlendAttachment = GetDefaultColorBlendAttachmentState();
-  Fwog::ColorBlendState colorBlend
-  {
-    .logicOpEnable = false,
-    .logicOp{},
-    .attachments = { &colorBlendAttachment, 1 },
-    .blendConstants = {},
-  };
-
-  Fwog::GraphicsPipelineInfo pipelineInfo
-  {
-    .shaderProgram = shader,
-    .inputAssemblyState = inputAssembly,
-    .vertexInputState = vertexInput,
-    .rasterizationState = rasterization,
-    .depthStencilState = depthStencil,
-    .colorBlendState = colorBlend
-  };
-
-  auto pipeline = Fwog::CompileGraphicsPipeline(pipelineInfo);
   if (!pipeline)
     throw std::exception("Invalid pipeline");
   return *pipeline;
