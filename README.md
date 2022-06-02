@@ -2,7 +2,7 @@
 
 Low-level OpenGL 4.6 abstraction written in C++20. The abstraction attempts to mitigate the weak points of OpenGL while providing an interface fit for use in modern renderers (outlined in [my blog post about modern OpenGL best practices](https://juandiegomontoya.github.io/modern_opengl.html)).
 
-The abstraction is inspired by Vulkan in many places while requiring considerably less boilerplate. Compared to raw OpenGL, this API has about the same amount of boilerplate.
+Fwog is inspired by Vulkan's and D3D12's modern design, while maintaining the simplicity of OpenGL. Compared to raw OpenGL, Fwog has about the same (small) amount of boilerplate required to get started.
 
 The user must bind a pipeline with all the state they intend to use in a draw prior to submitting commands, but certain things, like buffer and texture creation, are simplified. The advantage of the pipeline approach is that it's impossible to leak pipeline state (with normal usage), clarity is improved, and the driver can more easily reason about the program state.
 
