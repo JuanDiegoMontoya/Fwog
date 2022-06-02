@@ -1,92 +1,21 @@
+#include <fwog/Common.h>
 #include <fwog/detail/PipelineManager.h>
 #include <fwog/detail/Hash.h>
+#include <fwog/Shader.h>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace Fwog::detail
 {
   namespace
   {
-    struct GraphicsPipelineHash
-    {
-      size_t operator()(const GraphicsPipeline& g) const
-      {
-        return g.id;
-      }
-    };
-    struct ComputePipelineHash
-    {
-      size_t operator()(const ComputePipeline& p) const
-      {
-        return p.id;
-      }
-    };
+    std::unordered_map<GLuint, GraphicsPipelineInfoOwning> gGraphicsPipelines;
+    std::unordered_set<GLuint> gComputePipelines;
 
-    std::unordered_map<GraphicsPipeline, GraphicsPipelineInfoOwning, GraphicsPipelineHash> gGraphicsPipelines;
-    std::unordered_map<ComputePipeline, ComputePipelineInfo, ComputePipelineHash> gComputePipelines;
-
-    GraphicsPipeline HashPipelineInfo(const GraphicsPipelineInfo& info)
-    {
-      // hash all non-variable-size state
-      auto rtup = std::make_tuple(
-        info.shaderProgram,
-        info.inputAssemblyState.primitiveRestartEnable,
-        info.inputAssemblyState.topology,
-        info.rasterizationState.depthClampEnable,
-        info.rasterizationState.polygonMode,
-        info.rasterizationState.cullMode,
-        info.rasterizationState.frontFace,
-        info.rasterizationState.depthBiasEnable,
-        info.rasterizationState.depthBiasConstantFactor,
-        info.rasterizationState.depthBiasSlopeFactor,
-        info.rasterizationState.lineWidth,
-        info.rasterizationState.pointSize,
-        info.depthState.depthTestEnable,
-        info.depthState.depthWriteEnable,
-        info.depthState.depthCompareOp,
-        info.colorBlendState.logicOpEnable,
-        info.colorBlendState.logicOp,
-        info.colorBlendState.blendConstants[0],
-        info.colorBlendState.blendConstants[1],
-        info.colorBlendState.blendConstants[2],
-        info.colorBlendState.blendConstants[3]
-      );
-      auto hashVal = hashing::hash<decltype(rtup)>{}(rtup);
-
-      for (const auto& desc : info.vertexInputState.vertexBindingDescriptions)
-      {
-        auto dtup = std::make_tuple(
-          desc.binding,
-          desc.format,
-          desc.location,
-          desc.offset
-        );
-        auto dhashVal = hashing::hash<decltype(dtup)>{}(dtup);
-        hashing::hash_combine(hashVal, dhashVal);
-      }
-
-      for (const auto& attachment : info.colorBlendState.attachments)
-      {
-        auto cctup = std::make_tuple(
-          attachment.blendEnable,
-          attachment.srcColorBlendFactor,
-          attachment.dstColorBlendFactor,
-          attachment.colorBlendOp,
-          attachment.srcAlphaBlendFactor,
-          attachment.dstAlphaBlendFactor,
-          attachment.alphaBlendOp,
-          attachment.colorWriteMask.flags
-        );
-        auto chashVal = hashing::hash<decltype(cctup)>{}(cctup);
-        hashing::hash_combine(hashVal, chashVal);
-      }
-
-      return { hashVal };
-    }
     GraphicsPipelineInfoOwning MakePipelineInfoOwning(const GraphicsPipelineInfo& info)
     {
       return GraphicsPipelineInfoOwning
       {
-        .shaderProgram = info.shaderProgram,
         .inputAssemblyState = info.inputAssemblyState,
         .vertexInputState = { { info.vertexInputState.vertexBindingDescriptions.begin(), info.vertexInputState.vertexBindingDescriptions.end() } },
         .rasterizationState = info.rasterizationState,
@@ -100,24 +29,57 @@ namespace Fwog::detail
         }
       };
     }
+
+    bool LinkProgram(GLuint program, std::string* outInfoLog)
+    {
+      glLinkProgram(program);
+
+      GLint success{};
+      glGetProgramiv(program, GL_LINK_STATUS, &success);
+      if (!success)
+      {
+        if (outInfoLog)
+        {
+          const GLsizei length = 512;
+          outInfoLog->resize(length + 1, '\0');
+          glGetProgramInfoLog(program, length, nullptr, outInfoLog->data());
+        }
+        return false;
+      }
+
+      return true;
+    }
   }
 
   std::optional<GraphicsPipeline> CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
-    auto pipeline = HashPipelineInfo(info);
-    if (auto it = gGraphicsPipelines.find(pipeline); it != gGraphicsPipelines.end())
+    FWOG_ASSERT(info.vertexShader && "A graphics pipeline must at least have a vertex shader");
+    GLuint program = glCreateProgram();
+    glAttachShader(program, info.vertexShader->Handle());
+    if (info.fragmentShader)
     {
-      return it->first;
+      glAttachShader(program, info.fragmentShader->Handle());
+    }
+
+    if (!LinkProgram(program, nullptr))
+    {
+      glDeleteProgram(program);
+      return std::nullopt;
+    }
+
+    if (auto it = gGraphicsPipelines.find(program); it != gGraphicsPipelines.end())
+    {
+      return GraphicsPipeline{ it->first };
     }
 
     auto owning = MakePipelineInfoOwning(info);
-    gGraphicsPipelines.insert({ pipeline, owning });
-    return pipeline;
+    gGraphicsPipelines.insert({ program, owning });
+    return GraphicsPipeline{ program };
   }
 
   const GraphicsPipelineInfoOwning* GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
-    if (auto it = gGraphicsPipelines.find(pipeline); it != gGraphicsPipelines.end())
+    if (auto it = gGraphicsPipelines.find(pipeline.id); it != gGraphicsPipelines.end())
     {
       return &it->second;
     }
@@ -126,45 +88,47 @@ namespace Fwog::detail
 
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
-    auto it = gGraphicsPipelines.find(pipeline);
+    auto it = gGraphicsPipelines.find(pipeline.id);
     if (it == gGraphicsPipelines.end())
     {
       return false;
     }
 
+    glDeleteProgram(pipeline.id);
     gGraphicsPipelines.erase(it);
     return true;
   }
 
   std::optional<ComputePipeline> CompileComputePipelineInternal(const ComputePipelineInfo& info)
   {
-    ComputePipeline pipeline = { std::hash<decltype(info.shaderProgram)>{}(info.shaderProgram) };
-    if (auto it = gComputePipelines.find(pipeline); it != gComputePipelines.end())
-    {
-      return it->first;
-    }
-    
-    gComputePipelines.insert({ pipeline, info });
-    return pipeline;
-  }
+    FWOG_ASSERT(info.shader);
+    GLuint program = glCreateProgram();
+    glAttachShader(program, info.shader->Handle());
 
-  const ComputePipelineInfo* GetComputePipelineInternal(ComputePipeline pipeline)
-  {
-    if (auto it = gComputePipelines.find(pipeline); it != gComputePipelines.end())
+    if (!LinkProgram(program, nullptr))
     {
-      return &it->second;
+      glDeleteProgram(program);
+      return std::nullopt;
     }
-    return nullptr;
+
+    if (auto it = gComputePipelines.find(program); it != gComputePipelines.end())
+    {
+      return ComputePipeline{ *it };
+    }
+
+    gComputePipelines.insert({ program });
+    return ComputePipeline{ program };
   }
 
   bool DestroyComputePipelineInternal(ComputePipeline pipeline)
   {
-    auto it = gComputePipelines.find(pipeline);
+    auto it = gComputePipelines.find(pipeline.id);
     if (it == gComputePipelines.end())
     {
       return false;
     }
 
+    glDeleteProgram(pipeline.id);
     gComputePipelines.erase(it);
     return true;
   }

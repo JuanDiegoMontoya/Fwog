@@ -1,108 +1,71 @@
-//#include <fwog/Common.h>
-//#include <fwog/Shader.h>
-//#include <glm/gtc/type_ptr.hpp>
-//
-//namespace Fwog
-//{
-//  void Shader::Bind() const
-//  {
-//    glUseProgram(id_);
-//  }
-//
-//  void Shader::SetBool(hashed_string uniform, bool value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform1i(id_, uniformIDs_[uniform], static_cast<int>(value));
-//  }
-//  void Shader::SetInt(hashed_string uniform, int value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform1i(id_, uniformIDs_[uniform], value);
-//  }
-//  void Shader::SetUInt(hashed_string uniform, unsigned int value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform1ui(id_, uniformIDs_[uniform], value);
-//  }
-//  void Shader::SetFloat(hashed_string uniform, float value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform1f(id_, uniformIDs_[uniform], value);
-//  }
-//  void Shader::Set1FloatArray(hashed_string uniform, std::span<const float> value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform1fv(id_, uniformIDs_[uniform], static_cast<GLsizei>(value.size()), value.data());
-//  }
-//  void Shader::Set2FloatArray(hashed_string uniform, std::span<const glm::vec2> value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform2fv(id_, uniformIDs_[uniform], static_cast<GLsizei>(value.size()), glm::value_ptr(value.front()));
-//  }
-//  void Shader::Set3FloatArray(hashed_string uniform, std::span<const glm::vec3> value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform3fv(id_, uniformIDs_[uniform], static_cast<GLsizei>(value.size()), glm::value_ptr(value.front()));
-//  }
-//  void Shader::Set4FloatArray(hashed_string uniform, std::span<const glm::vec4> value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform4fv(id_, uniformIDs_[uniform], static_cast<GLsizei>(value.size()), glm::value_ptr(value.front()));
-//  }
-//  void Shader::SetIntArray(hashed_string uniform, std::span<const int> value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform1iv(id_, uniformIDs_[uniform], static_cast<GLsizei>(value.size()), value.data());
-//  }
-//  void Shader::SetVec2(hashed_string uniform, const glm::vec2& value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform2fv(id_, uniformIDs_[uniform], 1, glm::value_ptr(value));
-//  }
-//  void Shader::SetIVec2(hashed_string uniform, const glm::ivec2& value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform2iv(id_, uniformIDs_[uniform], 1, glm::value_ptr(value));
-//  }
-//  void Shader::SetIVec3(hashed_string uniform, const glm::ivec3& value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform3iv(id_, uniformIDs_[uniform], 1, glm::value_ptr(value));
-//  }
-//  void Shader::SetVec3(hashed_string uniform, const glm::vec3& value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform3fv(id_, uniformIDs_[uniform], 1, glm::value_ptr(value));
-//  }
-//  void Shader::SetVec4(hashed_string uniform, const glm::vec4& value)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniform4fv(id_, uniformIDs_[uniform], 1, glm::value_ptr(value));
-//  }
-//  void Shader::SetMat3(hashed_string uniform, const glm::mat3& mat)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniformMatrix3fv(id_, uniformIDs_[uniform], 1, GL_FALSE, glm::value_ptr(mat));
-//  }
-//  void Shader::SetMat4(hashed_string uniform, const glm::mat4& mat)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniformMatrix4fv(id_, uniformIDs_[uniform], 1, GL_FALSE, glm::value_ptr(mat));
-//  }
-//  void Shader::SetMat4Array(hashed_string uniform, std::span<const glm::mat4> mats)
-//  {
-//    ASSERT(uniformIDs_.contains(uniform));
-//    glProgramUniformMatrix4fv(id_, uniformIDs_[uniform], mats.size(), GL_FALSE, glm::value_ptr(mats[0]));
-//  }
-//
-//  //void SetHandle(hashed_string uniform, const uint64_t handle)
-//  //{
-//  //  assert(Uniforms.find(uniform) != Uniforms.end());
-//  //  glProgramUniformHandleui64ARB(programID, Uniforms[uniform], handle);
-//  //}
-//  //void SetHandleArray(hashed_string uniform, std::span<const uint64_t> handles)
-//  //{
-//  //  assert(Uniforms.find(uniform) != Uniforms.end());
-//  //  glProgramUniformHandleui64vARB(programID, Uniforms[uniform], static_cast<GLsizei>(handles.size()), handles.data());
-//  //}
-//}
+#include <fwog/Common.h>
+#include <fwog/Shader.h>
+#include <string_view>
+#include <string>
+#include <optional>
+#include <utility>
+
+namespace Fwog
+{
+  namespace
+  {
+    GLenum PipelineStageToGL(PipelineStage stage)
+    {
+      switch (stage)
+      {
+      case PipelineStage::VERTEX_SHADER:   return GL_VERTEX_SHADER; break;
+      case PipelineStage::FRAGMENT_SHADER: return GL_FRAGMENT_SHADER; break;
+      case PipelineStage::COMPUTE_SHADER:  return GL_COMPUTE_SHADER; break;
+      default: FWOG_UNREACHABLE; return 0;
+      }
+    }
+  }
+
+  Shader::Shader()
+  {
+  }
+
+  std::optional<Shader> Shader::Create(PipelineStage stage, std::string_view source, std::string* outInfoLog)
+  {
+    const GLchar* strings = source.data();
+
+    GLuint id = glCreateShader(PipelineStageToGL(stage));
+    glShaderSource(id, 1, &strings, nullptr);
+    glCompileShader(id);
+
+    GLint success;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+      if (outInfoLog)
+      {
+        const GLsizei infoLength = 512;
+        outInfoLog->resize(infoLength + 1, '\0');
+        glGetShaderInfoLog(id, infoLength, nullptr, outInfoLog->data());
+      }
+      return std::nullopt;
+    }
+
+    Shader shader{};
+    shader.id_ = id;
+    return shader;
+  }
+
+  Shader::Shader(Shader&& old) noexcept
+  {
+    id_ = std::exchange(old.id_, 0);
+  }
+
+  Shader& Shader::operator=(Shader&& old) noexcept
+  {
+    if (&old == this) return *this;
+    this->~Shader();
+    id_ = std::exchange(old.id_, 0);
+    return *this;
+  }
+
+  Shader::~Shader()
+  {
+    glDeleteShader(id_);
+  }
+}

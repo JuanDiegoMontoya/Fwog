@@ -490,23 +490,6 @@ namespace Utility
     auto ms = timer.Elapsed_us() / 1000;
     std::cout << "Loading took " << ms << " ms\n";
 
-    // TODO: use this
-    //for (const auto& mesh : model.meshes)
-    //{
-    //  for (const auto& primitive : mesh.primitives)
-    //  {
-    //    auto vertices = ConvertVertexBufferFormat(model, primitive);
-    //    auto indices = ConvertIndexBufferFormat(model, primitive);
-
-    //    auto vertexBuffer = Fwog::Buffer::Create(std::span(vertices));
-    //    auto indexBuffer = Fwog::Buffer::Create(std::span(indices));
-
-    //    scene.geometry.emplace_back(
-    //      std::move(vertexBuffer),
-    //      std::move(indexBuffer));
-    //  }
-    //}
-
     auto textureSamplers = LoadTextureSamplers(model);
     for (auto& textureSampler : textureSamplers)
     {

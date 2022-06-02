@@ -6,6 +6,8 @@
 
 namespace Fwog
 {
+  class Shader;
+
   struct InputAssemblyState
   {
     PrimitiveTopology topology  = PrimitiveTopology::TRIANGLE_LIST;
@@ -73,7 +75,8 @@ namespace Fwog
 
   struct GraphicsPipelineInfo
   {
-    uint32_t shaderProgram                = 0; // TODO: make this a struct
+    const Shader* vertexShader            = nullptr;
+    const Shader* fragmentShader          = nullptr;
     InputAssemblyState inputAssemblyState = {};
     VertexInputState vertexInputState     = {};
     RasterizationState rasterizationState = {};
@@ -85,7 +88,7 @@ namespace Fwog
 
   struct ComputePipelineInfo
   {
-    uint32_t shaderProgram = 0; // TODO: use struct
+    const Shader* shader;
   };
 
   struct GraphicsPipeline

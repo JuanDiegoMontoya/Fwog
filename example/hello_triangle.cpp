@@ -6,6 +6,7 @@
 #include <fwog/Rendering.h>
 #include <fwog/Pipeline.h>
 #include <fwog/Buffer.h>
+#include <fwog/Shader.h>
 
 ////////////////////////////////////// Globals
 const char* gVertexSource = R"(
@@ -41,8 +42,6 @@ std::array<uint8_t, 9> gTriColors = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
 Fwog::GraphicsPipeline CreatePipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(gVertexSource, gFragmentSource);
-
   Fwog::InputAssemblyState inputAssembly
   {
     .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
@@ -65,9 +64,13 @@ Fwog::GraphicsPipeline CreatePipeline()
   };
   Fwog::VertexInputBindingDescription inputDescs[] = { descPos, descColor };
 
+  auto vertexShader = Fwog::Shader::Create(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource);
+  auto fragmentShader = Fwog::Shader::Create(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
+
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .shaderProgram = shader,
+      .vertexShader = &vertexShader.value(),
+      .fragmentShader = &fragmentShader.value(),
       .vertexInputState = inputDescs,
       .depthState = { .depthTestEnable = false, .depthWriteEnable = false }
     });

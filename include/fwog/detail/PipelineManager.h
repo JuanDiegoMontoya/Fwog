@@ -21,7 +21,6 @@ namespace Fwog::detail
 
   struct GraphicsPipelineInfoOwning
   {
-    uint32_t shaderProgram;
     InputAssemblyState inputAssemblyState;
     VertexInputStateOwning vertexInputState;
     RasterizationState rasterizationState;
@@ -34,6 +33,5 @@ namespace Fwog::detail
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline);
 
   std::optional<ComputePipeline> CompileComputePipelineInternal(const ComputePipelineInfo& info);
-  const ComputePipelineInfo* GetComputePipelineInternal(ComputePipeline pipeline);
   bool DestroyComputePipelineInternal(ComputePipeline pipeline);
 }

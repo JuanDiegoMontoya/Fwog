@@ -193,10 +193,11 @@ namespace Fwog
     void BindGraphicsPipeline(GraphicsPipeline pipeline)
     {
       FWOG_ASSERT(isRendering);
+      FWOG_ASSERT(pipeline.id != 0);
       isPipelineBound = true;
 
       auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
-      assert(pipelineState);
+      FWOG_ASSERT(pipelineState);
 
       if (sLastGraphicsPipeline == pipeline)
       {
@@ -206,7 +207,7 @@ namespace Fwog
       sLastGraphicsPipeline = pipeline;
 
       //////////////////////////////////////////////////////////////// shader program
-      glUseProgram(pipelineState->shaderProgram);
+      glUseProgram(pipeline.id);
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipelineState->inputAssemblyState;
@@ -292,11 +293,9 @@ namespace Fwog
     void BindComputePipeline(ComputePipeline pipeline)
     {
       FWOG_ASSERT(isComputeActive);
+      FWOG_ASSERT(pipeline.id != 0);
 
-      auto pipelineState = detail::GetComputePipelineInternal(pipeline);
-      assert(pipelineState);
-
-      glUseProgram(pipelineState->shaderProgram);
+      glUseProgram(pipeline.id);
     }
     
     void SetViewport(const Viewport& viewport)

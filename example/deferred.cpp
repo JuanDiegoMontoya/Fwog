@@ -16,6 +16,7 @@
 #include <fwog/Pipeline.h>
 #include <fwog/Texture.h>
 #include <fwog/Buffer.h>
+#include <fwog/Shader.h>
 
 ////////////////////////////////////// Types
 struct View
@@ -193,13 +194,17 @@ std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 
 Fwog::GraphicsPipeline CreateScenePipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
+  auto vertexShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::VERTEX_SHADER,
+    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"));
+  auto fragmentShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .shaderProgram = shader,
+      .vertexShader = &vertexShader.value(),
+      .fragmentShader = &fragmentShader.value(),
       .vertexInputState = GetSceneInputBindingDescs(),
     });
 
@@ -210,13 +215,17 @@ Fwog::GraphicsPipeline CreateScenePipeline()
 
 Fwog::GraphicsPipeline CreateShadowPipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"),
+  auto vertexShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::VERTEX_SHADER,
+    Utility::LoadFile("shaders/SceneDeferred.vert.glsl"));
+  auto fragmentShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/RSMScene.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .shaderProgram = shader,
+      .vertexShader = &vertexShader.value(),
+      .fragmentShader = &fragmentShader.value(),
       .vertexInputState = GetSceneInputBindingDescs(),
       .rasterizationState =
       {
@@ -233,13 +242,17 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
 
 Fwog::GraphicsPipeline CreateShadingPipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
+  auto vertexShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::VERTEX_SHADER,
+    Utility::LoadFile("shaders/FullScreenTri.vert.glsl"));
+  auto fragmentShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/ShadeDeferred.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .shaderProgram = shader,
+      .vertexShader = &vertexShader.value(),
+      .fragmentShader = &fragmentShader.value(),
       .rasterizationState = { .cullMode = Fwog::CullMode::NONE },
       .depthState = { .depthTestEnable = false, .depthWriteEnable = false }
     });
@@ -251,13 +264,17 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
 
 Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 {
-  GLuint shader = Utility::CompileVertexFragmentProgram(
-    Utility::LoadFile("shaders/FullScreenTri.vert.glsl"),
+  auto vertexShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::VERTEX_SHADER,
+    Utility::LoadFile("shaders/FullScreenTri.vert.glsl"));
+  auto fragmentShader = Fwog::Shader::Create(
+    Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/Texture.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .shaderProgram = shader,
+      .vertexShader = &vertexShader.value(),
+      .fragmentShader = &fragmentShader.value(),
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
       .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
     });
@@ -269,10 +286,11 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 
 Fwog::ComputePipeline CreateRSMIndirectPipeline()
 {
-  GLuint shader = Utility::CompileComputeProgram(
+  auto shader = Fwog::Shader::Create(
+    Fwog::PipelineStage::COMPUTE_SHADER,
     Utility::LoadFile("shaders/RSMIndirect.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({ shader });
+  auto pipeline = Fwog::CompileComputePipeline({ &shader.value()});
 
   if (!pipeline)
     throw std::exception("Invalid pipeline");
