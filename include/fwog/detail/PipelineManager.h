@@ -25,6 +25,7 @@ namespace Fwog::detail
     VertexInputStateOwning vertexInputState;
     RasterizationState rasterizationState;
     DepthState depthState;
+    StencilState stencilState;
     ColorBlendStateOwning colorBlendState;
   };
 

@@ -20,6 +20,7 @@ namespace Fwog::detail
         .vertexInputState = { { info.vertexInputState.vertexBindingDescriptions.begin(), info.vertexInputState.vertexBindingDescriptions.end() } },
         .rasterizationState = info.rasterizationState,
         .depthState = info.depthState,
+        .stencilState = info.stencilState,
         .colorBlendState
         {
           .logicOpEnable = info.colorBlendState.logicOpEnable,
@@ -79,7 +80,7 @@ namespace Fwog::detail
 
   const GraphicsPipelineInfoOwning* GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
-    if (auto it = gGraphicsPipelines.find(pipeline.id); it != gGraphicsPipelines.end())
+    if (auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline.id)); it != gGraphicsPipelines.end())
     {
       return &it->second;
     }
@@ -88,13 +89,13 @@ namespace Fwog::detail
 
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
-    auto it = gGraphicsPipelines.find(pipeline.id);
+    auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline.id));
     if (it == gGraphicsPipelines.end())
     {
       return false;
     }
 
-    glDeleteProgram(pipeline.id);
+    glDeleteProgram(static_cast<GLuint>(pipeline.id));
     gGraphicsPipelines.erase(it);
     return true;
   }
@@ -122,13 +123,13 @@ namespace Fwog::detail
 
   bool DestroyComputePipelineInternal(ComputePipeline pipeline)
   {
-    auto it = gComputePipelines.find(pipeline.id);
+    auto it = gComputePipelines.find(static_cast<GLuint>(pipeline.id));
     if (it == gComputePipelines.end())
     {
       return false;
     }
 
-    glDeleteProgram(pipeline.id);
+    glDeleteProgram(static_cast<GLuint>(pipeline.id));
     gComputePipelines.erase(it);
     return true;
   }

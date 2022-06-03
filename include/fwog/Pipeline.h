@@ -50,7 +50,25 @@ namespace Fwog
     //bool depthBoundsTestEnable; // no equivalent core OpenGL function
     //float minDepthBounds;       // ???
     //float maxDepthBounds;       // ???
-    // TODO: add stencil stuff here (front and back stencil op)
+
+  };
+
+  struct StencilOpState
+  {
+    StencilOp passOp      = StencilOp::KEEP;   // glStencilOp (dppass)
+    StencilOp failOp      = StencilOp::KEEP;   // glStencilOp (sfail)
+    StencilOp depthFailOp = StencilOp::KEEP;   // glStencilOp (dpfail)
+    CompareOp compareOp   = CompareOp::ALWAYS; // glStencilFunc (func)
+    uint32_t compareMask  = 0;                 // glStencilFunc (mask)
+    uint32_t writeMask    = 0;                 // glStencilMask
+    uint32_t reference    = 0;                 // glStencilFunc (ref)
+  };
+
+  struct StencilState
+  {
+    bool stencilTestEnable = false;
+    StencilOpState front   = {};
+    StencilOpState back    = {};
   };
 
   struct ColorBlendAttachmentState      // glBlendFuncSeparatei + glBlendEquationSeparatei
@@ -81,6 +99,7 @@ namespace Fwog
     VertexInputState vertexInputState     = {};
     RasterizationState rasterizationState = {};
     DepthState depthState                 = {};
+    StencilState stencilState             = {};
     ColorBlendState colorBlendState       = {};
     // Multisample state omitted (stretch goal)
     // Tessellation state omitted (stretch goal)

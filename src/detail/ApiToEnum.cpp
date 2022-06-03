@@ -640,6 +640,22 @@ namespace Fwog::detail
     }
   }
 
+  GLenum StencilOpToGL(StencilOp op)
+  {
+    switch (op)
+    {
+    case StencilOp::KEEP: return GL_KEEP;
+    case StencilOp::ZERO: return GL_ZERO;
+    case StencilOp::REPLACE: return GL_REPLACE;
+    case StencilOp::INCREMENT_AND_CLAMP: return GL_INCR;
+    case StencilOp::DECREMENT_AND_CLAMP: return GL_DECR;
+    case StencilOp::INVERT: return GL_INVERT;
+    case StencilOp::INCREMENT_AND_WRAP: return GL_INCR_WRAP;
+    case StencilOp::DECREMENT_AND_WRAP: return GL_DECR_WRAP;
+    default: FWOG_UNREACHABLE; return 0;
+    }
+  }
+
   GLbitfield BarrierBitsToGL(MemoryBarrierAccessBits bits)
   {
     GLbitfield ret = 0;

@@ -52,12 +52,15 @@ namespace Fwog::detail
   enum class GlBaseTypeClass { FLOAT, SINT, UINT };
   GlBaseTypeClass FormatToBaseTypeClass(Format format);
 
+
   ////////////////////////////////////////////////////////// drawing
   GLenum PrimitiveTopologyToGL(PrimitiveTopology topology);
 
   GLenum IndexTypeToGL(IndexType type);
 
   GLenum CompareOpToGL(CompareOp op);
+
+  GLenum StencilOpToGL(StencilOp op);
 
   GLbitfield BarrierBitsToGL(MemoryBarrierAccessBits bits);
 }

@@ -401,4 +401,16 @@ namespace Fwog
     // TODO: add more bits as necessary
   };
   FWOG_DECLARE_FLAG_TYPE(MemoryBarrierAccessBits, MemoryBarrierAccessBit, uint32_t)
+
+  enum class StencilOp : uint32_t
+  {
+    KEEP                = 0,
+    ZERO                = 1,
+    REPLACE             = 2,
+    INCREMENT_AND_CLAMP = 3,
+    DECREMENT_AND_CLAMP = 4,
+    INVERT              = 5,
+    INCREMENT_AND_WRAP  = 6,
+    DECREMENT_AND_WRAP  = 7,
+  };
 }

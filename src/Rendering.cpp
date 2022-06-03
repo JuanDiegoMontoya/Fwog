@@ -207,7 +207,7 @@ namespace Fwog
       sLastGraphicsPipeline = pipeline;
 
       //////////////////////////////////////////////////////////////// shader program
-      glUseProgram(pipeline.id);
+      glUseProgram(static_cast<GLuint>(pipeline.id));
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipelineState->inputAssemblyState;
@@ -241,9 +241,23 @@ namespace Fwog
       //////////////////////////////////////////////////////////////// depth + stencil
       const auto& ds = pipelineState->depthState;
       GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
-      glDepthMask(ds.depthWriteEnable);
-      glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
-      // TODO: stencil state
+      if (ds.depthTestEnable)
+      {
+        glDepthMask(ds.depthWriteEnable);
+        glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
+      }
+
+      const auto& ss = pipelineState->stencilState;
+      GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
+      if (ss.stencilTestEnable)
+      {
+        glStencilOpSeparate(GL_FRONT, detail::StencilOpToGL(ss.front.failOp), detail::StencilOpToGL(ss.front.depthFailOp), detail::StencilOpToGL(ss.front.passOp));
+        glStencilOpSeparate(GL_BACK, detail::StencilOpToGL(ss.back.failOp), detail::StencilOpToGL(ss.back.depthFailOp), detail::StencilOpToGL(ss.back.passOp));
+        glStencilFuncSeparate(GL_FRONT, detail::CompareOpToGL(ss.front.compareOp), ss.front.reference, ss.front.compareMask);
+        glStencilFuncSeparate(GL_BACK, detail::CompareOpToGL(ss.back.compareOp), ss.back.reference, ss.back.compareMask);
+        glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
+        glStencilMaskSeparate(GL_BACK, ss.back.writeMask);
+      }
 
       //////////////////////////////////////////////////////////////// color blending state
       const auto& cb = pipelineState->colorBlendState;
@@ -295,7 +309,7 @@ namespace Fwog
       FWOG_ASSERT(isComputeActive);
       FWOG_ASSERT(pipeline.id != 0);
 
-      glUseProgram(pipeline.id);
+      glUseProgram(static_cast<GLuint>(pipeline.id));
     }
     
     void SetViewport(const Viewport& viewport)
