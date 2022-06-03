@@ -1,23 +1,8 @@
 #pragma once
 #include <cstdint>
-
-namespace std
-{
-  template<class Elem>
-  struct char_traits;
-  template<class Elem, class Traits>
-  class basic_string_view;
-  using string_view = std::basic_string_view<char, std::char_traits<char>>;
-
-  template<class T>
-  class optional;
-
-  template<class T>
-  class allocator;
-  template <class Elem, class Traits, class Alloc>
-  class basic_string;
-  using string = std::basic_string<char, std::char_traits<char>, std::allocator<char>>;
-}
+#include <string_view>
+#include <string>
+#include <optional>
 
 namespace Fwog
 {
