@@ -78,6 +78,7 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 
 ```bash
 $ git clone https://github.com/JuanDiegoMontoya/Fwog.git
+$ cd Fwog
 $ mkdir build
 $ cd build
 $ cmake ..
