@@ -97,6 +97,16 @@ namespace Fwog
       uint32_t firstVertex, uint32_t firstInstance);
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, // glDrawElementsInstancedBaseVertexBaseInstance
       uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+    void DrawIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
+      uint32_t drawCount, uint32_t stride);
+    void DrawIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
+      const Buffer& countBuffer, uint64_t countBufferOffset, 
+      uint32_t maxDrawCount, uint32_t stride);
+    void DrawIndexedIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
+      uint32_t drawCount, uint32_t stride);
+    void DrawIndexedIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
+      const Buffer& countBuffer, uint64_t countBufferOffset, 
+      uint32_t maxDrawCount, uint32_t stride);
 
     // vertex setup
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride); // glVertexArrayVertexBuffer
@@ -108,8 +118,9 @@ namespace Fwog
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
     void BindImage(uint32_t index, const TextureView& textureView, uint32_t level);                       // glBindImageTexture{s}
-  
+
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+    void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset);
     void MemoryBarrier(MemoryBarrierAccessBits accessBits);
   }
 }

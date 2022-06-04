@@ -355,7 +355,8 @@ namespace Fwog
 
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
     {
-      FWOG_ASSERT(isRendering && isIndexBufferBound);
+      FWOG_ASSERT(isRendering);
+      FWOG_ASSERT(isIndexBufferBound);
       glDrawElementsInstancedBaseVertexBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         indexCount,
@@ -364,6 +365,60 @@ namespace Fwog
         instanceCount,
         vertexOffset,
         firstInstance);
+    }
+
+    void DrawIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, uint32_t drawCount, uint32_t stride)
+    {
+      FWOG_ASSERT(isRendering);
+      FWOG_ASSERT(isIndexBufferBound);
+      glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
+      glMultiDrawArraysIndirect(
+        detail::PrimitiveTopologyToGL(sTopology),
+        reinterpret_cast<void*>(static_cast<uintptr_t>(commandBufferOffset)),
+        drawCount,
+        stride);
+    }
+
+    void DrawIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, const Buffer& countBuffer, uint64_t countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+    {
+      FWOG_ASSERT(isRendering);
+      FWOG_ASSERT(isIndexBufferBound);
+      glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
+      glBindBuffer(GL_PARAMETER_BUFFER, countBuffer.Handle());
+      glMultiDrawArraysIndirectCount(
+        detail::PrimitiveTopologyToGL(sTopology),
+        reinterpret_cast<void*>(static_cast<uintptr_t>(commandBufferOffset)),
+        static_cast<GLintptr>(countBufferOffset),
+        maxDrawCount,
+        stride);
+    }
+
+    void DrawIndexedIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, uint32_t drawCount, uint32_t stride)
+    {
+      FWOG_ASSERT(isRendering);
+      FWOG_ASSERT(isIndexBufferBound);
+      glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
+      glMultiDrawElementsIndirect(
+        detail::PrimitiveTopologyToGL(sTopology),
+        detail::IndexTypeToGL(sIndexType),
+        reinterpret_cast<void*>(static_cast<uintptr_t>(commandBufferOffset)),
+        drawCount,
+        stride);
+    }
+
+    void DrawIndexedIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, const Buffer& countBuffer, uint64_t countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+    {
+      FWOG_ASSERT(isRendering);
+      FWOG_ASSERT(isIndexBufferBound);
+      glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
+      glBindBuffer(GL_PARAMETER_BUFFER, countBuffer.Handle());
+      glMultiDrawElementsIndirectCount(
+        detail::PrimitiveTopologyToGL(sTopology),
+        detail::IndexTypeToGL(sIndexType),
+        reinterpret_cast<void*>(static_cast<uintptr_t>(commandBufferOffset)),
+        static_cast<GLintptr>(countBufferOffset),
+        maxDrawCount,
+        stride);
     }
 
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
@@ -396,6 +451,13 @@ namespace Fwog
     {
       FWOG_ASSERT(isComputeActive);
       glDispatchCompute(groupCountX, groupCountY, groupCountZ);
+    }
+
+    void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset)
+    {
+      FWOG_ASSERT(isComputeActive);
+      glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, commandBuffer.Handle());
+      glDispatchComputeIndirect(static_cast<GLintptr>(commandBufferOffset));
     }
 
     void MemoryBarrier(MemoryBarrierAccessBits accessBits)
