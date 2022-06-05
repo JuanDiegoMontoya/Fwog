@@ -66,8 +66,8 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 ## Potential Future Features
 
 - [x] Sampler deduplication
-- [ ] State deduplication
-- [ ] Dynamic state (careful to allow only dynamic state that is free on modern hardware)
+- [X] State deduplication
+- [ ] Dynamic state (careful to allow only dynamic state that is free to change on modern hardware)
 - [ ] Context object/global object management
 - [ ] Forced driver pipeline compilation to reduce stuttering (issue dummy draw/dispatch when compiling pipelines)
 - [ ] Better error handling (maybe even exceptions, hehe)
