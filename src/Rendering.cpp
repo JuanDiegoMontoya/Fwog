@@ -8,6 +8,7 @@
 #include <fwog/detail/FramebufferCache.h>
 #include <fwog/detail/VertexArrayCache.h>
 #include <vector>
+#include <memory>
 
 // helper function
 static void GLEnableOrDisable(GLenum state, GLboolean value)
@@ -37,8 +38,15 @@ namespace Fwog
     bool isIndexBufferBound = false;
     bool isRenderingToSwapchain = false;
 
-    GraphicsPipeline sLastGraphicsPipeline{}; // TODO: way to reset this in case the user wants to do own OpenGL operations (basically invalidate cached state)
+    // TODO: way to reset this pointer in case the user wants to do their own OpenGL operations (invalidate the cache)
+    std::shared_ptr<const detail::GraphicsPipelineInfoOwning> sLastGraphicsPipeline{}; // shared_ptr is needed as the user can delete pipelines at any time
     const RenderInfo* sLastRenderInfo{};
+
+    // TODO: use these variables to deduplicate state even more
+    int sLastColorMask[4] = { -1, -1, -1, -1 };
+    int sLastDepthMask = -1;
+    int sLastStencilMask = -1;
+    Viewport sLastViewport = {};
 
     PrimitiveTopology sTopology{};
     IndexType sIndexType{};
@@ -199,87 +207,147 @@ namespace Fwog
       auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
       FWOG_ASSERT(pipelineState);
 
-      if (sLastGraphicsPipeline == pipeline)
+      if (sLastGraphicsPipeline == pipelineState)
       {
         return;
       }
-
-      sLastGraphicsPipeline = pipeline;
 
       //////////////////////////////////////////////////////////////// shader program
       glUseProgram(static_cast<GLuint>(pipeline.id));
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipelineState->inputAssemblyState;
-      GLEnableOrDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX, ias.primitiveRestartEnable);
+      if (!sLastGraphicsPipeline || ias.primitiveRestartEnable != sLastGraphicsPipeline->inputAssemblyState.primitiveRestartEnable)
+      {
+        GLEnableOrDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX, ias.primitiveRestartEnable);
+      }
       sTopology = ias.topology;
       
       //////////////////////////////////////////////////////////////// vertex input
-      sVao = sVaoCache.CreateOrGetCachedVertexArray(pipelineState->vertexInputState);
-      glBindVertexArray(sVao);
+      if (auto nextVao = sVaoCache.CreateOrGetCachedVertexArray(pipelineState->vertexInputState); nextVao != sVao)
+      {
+        sVao = nextVao;
+        glBindVertexArray(sVao);
+      }
 
       //////////////////////////////////////////////////////////////// rasterization
       const auto& rs = pipelineState->rasterizationState;
-      GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
-      glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
-      GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
-      if (rs.cullMode != CullMode::NONE)
+      if (!sLastGraphicsPipeline || rs.depthClampEnable != sLastGraphicsPipeline->rasterizationState.depthClampEnable)
       {
-        glCullFace(detail::CullModeToGL(rs.cullMode));
+        GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
       }
-      glFrontFace(detail::FrontFaceToGL(rs.frontFace));
-      GLEnableOrDisable(GL_POLYGON_OFFSET_FILL, rs.depthBiasEnable);
-      GLEnableOrDisable(GL_POLYGON_OFFSET_LINE, rs.depthBiasEnable);
-      GLEnableOrDisable(GL_POLYGON_OFFSET_POINT, rs.depthBiasEnable);
-      if (rs.depthBiasEnable)
+      if (!sLastGraphicsPipeline || rs.polygonMode != sLastGraphicsPipeline->rasterizationState.polygonMode)
+      {
+        glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
+      }
+      if (!sLastGraphicsPipeline || rs.cullMode != sLastGraphicsPipeline->rasterizationState.cullMode)
+      {
+        GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
+        if (rs.cullMode != CullMode::NONE && (!sLastGraphicsPipeline || rs.cullMode != sLastGraphicsPipeline->rasterizationState.cullMode))
+        {
+          glCullFace(detail::CullModeToGL(rs.cullMode));
+        }
+      }
+      if (!sLastGraphicsPipeline || rs.frontFace != sLastGraphicsPipeline->rasterizationState.frontFace)
+      {
+        glFrontFace(detail::FrontFaceToGL(rs.frontFace));
+      }
+      if (!sLastGraphicsPipeline || rs.depthBiasEnable != sLastGraphicsPipeline->rasterizationState.depthBiasEnable)
+      {
+        GLEnableOrDisable(GL_POLYGON_OFFSET_FILL, rs.depthBiasEnable);
+        GLEnableOrDisable(GL_POLYGON_OFFSET_LINE, rs.depthBiasEnable);
+        GLEnableOrDisable(GL_POLYGON_OFFSET_POINT, rs.depthBiasEnable);
+      }
+      if (rs.depthBiasEnable 
+        && (!sLastGraphicsPipeline 
+          || rs.depthBiasSlopeFactor != sLastGraphicsPipeline->rasterizationState.depthBiasSlopeFactor 
+          || rs.depthBiasConstantFactor != sLastGraphicsPipeline->rasterizationState.depthBiasConstantFactor))
       {
         glPolygonOffset(rs.depthBiasSlopeFactor, rs.depthBiasConstantFactor);
       }
-      glLineWidth(rs.lineWidth);
-      glPointSize(rs.pointSize);
+      if (!sLastGraphicsPipeline || rs.lineWidth != sLastGraphicsPipeline->rasterizationState.lineWidth)
+      {
+        glLineWidth(rs.lineWidth);
+      }
+      if (!sLastGraphicsPipeline || rs.pointSize != sLastGraphicsPipeline->rasterizationState.pointSize)
+      {
+        glPointSize(rs.pointSize);
+      }
 
       //////////////////////////////////////////////////////////////// depth + stencil
       const auto& ds = pipelineState->depthState;
-      GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
+      if (!sLastGraphicsPipeline || ds.depthTestEnable != sLastGraphicsPipeline->depthState.depthTestEnable)
+      {
+        GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
+      }
       if (ds.depthTestEnable)
       {
-        glDepthMask(ds.depthWriteEnable);
-        glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
+        if (!sLastGraphicsPipeline || ds.depthWriteEnable != sLastGraphicsPipeline->depthState.depthWriteEnable)
+        {
+          glDepthMask(ds.depthWriteEnable);
+        }
+        if (!sLastGraphicsPipeline || ds.depthCompareOp != sLastGraphicsPipeline->depthState.depthCompareOp)
+        {
+          glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
+        }
       }
 
       const auto& ss = pipelineState->stencilState;
-      GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
+      if (!sLastGraphicsPipeline || ss.stencilTestEnable != sLastGraphicsPipeline->stencilState.stencilTestEnable)
+      {
+        GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
+      }
       if (ss.stencilTestEnable)
       {
-        glStencilOpSeparate(GL_FRONT, detail::StencilOpToGL(ss.front.failOp), detail::StencilOpToGL(ss.front.depthFailOp), detail::StencilOpToGL(ss.front.passOp));
-        glStencilOpSeparate(GL_BACK, detail::StencilOpToGL(ss.back.failOp), detail::StencilOpToGL(ss.back.depthFailOp), detail::StencilOpToGL(ss.back.passOp));
-        glStencilFuncSeparate(GL_FRONT, detail::CompareOpToGL(ss.front.compareOp), ss.front.reference, ss.front.compareMask);
-        glStencilFuncSeparate(GL_BACK, detail::CompareOpToGL(ss.back.compareOp), ss.back.reference, ss.back.compareMask);
-        glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
-        glStencilMaskSeparate(GL_BACK, ss.back.writeMask);
+        if (!sLastGraphicsPipeline || ss.front != sLastGraphicsPipeline->stencilState.front)
+        {
+          glStencilOpSeparate(GL_FRONT, detail::StencilOpToGL(ss.front.failOp), detail::StencilOpToGL(ss.front.depthFailOp), detail::StencilOpToGL(ss.front.passOp));
+          glStencilFuncSeparate(GL_FRONT, detail::CompareOpToGL(ss.front.compareOp), ss.front.reference, ss.front.compareMask);
+          glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
+        }
+        if (!sLastGraphicsPipeline || ss.back != sLastGraphicsPipeline->stencilState.back)
+        {
+          glStencilOpSeparate(GL_BACK, detail::StencilOpToGL(ss.back.failOp), detail::StencilOpToGL(ss.back.depthFailOp), detail::StencilOpToGL(ss.back.passOp));
+          glStencilFuncSeparate(GL_BACK, detail::CompareOpToGL(ss.back.compareOp), ss.back.reference, ss.back.compareMask);
+          glStencilMaskSeparate(GL_BACK, ss.back.writeMask);
+        }
       }
 
       //////////////////////////////////////////////////////////////// color blending state
       const auto& cb = pipelineState->colorBlendState;
-      GLEnableOrDisable(GL_COLOR_LOGIC_OP, cb.logicOpEnable);
-      if (cb.logicOpEnable)
+      if (!sLastGraphicsPipeline || cb.logicOpEnable != sLastGraphicsPipeline->colorBlendState.logicOpEnable)
       {
-        glLogicOp(detail::LogicOpToGL(cb.logicOp));
+        GLEnableOrDisable(GL_COLOR_LOGIC_OP, cb.logicOpEnable);
+        if (!sLastGraphicsPipeline || (cb.logicOpEnable && cb.logicOp != sLastGraphicsPipeline->colorBlendState.logicOp))
+        {
+          glLogicOp(detail::LogicOpToGL(cb.logicOp));
+        }
       }
-      glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
+      if (!sLastGraphicsPipeline || std::memcmp(cb.blendConstants, sLastGraphicsPipeline->colorBlendState.blendConstants, sizeof(cb.blendConstants)) != 0)
+      {
+        glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
+      }
       FWOG_ASSERT((cb.attachments.empty()
         || (isRenderingToSwapchain && !cb.attachments.empty()))
         || sLastRenderInfo->colorAttachments.size() > cb.attachments.size()
         && "There must be at least a color blend attachment for each render target, or none");
       
-      if (cb.attachments.empty())
+      if (!sLastGraphicsPipeline || cb.attachments.empty() != sLastGraphicsPipeline->colorBlendState.attachments.empty())
       {
-        glDisable(GL_BLEND);
+        if (cb.attachments.empty())
+        {
+          GLEnableOrDisable(GL_BLEND, !cb.attachments.empty());
+        }
       }
       
       for (GLuint i = 0; i < static_cast<GLuint>(cb.attachments.size()); i++)
       {
         const auto& cba = cb.attachments[i];
+        if (sLastGraphicsPipeline && i < sLastGraphicsPipeline->colorBlendState.attachments.size() && cba == sLastGraphicsPipeline->colorBlendState.attachments[i])
+        {
+          continue;
+        }
+
         if (cba.blendEnable)
         {
           glBlendFuncSeparatei(i,
@@ -302,6 +370,8 @@ namespace Fwog
           (cba.colorWriteMask& ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
           (cba.colorWriteMask& ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
       }
+
+      sLastGraphicsPipeline = pipelineState;
     }
 
     void BindComputePipeline(ComputePipeline pipeline)

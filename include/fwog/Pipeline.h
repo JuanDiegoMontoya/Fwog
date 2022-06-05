@@ -62,6 +62,8 @@ namespace Fwog
     uint32_t compareMask  = 0;                 // glStencilFunc (mask)
     uint32_t writeMask    = 0;                 // glStencilMask
     uint32_t reference    = 0;                 // glStencilFunc (ref)
+
+    auto operator<=>(const StencilOpState&) const noexcept = default;
   };
 
   struct StencilState
@@ -81,6 +83,8 @@ namespace Fwog
     BlendFactor dstAlphaBlendFactor    = BlendFactor::ZERO;             // dstAlpha
     BlendOp alphaBlendOp               = BlendOp::ADD;                  // modeAlpha
     ColorComponentFlags colorWriteMask = ColorComponentFlag::RGBA_BITS; // glColorMaski
+
+    auto operator<=>(const ColorBlendAttachmentState&) const noexcept = default;
   };
 
   struct ColorBlendState

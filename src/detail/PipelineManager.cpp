@@ -9,7 +9,7 @@ namespace Fwog::detail
 {
   namespace
   {
-    std::unordered_map<GLuint, GraphicsPipelineInfoOwning> gGraphicsPipelines;
+    std::unordered_map<GLuint, std::shared_ptr<const GraphicsPipelineInfoOwning>> gGraphicsPipelines;
     std::unordered_set<GLuint> gComputePipelines;
 
     GraphicsPipelineInfoOwning MakePipelineInfoOwning(const GraphicsPipelineInfo& info)
@@ -74,15 +74,15 @@ namespace Fwog::detail
     }
 
     auto owning = MakePipelineInfoOwning(info);
-    gGraphicsPipelines.insert({ program, owning });
+    gGraphicsPipelines.insert({ program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning)) });
     return GraphicsPipeline{ program };
   }
 
-  const GraphicsPipelineInfoOwning* GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
+  std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
     if (auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline.id)); it != gGraphicsPipelines.end())
     {
-      return &it->second;
+      return it->second;
     }
     return nullptr;
   }

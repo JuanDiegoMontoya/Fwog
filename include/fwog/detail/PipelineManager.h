@@ -2,6 +2,7 @@
 #include <fwog/Pipeline.h>
 #include <optional>
 #include <vector>
+#include <memory>
 
 namespace Fwog::detail
 {
@@ -28,9 +29,9 @@ namespace Fwog::detail
     StencilState stencilState;
     ColorBlendStateOwning colorBlendState;
   };
-
+  constexpr int joe = sizeof(GraphicsPipelineInfoOwning);
   std::optional<GraphicsPipeline> CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info);
-  const GraphicsPipelineInfoOwning* GetGraphicsPipelineInternal(GraphicsPipeline pipeline);
+  std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline);
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline);
 
   std::optional<ComputePipeline> CompileComputePipelineInternal(const ComputePipelineInfo& info);
