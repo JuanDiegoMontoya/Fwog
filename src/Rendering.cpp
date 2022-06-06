@@ -9,6 +9,7 @@
 #include <fwog/detail/VertexArrayCache.h>
 #include <vector>
 #include <memory>
+#include <array>
 
 // helper function
 static void GLEnableOrDisable(GLenum state, GLboolean value)
@@ -19,22 +20,15 @@ static void GLEnableOrDisable(GLenum state, GLboolean value)
     glDisable(state);
 }
 
-static void GLSetMaskStates()
-{
-  glColorMask(true, true, true, true);
-  glDepthMask(true);
-  glStencilMask(true);
-}
-
 namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
   // since only one rendering instance can be active at a time, we store some state here
   namespace
   {
+    constexpr int MAX_COLOR_ATTACHMENTS = 8;
     bool isComputeActive = false;
     bool isRendering = false;
-    bool isPipelineBound = false;
     bool isIndexBufferBound = false;
     bool isRenderingToSwapchain = false;
 
@@ -42,10 +36,11 @@ namespace Fwog
     std::shared_ptr<const detail::GraphicsPipelineInfoOwning> sLastGraphicsPipeline{}; // shared_ptr is needed as the user can delete pipelines at any time
     const RenderInfo* sLastRenderInfo{};
 
-    // TODO: use these variables to deduplicate state even more
-    int sLastColorMask[4] = { -1, -1, -1, -1 };
-    int sLastDepthMask = -1;
-    int sLastStencilMask = -1;
+    // these can be set at the start of rendering, so they need to be tracked separately from the other pipeline state
+    std::array<ColorComponentFlags, MAX_COLOR_ATTACHMENTS> sLastColorMask = { };
+    bool sLastDepthMask = true;
+    bool sLastStencilMask[2] = { true, true };
+    bool sInitViewport = true;
     Viewport sLastViewport = {};
 
     PrimitiveTopology sTopology{};
@@ -72,28 +67,44 @@ namespace Fwog
 
     if (ri.clearColorOnLoad)
     {
-      auto f = ri.clearColorValue.f;
-      glClearColor(f[0], f[1], f[2], f[3]);
-      clearBuffers |= GL_COLOR_BUFFER_BIT;
+      if (sLastColorMask[0] != ColorComponentFlag::RGBA_BITS)
+      {
+        glColorMaski(0, true, true, true, true);
+        sLastColorMask[0] = ColorComponentFlag::RGBA_BITS;
+      }
+      glClearNamedFramebufferfv(0, GL_COLOR, 0, ri.clearColorValue.f);
     }
     if (ri.clearDepthOnLoad)
     {
-      glClearDepthf(ri.clearDepthValue);
-      clearBuffers |= GL_DEPTH_BUFFER_BIT;
+      if (sLastDepthMask == false)
+      {
+        glDepthMask(true);
+        sLastDepthMask = true;
+      }
+      glClearNamedFramebufferfv(0, GL_DEPTH, 0, &ri.clearDepthValue);
     }
     if (ri.clearStencilOnLoad)
     {
-      glClearStencil(ri.clearStencilValue);
-      clearBuffers |= GL_STENCIL_BUFFER_BIT;
+      if (sLastStencilMask[0] == false || sLastStencilMask[1] == false)
+      {
+        glStencilMask(true);
+        sLastStencilMask[0] = true;
+        sLastStencilMask[1] = true;
+      }
+      glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
     }
-    if (clearBuffers != 0)
+    if (sInitViewport || ri.viewport->drawRect != sLastViewport.drawRect)
     {
-      GLSetMaskStates();
-      glClear(clearBuffers);
+      glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
+        ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
     }
-    glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
-      ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
-    glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+    if (sInitViewport || ri.viewport->minDepth != sLastViewport.minDepth || ri.viewport->maxDepth != sLastViewport.maxDepth)
+    {
+      glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+    }
+
+    sLastViewport = *renderInfo.viewport;
+    sInitViewport = false;
   }
 
   void BeginRendering(const RenderInfo& renderInfo)
@@ -127,13 +138,16 @@ namespace Fwog
     sFbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
     glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
 
-    GLSetMaskStates();
-
     for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
     {
       const auto& attachment = ri.colorAttachments[i];
       if (attachment.clearOnLoad)
       {
+        if (sLastColorMask[i] != ColorComponentFlag::RGBA_BITS)
+        {
+          glColorMaski(i, true, true, true, true);
+          sLastColorMask[i] = ColorComponentFlag::RGBA_BITS;
+        }
         auto format = attachment.textureView->CreateInfo().format;
         auto baseTypeClass = detail::FormatToBaseTypeClass(format);
         switch (baseTypeClass)
@@ -155,6 +169,17 @@ namespace Fwog
     if (ri.depthAttachment && ri.depthAttachment->clearOnLoad && ri.stencilAttachment && ri.stencilAttachment->clearOnLoad)
     {
       // clear depth and stencil simultaneously
+      if (sLastDepthMask == false)
+      {
+        glDepthMask(true);
+        sLastDepthMask = true;
+      }
+      if (sLastStencilMask[0] == false || sLastStencilMask[1] == false)
+      {
+        glStencilMask(true);
+        sLastStencilMask[0] = true;
+        sLastStencilMask[1] = true;
+      }
       glClearNamedFramebufferfi(sFbo, GL_DEPTH_STENCIL, 0, 
         ri.depthAttachment->clearValue.depthStencil.depth,
         ri.depthAttachment->clearValue.depthStencil.stencil);
@@ -162,22 +187,42 @@ namespace Fwog
     else if ((ri.depthAttachment && ri.depthAttachment->clearOnLoad) && (!ri.stencilAttachment || !ri.stencilAttachment->clearOnLoad))
     {
       // clear just depth
+      if (sLastDepthMask == false)
+      {
+        glDepthMask(true);
+        sLastDepthMask = true;
+      }
       glClearNamedFramebufferfv(sFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depthStencil.depth);
     }
     else if ((ri.stencilAttachment && ri.stencilAttachment->clearOnLoad) && (!ri.depthAttachment || !ri.depthAttachment->clearOnLoad))
     {
       // clear just stencil
+      if (sLastStencilMask[0] == false || sLastStencilMask[1] == false)
+      {
+        glStencilMask(true);
+        sLastStencilMask[0] = true;
+        sLastStencilMask[1] = true;
+      }
       glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.depthStencil.stencil);
     }
-    glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
-      ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
-    glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+
+    if (sInitViewport || ri.viewport->drawRect != sLastViewport.drawRect)
+    {
+      glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
+        ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
+    }
+    if (sInitViewport || ri.viewport->minDepth != sLastViewport.minDepth || ri.viewport->maxDepth != sLastViewport.maxDepth)
+    {
+      glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+    }
+
+    sLastViewport = *renderInfo.viewport;
+    sInitViewport = false;
   }
 
   void EndRendering()
   {
     FWOG_ASSERT(isRendering && "Cannot call EndRendering when not rendering");
-    isPipelineBound = false;
     isRendering = false;
     isIndexBufferBound = false;
     isRenderingToSwapchain = false;
@@ -202,7 +247,6 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
       FWOG_ASSERT(pipeline.id != 0);
-      isPipelineBound = true;
 
       auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
       FWOG_ASSERT(pipelineState);
@@ -236,39 +280,45 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
       }
+      
       if (!sLastGraphicsPipeline || rs.polygonMode != sLastGraphicsPipeline->rasterizationState.polygonMode)
       {
         glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
       }
+      
       if (!sLastGraphicsPipeline || rs.cullMode != sLastGraphicsPipeline->rasterizationState.cullMode)
       {
         GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
-        if (rs.cullMode != CullMode::NONE && (!sLastGraphicsPipeline || rs.cullMode != sLastGraphicsPipeline->rasterizationState.cullMode))
+        if (rs.cullMode != CullMode::NONE)
         {
           glCullFace(detail::CullModeToGL(rs.cullMode));
         }
       }
+      
       if (!sLastGraphicsPipeline || rs.frontFace != sLastGraphicsPipeline->rasterizationState.frontFace)
       {
         glFrontFace(detail::FrontFaceToGL(rs.frontFace));
       }
+      
       if (!sLastGraphicsPipeline || rs.depthBiasEnable != sLastGraphicsPipeline->rasterizationState.depthBiasEnable)
       {
         GLEnableOrDisable(GL_POLYGON_OFFSET_FILL, rs.depthBiasEnable);
         GLEnableOrDisable(GL_POLYGON_OFFSET_LINE, rs.depthBiasEnable);
         GLEnableOrDisable(GL_POLYGON_OFFSET_POINT, rs.depthBiasEnable);
       }
-      if (rs.depthBiasEnable 
-        && (!sLastGraphicsPipeline 
+      
+      if (!sLastGraphicsPipeline 
           || rs.depthBiasSlopeFactor != sLastGraphicsPipeline->rasterizationState.depthBiasSlopeFactor 
-          || rs.depthBiasConstantFactor != sLastGraphicsPipeline->rasterizationState.depthBiasConstantFactor))
+          || rs.depthBiasConstantFactor != sLastGraphicsPipeline->rasterizationState.depthBiasConstantFactor)
       {
         glPolygonOffset(rs.depthBiasSlopeFactor, rs.depthBiasConstantFactor);
       }
+      
       if (!sLastGraphicsPipeline || rs.lineWidth != sLastGraphicsPipeline->rasterizationState.lineWidth)
       {
         glLineWidth(rs.lineWidth);
       }
+      
       if (!sLastGraphicsPipeline || rs.pointSize != sLastGraphicsPipeline->rasterizationState.pointSize)
       {
         glPointSize(rs.pointSize);
@@ -280,12 +330,18 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       }
+      
       if (ds.depthTestEnable)
       {
         if (!sLastGraphicsPipeline || ds.depthWriteEnable != sLastGraphicsPipeline->depthState.depthWriteEnable)
         {
-          glDepthMask(ds.depthWriteEnable);
+          if (ds.depthWriteEnable != sLastDepthMask)
+          {
+            glDepthMask(ds.depthWriteEnable);
+            sLastDepthMask = ds.depthWriteEnable;
+          }
         }
+        
         if (!sLastGraphicsPipeline || ds.depthCompareOp != sLastGraphicsPipeline->depthState.depthCompareOp)
         {
           glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
@@ -297,19 +353,29 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
       }
+      
       if (ss.stencilTestEnable)
       {
-        if (!sLastGraphicsPipeline || ss.front != sLastGraphicsPipeline->stencilState.front)
+        if (!sLastGraphicsPipeline || !sLastGraphicsPipeline->stencilState.stencilTestEnable || ss.front != sLastGraphicsPipeline->stencilState.front)
         {
           glStencilOpSeparate(GL_FRONT, detail::StencilOpToGL(ss.front.failOp), detail::StencilOpToGL(ss.front.depthFailOp), detail::StencilOpToGL(ss.front.passOp));
           glStencilFuncSeparate(GL_FRONT, detail::CompareOpToGL(ss.front.compareOp), ss.front.reference, ss.front.compareMask);
-          glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
+          if (sLastStencilMask[0] != ss.front.writeMask)
+          {
+            glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
+            sLastStencilMask[0] = ss.front.writeMask;
+          }
         }
-        if (!sLastGraphicsPipeline || ss.back != sLastGraphicsPipeline->stencilState.back)
+        
+        if (!sLastGraphicsPipeline || !sLastGraphicsPipeline->stencilState.stencilTestEnable || ss.back != sLastGraphicsPipeline->stencilState.back)
         {
           glStencilOpSeparate(GL_BACK, detail::StencilOpToGL(ss.back.failOp), detail::StencilOpToGL(ss.back.depthFailOp), detail::StencilOpToGL(ss.back.passOp));
           glStencilFuncSeparate(GL_BACK, detail::CompareOpToGL(ss.back.compareOp), ss.back.reference, ss.back.compareMask);
-          glStencilMaskSeparate(GL_BACK, ss.back.writeMask);
+          if (sLastStencilMask[1] != ss.back.writeMask)
+          {
+            glStencilMaskSeparate(GL_BACK, ss.back.writeMask);
+            sLastStencilMask[1] = ss.back.writeMask;
+          }
         }
       }
 
@@ -318,15 +384,17 @@ namespace Fwog
       if (!sLastGraphicsPipeline || cb.logicOpEnable != sLastGraphicsPipeline->colorBlendState.logicOpEnable)
       {
         GLEnableOrDisable(GL_COLOR_LOGIC_OP, cb.logicOpEnable);
-        if (!sLastGraphicsPipeline || (cb.logicOpEnable && cb.logicOp != sLastGraphicsPipeline->colorBlendState.logicOp))
+        if (!sLastGraphicsPipeline || !sLastGraphicsPipeline->colorBlendState.logicOpEnable || (cb.logicOpEnable && cb.logicOp != sLastGraphicsPipeline->colorBlendState.logicOp))
         {
           glLogicOp(detail::LogicOpToGL(cb.logicOp));
         }
       }
+      
       if (!sLastGraphicsPipeline || std::memcmp(cb.blendConstants, sLastGraphicsPipeline->colorBlendState.blendConstants, sizeof(cb.blendConstants)) != 0)
       {
         glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
       }
+      
       FWOG_ASSERT((cb.attachments.empty()
         || (isRenderingToSwapchain && !cb.attachments.empty()))
         || sLastRenderInfo->colorAttachments.size() > cb.attachments.size()
@@ -334,10 +402,7 @@ namespace Fwog
       
       if (!sLastGraphicsPipeline || cb.attachments.empty() != sLastGraphicsPipeline->colorBlendState.attachments.empty())
       {
-        if (cb.attachments.empty())
-        {
-          GLEnableOrDisable(GL_BLEND, !cb.attachments.empty());
-        }
+        GLEnableOrDisable(GL_BLEND, !cb.attachments.empty());
       }
       
       for (GLuint i = 0; i < static_cast<GLuint>(cb.attachments.size()); i++)
@@ -364,11 +429,14 @@ namespace Fwog
           glBlendEquationSeparatei(i, GL_FUNC_ADD, GL_FUNC_ADD);
         }
 
-        glColorMaski(i,
-          (cba.colorWriteMask& ColorComponentFlag::R_BIT) != ColorComponentFlag::NONE,
-          (cba.colorWriteMask& ColorComponentFlag::G_BIT) != ColorComponentFlag::NONE,
-          (cba.colorWriteMask& ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
-          (cba.colorWriteMask& ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
+        if (sLastColorMask[i] != cba.colorWriteMask)
+        {
+          glColorMaski(i,
+            (cba.colorWriteMask & ColorComponentFlag::R_BIT) != ColorComponentFlag::NONE,
+            (cba.colorWriteMask & ColorComponentFlag::G_BIT) != ColorComponentFlag::NONE,
+            (cba.colorWriteMask & ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
+            (cba.colorWriteMask & ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
+        }
       }
 
       sLastGraphicsPipeline = pipelineState;
@@ -385,17 +453,21 @@ namespace Fwog
     void SetViewport(const Viewport& viewport)
     {
       FWOG_ASSERT(isRendering);
+      
       glViewport(
         viewport.drawRect.offset.x,
         viewport.drawRect.offset.y,
         viewport.drawRect.extent.width,
         viewport.drawRect.extent.height);
       glDepthRangef(viewport.minDepth, viewport.maxDepth);
+
+      sLastViewport = viewport;
     }
 
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)
     {
       FWOG_ASSERT(isRendering);
+
       glVertexArrayVertexBuffer(
         sVao,
         bindingIndex,
@@ -407,6 +479,7 @@ namespace Fwog
     void BindIndexBuffer(const Buffer& buffer, IndexType indexType)
     {
       FWOG_ASSERT(isRendering);
+
       isIndexBufferBound = true;
       sIndexType = indexType;
       glVertexArrayElementBuffer(sVao, buffer.Handle());
@@ -415,6 +488,7 @@ namespace Fwog
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
       FWOG_ASSERT(isRendering);
+
       glDrawArraysInstancedBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         firstVertex,
@@ -427,6 +501,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
       FWOG_ASSERT(isIndexBufferBound);
+
       glDrawElementsInstancedBaseVertexBaseInstance(
         detail::PrimitiveTopologyToGL(sTopology),
         indexCount,
@@ -441,6 +516,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
       FWOG_ASSERT(isIndexBufferBound);
+
       glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
       glMultiDrawArraysIndirect(
         detail::PrimitiveTopologyToGL(sTopology),
@@ -453,6 +529,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
       FWOG_ASSERT(isIndexBufferBound);
+
       glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
       glBindBuffer(GL_PARAMETER_BUFFER, countBuffer.Handle());
       glMultiDrawArraysIndirectCount(
@@ -467,6 +544,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
       FWOG_ASSERT(isIndexBufferBound);
+
       glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
       glMultiDrawElementsIndirect(
         detail::PrimitiveTopologyToGL(sTopology),
@@ -480,6 +558,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
       FWOG_ASSERT(isIndexBufferBound);
+
       glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
       glBindBuffer(GL_PARAMETER_BUFFER, countBuffer.Handle());
       glMultiDrawElementsIndirectCount(
@@ -494,18 +573,21 @@ namespace Fwog
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
+
       glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
+
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
+
       glBindTextureUnit(index, textureView.Handle());
       glBindSampler(index, sampler.Handle());
     }
@@ -514,18 +596,21 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering || isComputeActive);
       FWOG_ASSERT(level < textureView.CreateInfo().numLevels);
+
       glBindImageTexture(index, textureView.Handle(), level, GL_TRUE, 0, GL_READ_WRITE, detail::FormatToGL(textureView.CreateInfo().format));
     }
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
       FWOG_ASSERT(isComputeActive);
+
       glDispatchCompute(groupCountX, groupCountY, groupCountZ);
     }
 
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset)
     {
       FWOG_ASSERT(isComputeActive);
+
       glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, commandBuffer.Handle());
       glDispatchComputeIndirect(static_cast<GLintptr>(commandBufferOffset));
     }
@@ -533,6 +618,7 @@ namespace Fwog
     void MemoryBarrier(MemoryBarrierAccessBits accessBits)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
+
       glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
     }
   }

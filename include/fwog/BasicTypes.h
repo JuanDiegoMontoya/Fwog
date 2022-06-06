@@ -8,7 +8,7 @@ namespace Fwog
   {
     uint32_t width{};
     uint32_t height{};
-    bool operator==(const Extent2D&) const = default;
+    bool operator==(const Extent2D&) const noexcept = default;
     Extent2D operator+(const Extent2D& other) const { return { width + other.width, height + other.height }; }
     Extent2D operator-(const Extent2D& other) const { return { width - other.width, height - other.height }; }
     Extent2D operator*(const Extent2D& other) const { return { width * other.width, height * other.height }; }
@@ -30,7 +30,7 @@ namespace Fwog
     uint32_t depth{};
 
     operator Extent2D() const { return { width, height }; }
-    bool operator==(const Extent3D&) const = default;
+    bool operator==(const Extent3D&) const noexcept = default;
     Extent3D operator+(const Extent3D& other) const { return { width + other.width, height + other.height, depth + other.depth }; }
     Extent3D operator-(const Extent3D& other) const { return { width - other.width, height - other.height, depth - other.depth }; }
     Extent3D operator*(const Extent3D& other) const { return { width * other.width, height * other.height, depth * other.depth }; }
@@ -50,7 +50,7 @@ namespace Fwog
     uint32_t x{};
     uint32_t y{};
 
-    bool operator==(const Offset2D&) const = default;
+    bool operator==(const Offset2D&) const noexcept = default;
     Offset2D operator+(const Offset2D & other) const { return { x + other.x, y + other.y }; }
     Offset2D operator-(const Offset2D & other) const { return { x - other.x, y - other.y }; }
     Offset2D operator*(const Offset2D & other) const { return { x * other.x, y * other.y }; }
@@ -72,7 +72,7 @@ namespace Fwog
     uint32_t z{};
 
     operator Offset2D() const { return { x, y }; }
-    bool operator==(const Offset3D&) const = default;
+    bool operator==(const Offset3D&) const noexcept = default;
     Offset3D operator+(const Offset3D& other) const { return { x + other.x, y + other.y, z + other.z }; }
     Offset3D operator-(const Offset3D& other) const { return { x - other.x, y - other.y, z - other.z }; }
     Offset3D operator*(const Offset3D& other) const { return { x * other.x, y * other.y, z * other.z }; }
@@ -91,6 +91,8 @@ namespace Fwog
   {
     Offset2D offset;
     Extent2D extent;
+
+    bool operator==(const Rect2D&) const noexcept = default;
   };
 
   enum class ImageType : uint32_t
