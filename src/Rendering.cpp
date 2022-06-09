@@ -180,7 +180,7 @@ namespace Fwog
         sLastStencilMask[0] = true;
         sLastStencilMask[1] = true;
       }
-      glClearNamedFramebufferfi(sFbo, GL_DEPTH_STENCIL, 0, 
+      glClearNamedFramebufferfi(sFbo, GL_DEPTH_STENCIL, 0,
         ri.depthAttachment->clearValue.depthStencil.depth,
         ri.depthAttachment->clearValue.depthStencil.stencil);
     }
@@ -266,7 +266,7 @@ namespace Fwog
         GLEnableOrDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX, ias.primitiveRestartEnable);
       }
       sTopology = ias.topology;
-      
+
       //////////////////////////////////////////////////////////////// vertex input
       if (auto nextVao = sVaoCache.CreateOrGetCachedVertexArray(pipelineState->vertexInputState); nextVao != sVao)
       {
@@ -280,12 +280,12 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
       }
-      
+
       if (!sLastGraphicsPipeline || rs.polygonMode != sLastGraphicsPipeline->rasterizationState.polygonMode)
       {
         glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
       }
-      
+
       if (!sLastGraphicsPipeline || rs.cullMode != sLastGraphicsPipeline->rasterizationState.cullMode)
       {
         GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
@@ -294,31 +294,31 @@ namespace Fwog
           glCullFace(detail::CullModeToGL(rs.cullMode));
         }
       }
-      
+
       if (!sLastGraphicsPipeline || rs.frontFace != sLastGraphicsPipeline->rasterizationState.frontFace)
       {
         glFrontFace(detail::FrontFaceToGL(rs.frontFace));
       }
-      
+
       if (!sLastGraphicsPipeline || rs.depthBiasEnable != sLastGraphicsPipeline->rasterizationState.depthBiasEnable)
       {
         GLEnableOrDisable(GL_POLYGON_OFFSET_FILL, rs.depthBiasEnable);
         GLEnableOrDisable(GL_POLYGON_OFFSET_LINE, rs.depthBiasEnable);
         GLEnableOrDisable(GL_POLYGON_OFFSET_POINT, rs.depthBiasEnable);
       }
-      
-      if (!sLastGraphicsPipeline 
-          || rs.depthBiasSlopeFactor != sLastGraphicsPipeline->rasterizationState.depthBiasSlopeFactor 
-          || rs.depthBiasConstantFactor != sLastGraphicsPipeline->rasterizationState.depthBiasConstantFactor)
+
+      if (!sLastGraphicsPipeline
+        || rs.depthBiasSlopeFactor != sLastGraphicsPipeline->rasterizationState.depthBiasSlopeFactor
+        || rs.depthBiasConstantFactor != sLastGraphicsPipeline->rasterizationState.depthBiasConstantFactor)
       {
         glPolygonOffset(rs.depthBiasSlopeFactor, rs.depthBiasConstantFactor);
       }
-      
+
       if (!sLastGraphicsPipeline || rs.lineWidth != sLastGraphicsPipeline->rasterizationState.lineWidth)
       {
         glLineWidth(rs.lineWidth);
       }
-      
+
       if (!sLastGraphicsPipeline || rs.pointSize != sLastGraphicsPipeline->rasterizationState.pointSize)
       {
         glPointSize(rs.pointSize);
@@ -330,7 +330,7 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       }
-      
+
       if (ds.depthTestEnable)
       {
         if (!sLastGraphicsPipeline || ds.depthWriteEnable != sLastGraphicsPipeline->depthState.depthWriteEnable)
@@ -341,7 +341,7 @@ namespace Fwog
             sLastDepthMask = ds.depthWriteEnable;
           }
         }
-        
+
         if (!sLastGraphicsPipeline || ds.depthCompareOp != sLastGraphicsPipeline->depthState.depthCompareOp)
         {
           glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
@@ -353,7 +353,7 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
       }
-      
+
       if (ss.stencilTestEnable)
       {
         if (!sLastGraphicsPipeline || !sLastGraphicsPipeline->stencilState.stencilTestEnable || ss.front != sLastGraphicsPipeline->stencilState.front)
@@ -366,7 +366,7 @@ namespace Fwog
             sLastStencilMask[0] = ss.front.writeMask;
           }
         }
-        
+
         if (!sLastGraphicsPipeline || !sLastGraphicsPipeline->stencilState.stencilTestEnable || ss.back != sLastGraphicsPipeline->stencilState.back)
         {
           glStencilOpSeparate(GL_BACK, detail::StencilOpToGL(ss.back.failOp), detail::StencilOpToGL(ss.back.depthFailOp), detail::StencilOpToGL(ss.back.passOp));
@@ -389,22 +389,22 @@ namespace Fwog
           glLogicOp(detail::LogicOpToGL(cb.logicOp));
         }
       }
-      
+
       if (!sLastGraphicsPipeline || std::memcmp(cb.blendConstants, sLastGraphicsPipeline->colorBlendState.blendConstants, sizeof(cb.blendConstants)) != 0)
       {
         glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
       }
-      
+
       FWOG_ASSERT((cb.attachments.empty()
         || (isRenderingToSwapchain && !cb.attachments.empty()))
         || sLastRenderInfo->colorAttachments.size() > cb.attachments.size()
         && "There must be at least a color blend attachment for each render target, or none");
-      
+
       if (!sLastGraphicsPipeline || cb.attachments.empty() != sLastGraphicsPipeline->colorBlendState.attachments.empty())
       {
         GLEnableOrDisable(GL_BLEND, !cb.attachments.empty());
       }
-      
+
       for (GLuint i = 0; i < static_cast<GLuint>(cb.attachments.size()); i++)
       {
         const auto& cba = cb.attachments[i];
@@ -449,11 +449,11 @@ namespace Fwog
 
       glUseProgram(static_cast<GLuint>(pipeline.id));
     }
-    
+
     void SetViewport(const Viewport& viewport)
     {
       FWOG_ASSERT(isRendering);
-      
+
       glViewport(
         viewport.drawRect.offset.x,
         viewport.drawRect.offset.y,
