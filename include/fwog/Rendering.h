@@ -36,37 +36,37 @@ namespace Fwog
 
   struct RenderAttachment
   {
-    TextureView* textureView;
+    TextureView* textureView = nullptr;
     ClearValue clearValue;
-    bool clearOnLoad;
+    bool clearOnLoad = false;
   };
 
   struct Viewport
   {
-    Rect2D drawRect; // glViewport
-    float minDepth;  // glDepthRangef
-    float maxDepth;  // glDepthRangef
+    Rect2D drawRect = {};  // glViewport
+    float minDepth = 0.0f; // glDepthRangef
+    float maxDepth = 1.0f; // glDepthRangef
   };
 
   // I don't know how to get the default framebuffer's textures so I have this awful struct instead
   struct SwapchainRenderInfo
   {
-    const Viewport* viewport;
-    bool clearColorOnLoad;
+    const Viewport* viewport = nullptr;
+    bool clearColorOnLoad = false;
     ClearColorValue clearColorValue;
-    bool clearDepthOnLoad;
-    float clearDepthValue;
-    bool clearStencilOnLoad;
-    int32_t clearStencilValue;
+    bool clearDepthOnLoad = false;
+    float clearDepthValue = 0.0f;
+    bool clearStencilOnLoad = false;
+    int32_t clearStencilValue = 0;
   };
 
   // describes the render targets that may be used in a draw
   struct RenderInfo
   {
-    const Viewport* viewport;
+    const Viewport* viewport = nullptr;
     std::span<const RenderAttachment> colorAttachments;
-    const RenderAttachment* depthAttachment;
-    const RenderAttachment* stencilAttachment;
+    const RenderAttachment* depthAttachment = nullptr;
+    const RenderAttachment* stencilAttachment = nullptr;
   };
 
   // begin or end a scope of rendering to a set of render targets
