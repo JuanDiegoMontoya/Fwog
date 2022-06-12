@@ -78,8 +78,20 @@ namespace Fwog
   void BeginCompute();
   void EndCompute();
 
-  void BlitTexture(const TextureView& source, const TextureView& target,
-    Offset3D sourceOffset, Offset3D targetOffset, Extent3D sourceExtent, Extent3D targetExtent,
+  void BlitTexture(const TextureView& source,
+    const TextureView& target,
+    Offset3D sourceOffset,
+    Offset3D targetOffset,
+    Extent3D sourceExtent,
+    Extent3D targetExtent,
+    Filter filter);
+
+  // blit to 0
+  void BlitTextureToSwapchain(const TextureView& source,
+    Offset3D sourceOffset,
+    Offset3D targetOffset,
+    Extent3D sourceExtent,
+    Extent3D targetExtent,
     Filter filter);
 
   // Cmd:: functions can only be called within a rendering scope

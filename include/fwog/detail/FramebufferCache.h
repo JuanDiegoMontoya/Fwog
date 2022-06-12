@@ -12,8 +12,8 @@ namespace Fwog::detail
   struct RenderAttachments
   {
     std::vector<const TextureView*> colorAttachments;
-    const TextureView* depthAttachment;
-    const TextureView* stencilAttachment;
+    const TextureView* depthAttachment = nullptr;
+    const TextureView* stencilAttachment = nullptr;
 
     bool operator==(const RenderAttachments& rhs) const;
   };

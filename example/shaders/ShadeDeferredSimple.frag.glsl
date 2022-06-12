@@ -104,7 +104,7 @@ void main()
   float spec = pow(max(dot(normal, halfDir), 0.0), 64.0);
   vec3 specular = albedo * spec * shadingUniforms.sunStrength.rgb;
 
-  vec3 ambient = vec3(.03) * albedo;
+  vec3 ambient = vec3(.1) * albedo;
   vec3 finalColor = shadow * (diffuse + specular) + ambient;
   
   finalColor += LocalLightIntensity(fragWorldPos, normal, viewDir, albedo);

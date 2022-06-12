@@ -240,6 +240,32 @@ namespace Fwog
     FWOG_ASSERT(isComputeActive);
     isComputeActive = false;
   }
+  
+  void BlitTextureToSwapchain(const TextureView& source,
+    Offset3D sourceOffset,
+    Offset3D targetOffset,
+    Extent3D sourceExtent,
+    Extent3D targetExtent,
+    Filter filter)
+  {
+    // TODO: simple way to detect depth/stencil formats to select the right aspect, or maybe a way to explicitly specify the aspect
+    detail::RenderAttachments attachments;
+    attachments.colorAttachments.push_back(&source);
+    auto fbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
+    glBlitNamedFramebuffer(
+      fbo,
+      0,
+      sourceOffset.x,
+      sourceOffset.y,
+      sourceExtent.width,
+      sourceExtent.height,
+      targetOffset.x,
+      targetOffset.y,
+      targetExtent.width,
+      targetExtent.height,
+      GL_COLOR_BUFFER_BIT,
+      detail::FilterToGL(filter));
+  }
 
   namespace Cmd
   {

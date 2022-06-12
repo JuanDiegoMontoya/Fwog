@@ -31,6 +31,6 @@ target_link_libraries(gltf_viewer PRIVATE glfw lib_glad lib_fwog glm)
 add_dependencies(gltf_viewer copy_shaders copy_models)
 
 add_executable(volumetric volumetric.cpp common/common.cpp common/common.h common/SceneLoader.cpp common/SceneLoader.h)
-target_include_directories(volumetric PUBLIC ${tinygltf_SOURCE_DIR})
+target_include_directories(volumetric PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(volumetric PRIVATE glfw lib_glad lib_fwog glm)
 add_dependencies(volumetric copy_shaders copy_models)

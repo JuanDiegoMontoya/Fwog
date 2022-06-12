@@ -25,15 +25,53 @@ namespace Fwog
       switch (info.dimension)
       {
       case UploadDimension::ONE:
-        glTextureSubImage1D(texture, info.level, info.offset.width, info.size.width, detail::UploadFormatToGL(info.format), detail::UploadTypeToGL(info.type), info.pixels);
+        glTextureSubImage1D(texture, 
+          info.level, 
+          info.offset.width, 
+          info.size.width, 
+          detail::UploadFormatToGL(info.format), 
+          detail::UploadTypeToGL(info.type), info.pixels);
         break;
       case UploadDimension::TWO:
-        glTextureSubImage2D(texture, info.level, info.offset.width, info.offset.height, info.size.width, info.size.height, detail::UploadFormatToGL(info.format), detail::UploadTypeToGL(info.type), info.pixels);
+        glTextureSubImage2D(texture, 
+          info.level, 
+          info.offset.width, 
+          info.offset.height, 
+          info.size.width, 
+          info.size.height, 
+          detail::UploadFormatToGL(info.format), 
+          detail::UploadTypeToGL(info.type), 
+          info.pixels);
         break;
       case UploadDimension::THREE:
-        glTextureSubImage3D(texture, info.level, info.offset.width, info.offset.height, info.offset.depth, info.size.width, info.size.height, info.size.depth, detail::UploadFormatToGL(info.format), detail::UploadTypeToGL(info.type), info.pixels);
+        glTextureSubImage3D(texture, 
+          info.level, 
+          info.offset.width, 
+          info.offset.height, 
+          info.offset.depth, 
+          info.size.width, 
+          info.size.height, 
+          info.size.depth, 
+          detail::UploadFormatToGL(info.format), 
+          detail::UploadTypeToGL(info.type), 
+          info.pixels);
         break;
       }
+    }
+
+    void clearImage(uint32_t texture, const TextureClearInfo& info)
+    {
+      glClearTexSubImage(texture,
+        info.level,
+        info.offset.width,
+        info.offset.height,
+        info.offset.depth,
+        info.size.width,
+        info.size.height,
+        info.size.depth,
+        detail::UploadFormatToGL(info.format),
+        detail::UploadTypeToGL(info.type),
+        info.data);
     }
   }
 
@@ -129,6 +167,11 @@ namespace Fwog
     subImage(id_, info);
   }
 
+  void Texture::ClearImage(const TextureClearInfo& info)
+  {
+    clearImage(id_, info);
+  }
+
   void Texture::GenMipmaps()
   {
     glGenerateTextureMipmap(id_);
@@ -221,6 +264,11 @@ namespace Fwog
   void TextureView::SubImage(const TextureUpdateInfo& info) const
   {
     subImage(id_, info);
+  }
+
+  void TextureView::ClearImage(const TextureClearInfo& info)
+  {
+    clearImage(id_, info);
   }
 
 

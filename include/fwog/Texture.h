@@ -16,40 +16,48 @@ namespace Fwog
 
   struct TextureCreateInfo
   {
-    ImageType imageType{};
-    Format format{};
-    Extent3D extent{};
-    uint32_t mipLevels{};
-    uint32_t arrayLayers{};
-    SampleCount sampleCount{};
+    ImageType imageType = {};
+    Format format = {};
+    Extent3D extent = {};
+    uint32_t mipLevels = 0;
+    uint32_t arrayLayers = 0;
+    SampleCount sampleCount = {};
   };
 
   struct TextureViewCreateInfo
   {
-    ImageType viewType{};
-    Format format{};
-    uint32_t minLevel{};
-    uint32_t numLevels{};
-    uint32_t minLayer{};
-    uint32_t numLayers{};
+    ImageType viewType = {};
+    Format format = {};
+    uint32_t minLevel = 0;
+    uint32_t numLevels = 0;
+    uint32_t minLayer = 0;
+    uint32_t numLayers = 0;
   };
 
   struct TextureUpdateInfo
   {
-    UploadDimension dimension{};
-    uint32_t level{};
-    Extent3D offset{};
-    Extent3D size{};
-    UploadFormat format{};
-    UploadType type{};
-    const void* pixels{};
+    UploadDimension dimension = {};
+    uint32_t level = 0;
+    Extent3D offset = {};
+    Extent3D size = {};
+    UploadFormat format = {};
+    UploadType type = {};
+    const void* pixels = nullptr;
+  };
+
+  struct TextureClearInfo
+  {
+    uint32_t level = 0;
+    Extent3D offset = {};
+    Extent3D size = {};
+    UploadFormat format = {};
+    UploadType type = {};
+    const void* data = nullptr;
   };
 
   struct SamplerState
   {
     bool operator==(const SamplerState& rhs) const;
-
-    SamplerState() {};
 
     float lodBias{ 0 };
     float minLod{ -1000 };
@@ -85,6 +93,7 @@ namespace Fwog
     ~TextureView();
 
     void SubImage(const TextureUpdateInfo& info) const;
+    void ClearImage(const TextureClearInfo& info);
     [[nodiscard]] uint32_t Handle() const { return id_; }
     [[nodiscard]] TextureViewCreateInfo CreateInfo() const { return createInfo_; }
     [[nodiscard]] Extent3D Extent() const { return extent_; }
@@ -108,6 +117,7 @@ namespace Fwog
     ~Texture();
 
     void SubImage(const TextureUpdateInfo& info);
+    void ClearImage(const TextureClearInfo& info);
     void GenMipmaps();
     [[nodiscard]] uint32_t Handle() const { return id_; }
     [[nodiscard]] std::optional<TextureView> View() const;
