@@ -71,13 +71,13 @@ void main()
   {
     vec3 uvw = vec3(uv, (i + 0.5) / targetDim.z);
     float zInv = InvertDepthZO(uvw.z * uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
-    vec3 pCur = UnprojectUV(zInv, uv, uniforms.invViewProjVolume);
+    vec3 pCur = UnprojectUVZO(zInv, uv, uniforms.invViewProjVolume);
     float d = distance(pPrev, pCur);
     pPrev = pCur;
 
     vec3 viewDir = normalize(pCur - uniforms.viewPos);
     //vec3 sunDir = normalize(vec3(.2, -.25, -.15)); // hardcoded until procedural sky
-    float g = 0.4;
+    float g = 0.2;
     float k = gToK(g);
 
     vec4 s = textureLod(s_source, uvw, 0);

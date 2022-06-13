@@ -1,16 +1,8 @@
-/* gltf_viewer.cpp
+/* volumetric.cpp
 *
-* A viewer of glTF files.
-*
-* The app has three optional arguments that must appear in order.
-* If a later option is used, the previous options must be use used as well.
-*
-* Options
-* Filename (string) : name of the glTF file you wish to view.
-* Scale (real)      : uniform scale factor in case the model is tiny or huge. Default: 1.0
-* Binary (int)      : whether the input file is binary glTF. Default: false
-*
-* If no options are specified, the default scene "models/hierarchyTest.glb" will be loaded.
+* Volumetric fog viewer.
+* 
+* Takes the same command line arguments as the gltf_viewer example.
 */
 
 #include "common/common.h"
@@ -39,6 +31,10 @@
 #define STB_INCLUDE_IMPLEMENTATION
 #define STB_INCLUDE_LINE_GLSL
 #include <stb_include.h>
+
+// not needed because SceneLoader implements stb_include
+// #define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 ////////////////////////////////////// Types
 struct View
@@ -303,7 +299,7 @@ public:
     auto applyShader = Fwog::Shader::Create(
       Fwog::PipelineStage::COMPUTE_SHADER,
       applyDeferred);
-
+    
     free(applyDeferred);
     free(marchVolume);
     free(accumulateDensity);
@@ -515,7 +511,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   Fwog::RenderInfo shadingRenderingInfo
   {
     .viewport = &mainViewport,
-    .colorAttachments = { { shadingAttachment } }
+    .colorAttachments = { &shadingAttachment, 1 }
   };
 
   Fwog::SwapchainRenderInfo swapchainRenderingInfo
@@ -603,17 +599,20 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto scatteringVolume = Fwog::Texture::Create(volumeInfo);
   auto densityVolumeView = densityVolume->View();
   auto scatteringVolumeView = scatteringVolume->View();
-  uint8_t noise[4] = {};
-  auto noiseTexture = Fwog::CreateTexture2D({ 1, 1 }, Fwog::Format::R8G8B8A8_UNORM);
-  noiseTexture->SubImage(
-    {
+  int x = 0;
+  int y = 0;
+  auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
+  assert(noise);
+  auto noiseTexture = Fwog::CreateTexture2D({ static_cast<uint32_t>(x), static_cast<uint32_t>(y) }, Fwog::Format::R8G8B8A8_UNORM);
+  noiseTexture->SubImage({
       .dimension = Fwog::UploadDimension::TWO,
       .level = 0,
       .offset = {},
-      .size = { 1, 1 },
+      .size = { static_cast<uint32_t>(x), static_cast<uint32_t>(y) },
       .format = Fwog::UploadFormat::RGBA,
       .type = Fwog::UploadType::UBYTE,
       .pixels = noise });
+  stbi_image_free(noise);
   auto noiseTextureView = noiseTexture->View();
 
   Volumetric volumetric;
@@ -733,6 +732,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     }
     Fwog::EndRendering();
 
+    // volumetric fog pass
     {
       Fwog::ScopedDebugMarker marker("Volumetric Fog");
       volumetric.UpdateUniforms(camera,
@@ -742,7 +742,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         fovy,
         aspectRatio,
         1.0f,
-        100.0f,
+        60.0f,
         curFrame);
 
       volumetric.AccumulateDensity(*densityVolumeView);
@@ -756,34 +756,35 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         *noiseTextureView);
     }
 
-    Fwog::BlitTextureToSwapchain(*shadingTexView,
-      {},
-      {},
-      shadingTexView->Extent(),
-      shadingTexView->Extent(),
-      Fwog::Filter::LINEAR);
-    //Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
-    //{
-    //  Fwog::ScopedDebugMarker marker("Apply Fog");
+    // on my driver (Nvidia 3.25.1.27), blitting appears to not perform automatic linear->sRGB conversions
+    // hence, a full-screen triangle will instead be used
+    //Fwog::BlitTextureToSwapchain(*shadingTexView,
+    //  {},
+    //  {},
+    //  shadingTexView->Extent(),
+    //  shadingTexView->Extent(),
+    //  Fwog::Filter::LINEAR);
+    Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
+    {
+      Fwog::ScopedDebugMarker marker("Blit to Swapchain");
 
-
-    //  Fwog::TextureView* tex{};
-    //  if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-    //    tex = &gbufferColorView.value();
-    //  if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-    //    tex = &gbufferNormalView.value();
-    //  if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
-    //    tex = &gbufferDepthView.value();
-    //  if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
-    //    tex = &shadowDepthTexView.value();
-    //  if (tex)
-    //  {
-    //    Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
-    //    Fwog::Cmd::BindSampledImage(0, *tex, *nearestSampler);
-    //    Fwog::Cmd::Draw(3, 1, 0, 0);
-    //  }
-    //}
-    //Fwog::EndRendering();
+      Fwog::TextureView* tex = &shadingTexView.value();
+      if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+        tex = &gbufferColorView.value();
+      if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
+        tex = &gbufferNormalView.value();
+      if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
+        tex = &gbufferDepthView.value();
+      if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
+        tex = &shadowDepthTexView.value();
+      if (tex)
+      {
+        Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
+        Fwog::Cmd::BindSampledImage(0, *tex, *nearestSampler);
+        Fwog::Cmd::Draw(3, 1, 0, 0);
+      }
+    }
+    Fwog::EndRendering();
 
     glfwSwapBuffers(window);
   }

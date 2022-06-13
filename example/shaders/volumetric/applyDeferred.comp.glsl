@@ -36,7 +36,7 @@ void main()
 
   float z = texelFetch(s_depth, gid, 0).x;
   z = max(z, EPSILON); // prevent infinities
-  vec3 p = UnprojectUV(z, uv, uniforms.invViewProjScene);
+  vec3 p = UnprojectUVGL(z, uv, uniforms.invViewProjScene);
 
   vec4 volumeClip = uniforms.viewProjVolume * vec4(p, 1.0);
   volumeClip.xyz = clamp(volumeClip.xyz, -volumeClip.www, volumeClip.www);

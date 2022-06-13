@@ -29,12 +29,15 @@ void main()
   vec3 uvw = (vec3(gid) + 0.5) / targetDim;
 
   uvw.z = InvertDepthZO(uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
-  vec3 p = UnprojectUV(uvw.z * uvw.z, uvw.xy, uniforms.invViewProjVolume);
+  vec3 p = UnprojectUVZO(uvw.z * uvw.z, uvw.xy, uniforms.invViewProjVolume);
   vec3 t = vec3(.2, 0.1, .3) * uniforms.time;
   
   // fog
   float d = max((snoise(vec4(p * 0.1 + t, t * 1.2)) + 1.0) * .15, 0.0);
-  
+  // ground fog
+  d *= (1.0 - smoothstep(0, 10, p.y)) * (smoothstep(-15, 0, p.y));
+  //d = 0;
+
   // clouds
   //float d = max((snoise(vec4(p * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
   //d += max((snoise(vec4(p * 0.01 + t * .2, t * 0.05)) + 0.1) * .01, 0.0);
@@ -42,14 +45,14 @@ void main()
   vec3 c = vec3(15, 15, 15); // ambient lighting
 
   // cube
-  if (all(greaterThan(p, vec3(50, 30, 50))) && all(lessThan(p, vec3(100, 100, 100))))
+  if (all(greaterThan(p, vec3(0, 0, 0))) && all(lessThan(p, vec3(5, 5, 5))))
   {
-    //d += .21;
-    //c += vec3(0.1);
+    //d += 1.0;
+    //c += vec3(5.1);
   }
   
-  // ground fog
-  d *= (1.0 - smoothstep(0, 10, p.y));// * (smoothstep(10, 30, p.y));
+  // sphere
+  //d += 1.0 - smoothstep(3, 5, distance(p, vec3(0, 5, 0)));
 
   // clouds
   //d *= (1.0 - smoothstep(10, 30, abs(p.y - 200.)));
