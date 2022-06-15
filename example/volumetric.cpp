@@ -105,8 +105,14 @@ float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
 
-constexpr int gShadowmapWidth = 1024;
-constexpr int gShadowmapHeight = 1024;
+struct
+{
+  uint32_t shadowmapWidth = 1024;
+  uint32_t shadowmapHeight = 1024;
+
+  float esmExponent = 15.0f;
+  size_t esmBlurPasses = 1;
+}constexpr config;
 
 std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 {
@@ -217,6 +223,32 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
       .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
     });
+
+  if (!pipeline)
+    throw std::exception("Invalid pipeline");
+  return *pipeline;
+}
+
+Fwog::ComputePipeline CreateCopyToEsmPipeline()
+{
+  auto shader = Fwog::Shader::Create(
+    Fwog::PipelineStage::COMPUTE_SHADER,
+    Utility::LoadFile("shaders/volumetric/depth2exponential.comp.glsl"));
+
+  auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader.value() });
+
+  if (!pipeline)
+    throw std::exception("Invalid pipeline");
+  return *pipeline;
+}
+
+Fwog::ComputePipeline CreateGaussianBlurPipeline()
+{
+  auto shader = Fwog::Shader::Create(
+    Fwog::PipelineStage::COMPUTE_SHADER,
+    Utility::LoadFile("shaders/volumetric/gaussianBlur.comp.glsl"));
+
+  auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader.value() });
 
   if (!pipeline)
     throw std::exception("Invalid pipeline");
@@ -372,21 +404,23 @@ public:
   void MarchVolume(
     const Fwog::TextureView& sourceVolume,
     const Fwog::TextureView& targetVolume,
-    const Fwog::TextureView& shadowDepth)
+    const Fwog::TextureView& shadowDepth,
+    const Fwog::Buffer& esmUniformBuffer)
   {
     assert(sourceVolume.CreateInfo().viewType == Fwog::ImageType::TEX_3D);
     assert(targetVolume.CreateInfo().viewType == Fwog::ImageType::TEX_3D);
 
     auto sampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-    auto shadowSampler = Fwog::TextureSampler::Create({ .compareEnable = true, .compareOp = Fwog::CompareOp::LESS });
+    //auto shadowSampler = Fwog::TextureSampler::Create({ .compareEnable = true, .compareOp = Fwog::CompareOp::LESS });
 
     Fwog::BeginCompute();
     Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(marchVolumePipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer, 0, esmUniformBuffer.Size());
     Fwog::Cmd::BindSampledImage(0, sourceVolume, *sampler);
-    Fwog::Cmd::BindSampledImage(1, shadowDepth, *shadowSampler);
+    Fwog::Cmd::BindSampledImage(1, shadowDepth, *sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
     Fwog::Extent3D numGroups = (targetVolume.Extent() + 15) / 16;
     Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
@@ -445,7 +479,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   Fwog::Viewport mainViewport { .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
 
-  Fwog::Viewport shadowViewport { .drawRect { .extent = { gShadowmapWidth, gShadowmapHeight } } };
+  Fwog::Viewport shadowViewport { .drawRect { .extent = { config.shadowmapWidth, config.shadowmapHeight } } };
 
   // create gbuffer textures and render info
   auto gcolorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
@@ -454,74 +488,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto gbufferColorView = gcolorTex->View();
   auto gbufferNormalView = gnormalTex->View();
   auto gbufferDepthView = gdepthTex->View();
-  Fwog::RenderAttachment gcolorAttachment
-  {
-    .textureView = &gbufferColorView.value(),
-    .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
-    .clearOnLoad = true
-  };
-  Fwog::RenderAttachment gnormalAttachment
-  {
-    .textureView = &gbufferNormalView.value(),
-    .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = false
-  };
-  Fwog::RenderAttachment gdepthAttachment
-  {
-    .textureView = &gbufferDepthView.value(),
-    .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
-    .clearOnLoad = true
-  };
-  Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
-  Fwog::RenderInfo gbufferRenderInfo
-  {
-    .viewport = &mainViewport,
-    .colorAttachments = cgAttachments,
-    .depthAttachment = &gdepthAttachment,
-    .stencilAttachment = nullptr
-  };
 
   // create shadow depth texture and render info
-  auto shadowDepthTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::D16_UNORM);
+  auto shadowDepthTex = Fwog::CreateTexture2D({ config.shadowmapWidth, config.shadowmapHeight }, Fwog::Format::D16_UNORM);
   auto shadowDepthTexView = shadowDepthTex->View();
-
-  Fwog::RenderAttachment depthAttachment
-  {
-    .textureView = &shadowDepthTexView.value(),
-    .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
-    .clearOnLoad = true
-  };
-
-  Fwog::RenderInfo shadowRenderInfo
-  {
-    .viewport = &shadowViewport,
-    .depthAttachment = &depthAttachment,
-    .stencilAttachment = nullptr
-  };
 
   auto shadingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
   auto shadingTexView = shadingTex->View();
-
-  Fwog::RenderAttachment shadingAttachment
-  {
-    .textureView = &shadingTexView.value(),
-    .clearOnLoad = false
-  };
-
-  Fwog::RenderInfo shadingRenderingInfo
-  {
-    .viewport = &mainViewport,
-    .colorAttachments = { &shadingAttachment, 1 }
-  };
-
-  Fwog::SwapchainRenderInfo swapchainRenderingInfo
-  {
-    .viewport = &mainViewport,
-    .clearColorOnLoad = false,
-    .clearColorValue = Fwog::ClearColorValue {.f = { .0, .0, .0, 1.0 }},
-    .clearDepthOnLoad = false,
-    .clearStencilOnLoad = false,
-  };
 
   Utility::Scene scene;
 
@@ -577,6 +550,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   Fwog::GraphicsPipeline shadowPipeline = CreateShadowPipeline();
   Fwog::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
   Fwog::GraphicsPipeline debugTexturePipeline = CreateDebugTexturePipeline();
+  Fwog::ComputePipeline copyToEsmPipeline = CreateCopyToEsmPipeline();
+  Fwog::ComputePipeline gaussianBlurPipeline = CreateGaussianBlurPipeline();
 
   View camera;
   camera.position = { 0, 1.5, 2 };
@@ -617,6 +592,14 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   Volumetric volumetric;
   volumetric.Init();
+
+  Fwog::Extent3D esmResolution = { 256, 256 };
+  auto exponentialShadowMap = Fwog::CreateTexture2D(esmResolution, Fwog::Format::R32_FLOAT);
+  auto exponentialShadowMapIntermediate = Fwog::CreateTexture2D(esmResolution, Fwog::Format::R32_FLOAT);
+  auto esmTexView = exponentialShadowMap->View();
+  auto esmIntermediateTexView = exponentialShadowMapIntermediate->View();
+  auto esmUniformBuffer = Fwog::Buffer::Create(sizeof(float), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto esmBlurUniformBuffer = Fwog::Buffer::Create(sizeof(glm::ivec2) * 2, Fwog::BufferFlag::DYNAMIC_STORAGE);
 
   float prevFrame = static_cast<float>(glfwGetTime());
   while (!glfwWindowShouldClose(window))
@@ -661,8 +644,34 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     shadingUniformsBuffer->SubData(shadingUniforms, 0);
 
     // geometry buffer pass
-    Fwog::BeginRendering(gbufferRenderInfo);
     {
+      Fwog::RenderAttachment gcolorAttachment
+      {
+        .textureView = &gbufferColorView.value(),
+        .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
+        .clearOnLoad = true
+      };
+      Fwog::RenderAttachment gnormalAttachment
+      {
+        .textureView = &gbufferNormalView.value(),
+        .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
+        .clearOnLoad = false
+      };
+      Fwog::RenderAttachment gdepthAttachment
+      {
+        .textureView = &gbufferDepthView.value(),
+        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
+        .clearOnLoad = true
+      };
+      Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
+      Fwog::RenderInfo gbufferRenderInfo
+      {
+        .viewport = &mainViewport,
+        .colorAttachments = cgAttachments,
+        .depthAttachment = &gdepthAttachment,
+        .stencilAttachment = nullptr
+      };
+      Fwog::BeginRendering(gbufferRenderInfo);
       Fwog::ScopedDebugMarker marker("Geometry");
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
       Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
@@ -683,14 +692,27 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         Fwog::Cmd::BindIndexBuffer(*mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
         Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer->Size()) / sizeof(uint32_t), 1, 0, 0, i);
       }
+      Fwog::EndRendering();
     }
-    Fwog::EndRendering();
 
     globalUniformsBuffer->SubData(shadingUniforms.sunViewProj, 0);
 
     // shadow map scene pass
-    Fwog::BeginRendering(shadowRenderInfo);
     {
+      Fwog::RenderAttachment depthAttachment
+      {
+        .textureView = &shadowDepthTexView.value(),
+        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
+        .clearOnLoad = true
+      };
+
+      Fwog::RenderInfo shadowRenderInfo
+      {
+        .viewport = &shadowViewport,
+        .depthAttachment = &depthAttachment,
+        .stencilAttachment = nullptr
+      };
+      Fwog::BeginRendering(shadowRenderInfo);
       Fwog::ScopedDebugMarker marker("Shadow Scene");
       Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);
       Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
@@ -710,14 +732,25 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         Fwog::Cmd::BindIndexBuffer(*mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
         Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer->Size()) / sizeof(uint32_t), 1, 0, 0, i);
       }
+      Fwog::EndRendering();
     }
-    Fwog::EndRendering();
 
     globalUniformsBuffer->SubData(mainCameraUniforms, 0);
 
     // shading pass (full screen tri)
-    Fwog::BeginRendering(shadingRenderingInfo);
     {
+      Fwog::RenderAttachment shadingAttachment
+      {
+        .textureView = &shadingTexView.value(),
+        .clearOnLoad = false
+      };
+
+      Fwog::RenderInfo shadingRenderingInfo
+      {
+        .viewport = &mainViewport,
+        .colorAttachments = { &shadingAttachment, 1 }
+      };
+      Fwog::BeginRendering(shadingRenderingInfo);
       Fwog::ScopedDebugMarker marker("Shading");
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
       Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
@@ -729,8 +762,73 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
       Fwog::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
       Fwog::Cmd::Draw(3, 1, 0, 0);
+      Fwog::EndRendering();
     }
-    Fwog::EndRendering();
+
+    // copy to esm and blur
+    {
+      Fwog::BeginCompute();
+      {
+        {
+          Fwog::ScopedDebugMarker marker("Copy to ESM");
+          esmUniformBuffer->SubData(config.esmExponent, 0);
+
+          auto nearestSampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::NEAREST, .magFilter = Fwog::Filter::NEAREST });
+          Fwog::Cmd::BindComputePipeline(copyToEsmPipeline);
+          Fwog::Cmd::BindSampledImage(0, *shadowDepthTexView, *nearestSampler);
+          Fwog::Cmd::BindImage(0, *esmTexView, 0);
+          Fwog::Cmd::BindUniformBuffer(0, *esmUniformBuffer, 0, esmUniformBuffer->Size());
+          auto dispatchDim = (esmTexView->Extent() + 7) / 8;
+          Fwog::Cmd::Dispatch(dispatchDim.width, dispatchDim.height, 1);
+
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        }
+
+        // blur
+        {
+          Fwog::ScopedDebugMarker marker("Blur ESM");
+          Fwog::Cmd::BindComputePipeline(gaussianBlurPipeline);
+
+          auto linearSampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
+
+          struct
+          {
+            glm::ivec2 direction;
+            glm::ivec2 targetDim;
+          }esmBlurUniforms;
+
+          const auto esmExtent1 = esmTexView->Extent();
+          const auto esmExtent2 = esmIntermediateTexView->Extent();
+
+          const auto dispatchSize1 = (esmExtent2 + 7) / 8;
+          const auto dispatchSize2 = (esmExtent1 + 7) / 8;
+
+          Fwog::Cmd::BindUniformBuffer(0, *esmBlurUniformBuffer, 0, esmBlurUniformBuffer->Size());
+
+          for (size_t i = 0; i < config.esmBlurPasses; i++)
+          {
+            esmBlurUniforms.direction = { 0, 1 };
+            esmBlurUniforms.targetDim = { esmExtent2.width, esmExtent2.height };
+            esmBlurUniformBuffer->SubData(esmBlurUniforms, 0);
+            Fwog::Cmd::BindSampledImage(0, *esmTexView, *linearSampler);
+            Fwog::Cmd::BindImage(0, *esmIntermediateTexView, 0);
+            Fwog::Cmd::Dispatch(dispatchSize1.width, dispatchSize1.height, 1);
+
+            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+            esmBlurUniforms.direction = { 1, 0 };
+            esmBlurUniforms.targetDim = { esmExtent1.width, esmExtent1.height };
+            esmBlurUniformBuffer->SubData(esmBlurUniforms, 0);
+            Fwog::Cmd::BindSampledImage(0, *esmIntermediateTexView, *linearSampler);
+            Fwog::Cmd::BindImage(0, *esmTexView, 0);
+            Fwog::Cmd::Dispatch(dispatchSize2.width, dispatchSize2.height, 1);
+
+            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          }
+        }
+      }
+      Fwog::EndCompute();
+    }
 
     // volumetric fog pass
     {
@@ -747,7 +845,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       volumetric.AccumulateDensity(*densityVolumeView);
 
-      volumetric.MarchVolume(*densityVolumeView, *scatteringVolumeView, *shadowDepthTexView);
+      volumetric.MarchVolume(*densityVolumeView, *scatteringVolumeView, *esmTexView, *esmUniformBuffer);
 
       volumetric.ApplyDeferred(*shadingTexView,
         *gbufferDepthView,
@@ -764,9 +862,21 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     //  shadingTexView->Extent(),
     //  shadingTexView->Extent(),
     //  Fwog::Filter::LINEAR);
-    Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
+
+    // copy to swapchain
     {
-      Fwog::ScopedDebugMarker marker("Blit to Swapchain");
+      Fwog::SwapchainRenderInfo swapchainRenderingInfo
+      {
+        .viewport = &mainViewport,
+        .clearColorOnLoad = false,
+        .clearColorValue = Fwog::ClearColorValue {.f = { .0, .0, .0, 1.0 }},
+        .clearDepthOnLoad = false,
+        .clearStencilOnLoad = false,
+      };
+      Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
+      Fwog::ScopedDebugMarker marker("Copy to Swapchain");
+
+      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
       Fwog::TextureView* tex = &shadingTexView.value();
       if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
@@ -777,14 +887,16 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         tex = &gbufferDepthView.value();
       if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
         tex = &shadowDepthTexView.value();
+      if (glfwGetKey(window, GLFW_KEY_F5) == GLFW_PRESS)
+        tex = &esmTexView.value();
       if (tex)
       {
         Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
         Fwog::Cmd::BindSampledImage(0, *tex, *nearestSampler);
         Fwog::Cmd::Draw(3, 1, 0, 0);
       }
+      Fwog::EndRendering();
     }
-    Fwog::EndRendering();
 
     glfwSwapBuffers(window);
   }

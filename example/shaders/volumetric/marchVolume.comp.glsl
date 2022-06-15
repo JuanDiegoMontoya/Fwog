@@ -3,7 +3,7 @@
 #include "common.h"
 
 layout(binding = 0) uniform sampler3D s_source;
-layout(binding = 1) uniform sampler2DShadow s_shadowDepth;
+layout(binding = 1) uniform sampler2D s_exponentialShadowDepth;
 layout(binding = 0) uniform writeonly image3D i_target;
 
 layout(binding = 0, std140) uniform UNIFORMS 
@@ -18,6 +18,11 @@ layout(binding = 0, std140) uniform UNIFORMS
   float volumeNearPlane;
   float volumeFarPlane;
 }uniforms;
+
+layout(binding = 1, std140) uniform ESM_UNIFORMS
+{
+  float depthExponent;
+}esmUniforms;
 
 #define PI 3.1415926
 
@@ -48,9 +53,12 @@ float powder(float d)
   return 1.0 - exp(-d * 2.0);
 }
 
-float Shadow(vec4 clip)
+float ShadowESM(vec4 clip)
 {
-  return textureProj(s_shadowDepth, clip * .5 + .5);
+  vec4 unorm = clip * .5 + .5;
+  float lightDepth = textureLod(s_exponentialShadowDepth, unorm.xy, 0.0).x;
+  float eyeDepth = unorm.z;
+  return clamp(lightDepth * exp(-esmUniforms.depthExponent * eyeDepth), 0.0, 1.0);
 }
 
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -76,7 +84,6 @@ void main()
     pPrev = pCur;
 
     vec3 viewDir = normalize(pCur - uniforms.viewPos);
-    //vec3 sunDir = normalize(vec3(.2, -.25, -.15)); // hardcoded until procedural sky
     float g = 0.2;
     float k = gToK(g);
 
@@ -84,7 +91,7 @@ void main()
     densityAccum += s.a * d;
     float b = beer(densityAccum);
     float p = powder(densityAccum);
-    inScatteringAccum += s.rgb * d * b * p * s.a * phaseSchlick(k, dot(-viewDir, normalize(uniforms.sunDir))) * Shadow(uniforms.sunViewProj * vec4(pCur, 1.0));
+    inScatteringAccum += s.rgb * d * b * p * s.a * phaseSchlick(k, dot(-viewDir, normalize(uniforms.sunDir))) * ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
     float transmittance = b;
     imageStore(i_target, ivec3(gid, i), vec4(inScatteringAccum, transmittance));
   }

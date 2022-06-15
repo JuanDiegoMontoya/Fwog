@@ -39,7 +39,7 @@ namespace Fwog
     // these can be set at the start of rendering, so they need to be tracked separately from the other pipeline state
     std::array<ColorComponentFlags, MAX_COLOR_ATTACHMENTS> sLastColorMask = { };
     bool sLastDepthMask = true;
-    bool sLastStencilMask[2] = { true, true };
+    uint32_t sLastStencilMask[2] = { static_cast<uint32_t>(-1), static_cast<uint32_t>(-1) };
     bool sInitViewport = true;
     Viewport sLastViewport = {};
 
@@ -240,15 +240,46 @@ namespace Fwog
     FWOG_ASSERT(isComputeActive);
     isComputeActive = false;
   }
+
+  void BlitTexture(
+    const TextureView& source, 
+    const TextureView& target, 
+    Offset3D sourceOffset, 
+    Offset3D targetOffset, 
+    Extent3D sourceExtent, 
+    Extent3D targetExtent, 
+    Filter filter,
+    AspectMask aspect)
+  {
+    detail::RenderAttachments sourceAttachments;
+    detail::RenderAttachments destAttachments;
+    sourceAttachments.colorAttachments.push_back(&source);
+    destAttachments.colorAttachments.push_back(&target);
+    auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(sourceAttachments);
+    auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(destAttachments);
+    glBlitNamedFramebuffer(
+      fboSource,
+      fboDest,
+      sourceOffset.x,
+      sourceOffset.y,
+      sourceExtent.width,
+      sourceExtent.height,
+      targetOffset.x,
+      targetOffset.y,
+      targetExtent.width,
+      targetExtent.height,
+      detail::AspectMaskToGL(aspect),
+      detail::FilterToGL(filter));
+  }
   
   void BlitTextureToSwapchain(const TextureView& source,
     Offset3D sourceOffset,
     Offset3D targetOffset,
     Extent3D sourceExtent,
     Extent3D targetExtent,
-    Filter filter)
+    Filter filter,
+    AspectMask aspect)
   {
-    // TODO: simple way to detect depth/stencil formats to select the right aspect, or maybe a way to explicitly specify the aspect
     detail::RenderAttachments attachments;
     attachments.colorAttachments.push_back(&source);
     auto fbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
@@ -263,8 +294,35 @@ namespace Fwog
       targetOffset.y,
       targetExtent.width,
       targetExtent.height,
-      GL_COLOR_BUFFER_BIT,
+      detail::AspectMaskToGL(aspect),
       detail::FilterToGL(filter));
+  }
+
+  void CopyTexture(
+    const TextureView& source,
+    const TextureView& target,
+    uint32_t sourceLevel,
+    uint32_t targetLevel,
+    Offset3D sourceOffset,
+    Offset3D targetOffset,
+    Extent3D extent)
+  {
+    glCopyImageSubData(
+      source.Handle(),
+      GL_TEXTURE,
+      sourceLevel,
+      sourceOffset.x,
+      sourceOffset.y,
+      sourceOffset.z,
+      target.Handle(),
+      GL_TEXTURE,
+      targetLevel,
+      targetOffset.x,
+      targetOffset.y,
+      targetOffset.z,
+      extent.width,
+      extent.height,
+      extent.depth);
   }
 
   namespace Cmd

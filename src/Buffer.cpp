@@ -41,6 +41,7 @@ namespace Fwog
 
   void Buffer::SubData(const void* data, size_t size, size_t offset)
   {
+    FWOG_ASSERT(size + offset <= Size());
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
   }
 

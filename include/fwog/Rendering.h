@@ -78,21 +78,34 @@ namespace Fwog
   void BeginCompute();
   void EndCompute();
 
-  void BlitTexture(const TextureView& source,
+  void BlitTexture(
+    const TextureView& source,
     const TextureView& target,
     Offset3D sourceOffset,
     Offset3D targetOffset,
     Extent3D sourceExtent,
     Extent3D targetExtent,
-    Filter filter);
+    Filter filter,
+    AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
   // blit to 0
-  void BlitTextureToSwapchain(const TextureView& source,
+  void BlitTextureToSwapchain(
+    const TextureView& source,
     Offset3D sourceOffset,
     Offset3D targetOffset,
     Extent3D sourceExtent,
     Extent3D targetExtent,
-    Filter filter);
+    Filter filter,
+    AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
+
+  void CopyTexture(
+    const TextureView& source,
+    const TextureView& target,
+    uint32_t sourceLevel,
+    uint32_t targetLevel,
+    Offset3D sourceOffset,
+    Offset3D targetOffset,
+    Extent3D extent);
 
   // Cmd:: functions can only be called within a rendering scope
   namespace Cmd

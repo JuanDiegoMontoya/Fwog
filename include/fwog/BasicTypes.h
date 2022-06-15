@@ -400,6 +400,7 @@ namespace Fwog
     FRAMEBUFFER_BIT    = 1 << 9,  // GL_FRAMEBUFFER_BARRIER_BIT
     SHADER_STORAGE_BIT = 1 << 10, // GL_SHADER_STORAGE_BARRIER_BIT
     QUERY_COUNTER_BIT  = 1 << 11, // GL_QUERY_BUFFER_BARRIER_BIT
+    ALL_BITS = static_cast<uint32_t>(-1),
     // TODO: add more bits as necessary
   };
   FWOG_DECLARE_FLAG_TYPE(MemoryBarrierAccessBits, MemoryBarrierAccessBit, uint32_t)
