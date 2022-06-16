@@ -4,8 +4,7 @@
 // unproject with zero-origin convention [0, 1]
 vec3 UnprojectUVZO(float depth, vec2 uv, mat4 invXProj)
 {
-  float z = depth;
-  vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, z, 1.0); // [0, 1] -> [-1, 1]
+  vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, depth, 1.0); // [0, 1] -> [-1, 1]
 
   vec4 worldSpacePosition = invXProj * clipSpacePosition;
   worldSpacePosition /= worldSpacePosition.w;
@@ -16,24 +15,19 @@ vec3 UnprojectUVZO(float depth, vec2 uv, mat4 invXProj)
 // unproject with GL convention [-1, 1]
 vec3 UnprojectUVGL(float depth, vec2 uv, mat4 invXProj)
 {
-  float z = depth * 2.0 - 1.0; // [0, 1] -> [-1, 1]
-  vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, z, 1.0); // [0, 1] -> [-1, 1]
-
-  vec4 worldSpacePosition = invXProj * clipSpacePosition;
-  worldSpacePosition /= worldSpacePosition.w;
-
-  return worldSpacePosition.xyz;
+  depth = depth * 2.0 - 1.0; // [0, 1] -> [-1, 1]
+  return UnprojectUVZO(depth, uv, invXProj);
 }
 
-float LinearizeDepthZO(float d, float zn, float zf)
+float LinearizeDepthZO(float nonlinearZ, float zn, float zf)
 {
-  return zn / (zf + d * (zn - zf));
+  return zn / (zf + nonlinearZ * (zn - zf));
 }
 
 // the inverse of LinearizeDepthZO
-float InvertDepthZO(float l, float zn, float zf)
+float InvertDepthZO(float linearZ, float zn, float zf)
 {
-  return (zn - zf * l) / (l * (zn - zf));
+  return (zn - zf * linearZ) / (linearZ * (zn - zf));
 }
 
 #endif

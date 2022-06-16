@@ -37,15 +37,16 @@ layout(binding = 0, std430) readonly buffer LightBuffer
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
-  float z = depth * 2.0 - 1.0; // OpenGL Z convention
-  vec4 ndc = vec4(uv * 2.0 - 1.0, z, 1.0);
+  vec4 ndc = vec4(uv * 2.0 - 1.0, depth, 1.0);
   vec4 world = invXProj * ndc;
   return world.xyz / world.w;
 }
 
 float Shadow(vec4 clip)
 {
-  return textureProj(s_shadowDepth, clip * .5 + .5);
+  // with ZO projections, Z is already in [0, 1]
+  clip.xy = clip.xy * .5 + .5;
+  return textureProjLod(s_shadowDepth, clip, 0);
 }
 
 float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
@@ -86,7 +87,7 @@ void main()
   vec3 normal = textureLod(s_gNormal, v_uv, 0.0).xyz;
   float depth = textureLod(s_gDepth, v_uv, 0.0).x;
 
-  if (depth == 1.0)
+  if (depth == 0.0)
   {
     o_color = albedo;
     return;
@@ -98,7 +99,7 @@ void main()
   float cosTheta = max(0.0, dot(incidentDir, normal));
   vec3 diffuse = albedo * cosTheta * shadingUniforms.sunStrength.rgb;
   float shadow = Shadow(shadingUniforms.sunViewProj * vec4(fragWorldPos, 1.0));
-  
+
   vec3 viewDir = normalize(cameraPos.xyz - fragWorldPos);
   vec3 halfDir = normalize(viewDir + incidentDir);
   float spec = pow(max(dot(normal, halfDir), 0.0), 64.0);

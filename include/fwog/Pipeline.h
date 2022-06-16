@@ -44,8 +44,8 @@ namespace Fwog
 
   struct DepthState
   {
-    bool depthTestEnable     = true;            // gl{Enable, Disable}(GL_DEPTH_TEST)
-    bool depthWriteEnable    = true;            // glDepthMask(depthWriteEnable)
+    bool depthTestEnable     = false;            // gl{Enable, Disable}(GL_DEPTH_TEST)
+    bool depthWriteEnable    = false;            // glDepthMask(depthWriteEnable)
     CompareOp depthCompareOp = CompareOp::LESS; // glDepthFunc
     //bool depthBoundsTestEnable; // no equivalent core OpenGL function
     //float minDepthBounds;       // ???

@@ -5,6 +5,7 @@
 * Takes the same command line arguments as the gltf_viewer example.
 */
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "common/common.h"
 
 #include <array>
@@ -67,6 +68,16 @@ struct View
       yaw *= -1;
   }
 };
+
+glm::mat4 InfReverseZPerspectiveRH(float fovY_radians, float aspectWbyH, float zNear)
+{
+  float f = 1.0f / tan(fovY_radians / 2.0f);
+  return glm::mat4(
+    f / aspectWbyH, 0.0f, 0.0f, 0.0f,
+    0.0f, f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, -1.0f,
+    0.0f, 0.0f, zNear, 0.0f);
+}
 
 struct ObjectUniforms
 {
@@ -155,6 +166,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
       .vertexShader = &vertexShader.value(),
       .fragmentShader = &fragmentShader.value(),
       .vertexInputState = GetSceneInputBindingDescs(),
+      .depthState = { .depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER }
     });
 
   if (!pipeline)
@@ -177,7 +189,8 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
         .depthBiasEnable = true,
         .depthBiasConstantFactor = 3.0f,
         .depthBiasSlopeFactor = 5.0f,
-      }
+      },
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
   if (!pipeline)
@@ -285,6 +298,10 @@ View ProcessMovement(GLFWwindow* window, View camera, float dt)
     camera.position += right * dt * speed;
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     camera.position -= right * dt * speed;
+  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    camera.position.y -= dt * speed;
+  if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    camera.position.y += dt * speed;
 
   camera.yaw += gCursorOffsetX * gSensitivity;
   camera.pitch += gCursorOffsetY * gSensitivity;
@@ -367,7 +384,7 @@ public:
     glm::mat4 projVolume = glm::perspectiveZO(fovy, aspectRatio, volumeNearPlane, volumeFarPlane);
     glm::mat4 viewMat = view.GetViewMatrix();
     glm::mat4 viewProjVolume = projVolume * viewMat;
-
+    
     uniforms =
     {
       .viewPos = view.position,
@@ -405,7 +422,8 @@ public:
     const Fwog::TextureView& sourceVolume,
     const Fwog::TextureView& targetVolume,
     const Fwog::TextureView& shadowDepth,
-    const Fwog::Buffer& esmUniformBuffer)
+    const Fwog::Buffer& esmUniformBuffer,
+    const Fwog::Buffer& lightBuffer)
   {
     assert(sourceVolume.CreateInfo().viewType == Fwog::ImageType::TEX_3D);
     assert(targetVolume.CreateInfo().viewType == Fwog::ImageType::TEX_3D);
@@ -419,6 +437,7 @@ public:
     Fwog::Cmd::BindComputePipeline(marchVolumePipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
     Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer, 0, esmUniformBuffer.Size());
+    Fwog::Cmd::BindStorageBuffer(0, lightBuffer, 0, lightBuffer.Size());
     Fwog::Cmd::BindSampledImage(0, sourceVolume, *sampler);
     Fwog::Cmd::BindSampledImage(1, shadowDepth, *sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
@@ -476,6 +495,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);
   glEnable(GL_FRAMEBUFFER_SRGB);
+  glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
   Fwog::Viewport mainViewport { .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
 
@@ -484,7 +504,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   // create gbuffer textures and render info
   auto gcolorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
   auto gnormalTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16_SNORM);
-  auto gdepthTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::D32_UNORM);
+  auto gdepthTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::D32_FLOAT);
   auto gbufferColorView = gcolorTex->View();
   auto gbufferNormalView = gnormalTex->View();
   auto gbufferDepthView = gdepthTex->View();
@@ -521,9 +541,9 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   //////////////////////////////////////// Clustered rendering stuff
   std::vector<Light> lights;
-  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
-  lights.push_back(Light{ .position = { 3, -2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
-  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
+  lights.push_back(Light{ .position = { -3, 1, -1, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
+  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
+  lights.push_back(Light{ .position = { 3, 3, 2, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
 
   auto globalUniformsBuffer = Fwog::Buffer::Create(sizeof(GlobalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
   auto shadingUniformsBuffer = Fwog::Buffer::Create(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
@@ -541,7 +561,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto nearestSampler = Fwog::TextureSampler::Create(ss);
 
   ss.compareEnable = true;
-  ss.compareOp = Fwog::CompareOp::LESS;
+  ss.compareOp = Fwog::CompareOp::LESS_OR_EQUAL;
   ss.minFilter = Fwog::Filter::LINEAR;
   ss.magFilter = Fwog::Filter::LINEAR;
   auto shadowSampler = Fwog::TextureSampler::Create(ss);
@@ -559,13 +579,14 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   const auto fovy = glm::radians(70.f);
   const auto aspectRatio = gWindowWidth / (float)gWindowHeight;
-  auto proj = glm::perspective(fovy, aspectRatio, 0.1f, 100.f);
+  //auto proj = glm::perspective(fovy, aspectRatio, 0.1f, 100.f);
+  auto proj = InfReverseZPerspectiveRH(fovy, aspectRatio, 0.3f);
 
   auto volumeInfo = Fwog::TextureCreateInfo
   {
     .imageType = Fwog::ImageType::TEX_3D,
     .format = Fwog::Format::R16G16B16A16_FLOAT,
-    .extent = { 160, 90, 128 },
+    .extent = { 160, 90, 256 },
     .mipLevels = 1,
     .arrayLayers = 1,
     .sampleCount = Fwog::SampleCount::SAMPLES_1
@@ -639,7 +660,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -10.f };
     float eyeWidth = 9.0f;
     shadingUniforms.sunViewProj =
-      glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 20.f) *
+      glm::orthoZO(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, 0.f, 20.f) *
       glm::lookAt(eye, glm::vec3(0), glm::vec3{ 0, 1, 0 });
     shadingUniformsBuffer->SubData(shadingUniforms, 0);
 
@@ -660,7 +681,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::RenderAttachment gdepthAttachment
       {
         .textureView = &gbufferDepthView.value(),
-        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
+        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 0.0f } },
         .clearOnLoad = true
       };
       Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
@@ -845,7 +866,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       volumetric.AccumulateDensity(*densityVolumeView);
 
-      volumetric.MarchVolume(*densityVolumeView, *scatteringVolumeView, *esmTexView, *esmUniformBuffer);
+      volumetric.MarchVolume(*densityVolumeView, *scatteringVolumeView, *esmTexView, *esmUniformBuffer, *lightBuffer);
 
       volumetric.ApplyDeferred(*shadingTexView,
         *gbufferDepthView,
@@ -868,10 +889,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::SwapchainRenderInfo swapchainRenderingInfo
       {
         .viewport = &mainViewport,
-        .clearColorOnLoad = false,
-        .clearColorValue = Fwog::ClearColorValue {.f = { .0, .0, .0, 1.0 }},
-        .clearDepthOnLoad = false,
-        .clearStencilOnLoad = false,
       };
       Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
       Fwog::ScopedDebugMarker marker("Copy to Swapchain");

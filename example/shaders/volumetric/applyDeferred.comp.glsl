@@ -29,21 +29,24 @@ void main()
   ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
   ivec2 targetDim = imageSize(i_target);
   if (any(greaterThanEqual(gid, targetDim)))
-  {
     return;
-  }
   vec2 uv = (vec2(gid) + 0.5) / targetDim;
 
-  float z = texelFetch(s_depth, gid, 0).x;
-  z = max(z, EPSILON); // prevent infinities
-  vec3 p = UnprojectUVGL(z, uv, uniforms.invViewProjScene);
+  // get Z-buffer depth and reconstruct world position
+  float zScr = texelFetch(s_depth, gid, 0).x;
+  zScr = max(zScr, EPSILON); // prevent infinities
+  vec3 pWorld = UnprojectUVZO(zScr, uv, uniforms.invViewProjScene);
 
-  vec4 volumeClip = uniforms.viewProjVolume * vec4(p, 1.0);
+  // world position to volume clip space
+  vec4 volumeClip = uniforms.viewProjVolume * vec4(pWorld, 1.0);
   volumeClip.xyz = clamp(volumeClip.xyz, -volumeClip.www, volumeClip.www);
+
+  // volume clip to volume UV (perspective divide)
   vec3 volumeUV = volumeClip.xyz / volumeClip.w;
-  volumeUV.z = LinearizeDepthZO(pow(volumeUV.z, 1.0 / 2.0), uniforms.volumeNearPlane, uniforms.volumeFarPlane);
-  volumeUV.xy = (volumeUV.xy * 0.5) + 0.5;
-  vec3 offset = texelFetch(s_blueNoise, gid % textureSize(s_blueNoise, 0).xy, 0).xyz * 2. - 1.;
+  volumeUV.xy = volumeUV.xy * 0.5 + 0.5;
+  //volumeUV.z = LinearizeDepthZO(pow(volumeUV.z, 1./2.), uniforms.volumeNearPlane, uniforms.volumeFarPlane);
+  volumeUV.z *= (LinearizeDepthZO(volumeUV.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane));
+  vec3 offset = texelFetch(s_blueNoise, gid % textureSize(s_blueNoise, 0).xy, 0).xyz - 0.5;
   volumeUV += offset / vec3(textureSize(s_volume, 0).xyz);
   if (volumeClip.z / volumeClip.w > 1.0)
   {
@@ -56,5 +59,6 @@ void main()
   float transmittance = scatteringInfo.a;
 
   vec3 finalColor = baseColor * transmittance + inScattering;
+  //finalColor = finalColor / (1.0 + finalColor);
   imageStore(i_target, gid, vec4(finalColor, 1.0));
 }
