@@ -45,7 +45,7 @@ void main()
   vec3 volumeUV = volumeClip.xyz / volumeClip.w;
   volumeUV.xy = volumeUV.xy * 0.5 + 0.5;
   //volumeUV.z = LinearizeDepthZO(pow(volumeUV.z, 1./2.), uniforms.volumeNearPlane, uniforms.volumeFarPlane);
-  volumeUV.z *= (LinearizeDepthZO(volumeUV.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane));
+  volumeUV.z *= sqrt(LinearizeDepthZO(volumeUV.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane));
   vec3 offset = texelFetch(s_blueNoise, gid % textureSize(s_blueNoise, 0).xy, 0).xyz - 0.5;
   volumeUV += offset / vec3(textureSize(s_volume, 0).xyz);
   if (volumeClip.z / volumeClip.w > 1.0)

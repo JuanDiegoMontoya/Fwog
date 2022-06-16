@@ -128,8 +128,9 @@ void main()
     
     // Square the depth to bias precision towards the viewer,
     // then 
-    float zInv = InvertDepthZO(uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
+    float zInv = InvertDepthZO(uvw.z * uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
     vec3 pCur = UnprojectUVZO(zInv, uv, uniforms.invViewProjVolume);
+    //vec3 pCur = UnprojectUVZO(uvw.z, uv, uniforms.invViewProjVolume);
     float d = distance(pPrev, pCur);
     pPrev = pCur;
 

@@ -28,9 +28,10 @@ void main()
     return;
   vec3 uvw = (vec3(gid) + 0.5) / targetDim;
 
-  float zInv = InvertDepthZO(uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
+  float zInv = InvertDepthZO(uvw.z * uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
   vec3 p = UnprojectUVZO(zInv, uvw.xy, uniforms.invViewProjVolume);
-  vec3 t = vec3(.2, 0.1, .3);// * uniforms.time;
+  //vec3 p = UnprojectUVZO(uvw.z, uvw.xy, uniforms.invViewProjVolume);
+  vec3 t = vec3(.2, 0.1, .3) * uniforms.time;
   
   // ground fog
   float d = max((snoise(vec4(p * 0.1 + t, t * 1.2)) + 1.0) * .15, 0.0);
@@ -46,7 +47,7 @@ void main()
   // cube
   if (all(greaterThan(p, vec3(0, 0, 0))) && all(lessThan(p, vec3(5, 5, 5))))
   {
-    //d += 1.0;
+    d += 1.0;
     //c += vec3(5.1);
   }
   

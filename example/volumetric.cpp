@@ -121,8 +121,14 @@ struct
   uint32_t shadowmapWidth = 1024;
   uint32_t shadowmapHeight = 1024;
 
+  float nearPlane = 0.3f;
+
   float esmExponent = 15.0f;
   size_t esmBlurPasses = 1;
+  Fwog::Extent3D esmResolution = { 256, 256 };
+
+  float volumeFarPlane = 60.0f;
+  Fwog::Extent3D volumeExtent = { 160, 90, 256 };
 }constexpr config;
 
 std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
@@ -580,13 +586,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   const auto fovy = glm::radians(70.f);
   const auto aspectRatio = gWindowWidth / (float)gWindowHeight;
   //auto proj = glm::perspective(fovy, aspectRatio, 0.1f, 100.f);
-  auto proj = InfReverseZPerspectiveRH(fovy, aspectRatio, 0.3f);
+  auto proj = InfReverseZPerspectiveRH(fovy, aspectRatio, config.nearPlane);
 
   auto volumeInfo = Fwog::TextureCreateInfo
   {
     .imageType = Fwog::ImageType::TEX_3D,
     .format = Fwog::Format::R16G16B16A16_FLOAT,
-    .extent = { 160, 90, 256 },
+    .extent = config.volumeExtent,
     .mipLevels = 1,
     .arrayLayers = 1,
     .sampleCount = Fwog::SampleCount::SAMPLES_1
@@ -614,9 +620,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   Volumetric volumetric;
   volumetric.Init();
 
-  Fwog::Extent3D esmResolution = { 256, 256 };
-  auto exponentialShadowMap = Fwog::CreateTexture2D(esmResolution, Fwog::Format::R32_FLOAT);
-  auto exponentialShadowMapIntermediate = Fwog::CreateTexture2D(esmResolution, Fwog::Format::R32_FLOAT);
+  auto exponentialShadowMap = Fwog::CreateTexture2D(config.esmResolution, Fwog::Format::R32_FLOAT);
+  auto exponentialShadowMapIntermediate = Fwog::CreateTexture2D(config.esmResolution, Fwog::Format::R32_FLOAT);
   auto esmTexView = exponentialShadowMap->View();
   auto esmIntermediateTexView = exponentialShadowMapIntermediate->View();
   auto esmUniformBuffer = Fwog::Buffer::Create(sizeof(float), Fwog::BufferFlag::DYNAMIC_STORAGE);
@@ -860,8 +865,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         shadingUniforms.sunDir,
         fovy,
         aspectRatio,
-        1.0f,
-        60.0f,
+        config.nearPlane,
+        config.volumeFarPlane,
         curFrame);
 
       volumetric.AccumulateDensity(*densityVolumeView);
