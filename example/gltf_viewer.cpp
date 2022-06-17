@@ -164,6 +164,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
       .vertexShader = &vertexShader.value(),
       .fragmentShader = &fragmentShader.value(),
       .vertexInputState = GetSceneInputBindingDescs(),
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
   if (!pipeline)
@@ -190,7 +191,8 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
         .depthBiasEnable = true,
         .depthBiasConstantFactor = 3.0f,
         .depthBiasSlopeFactor = 5.0f,
-      }
+      },
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
   if (!pipeline)
@@ -212,7 +214,6 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
       .vertexShader = &vertexShader.value(),
       .fragmentShader = &fragmentShader.value(),
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
-      .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
     });
 
   if (!pipeline)
@@ -234,7 +235,6 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
       .vertexShader = &vertexShader.value(),
       .fragmentShader = &fragmentShader.value(),
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
-      .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
     });
 
   if (!pipeline)

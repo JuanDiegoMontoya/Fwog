@@ -8,6 +8,8 @@ add_custom_target(copy_textures ALL COMMAND ${CMAKE_COMMAND} -E copy_directory $
 add_executable(hello_triangle hello_triangle.cpp common/common.cpp common/common.h)
 target_link_libraries(hello_triangle PRIVATE glfw lib_glad lib_fwog)
 
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
+
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
