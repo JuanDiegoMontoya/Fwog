@@ -276,6 +276,19 @@ Fwog::ComputePipeline CreateGaussianBlurPipeline()
   return *pipeline;
 }
 
+Fwog::ComputePipeline CreatePostprocessingPipeline()
+{
+  auto shader = Fwog::Shader::Create(
+    Fwog::PipelineStage::COMPUTE_SHADER,
+    Utility::LoadFile("shaders/volumetric/tonemapAndDither.comp.glsl"));
+
+  auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader.value() });
+
+  if (!pipeline)
+    throw std::exception("Invalid pipeline");
+  return *pipeline;
+}
+
 void CursorPosCallback(GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
   static bool firstFrame = true;
@@ -327,22 +340,22 @@ public:
     char* accumulateDensity = stb_include_string(
       Utility::LoadFile("shaders/volumetric/accumulateDensity.comp.glsl").data(),
       nullptr,
-      const_cast<char*>("shaders/volumetric"),
-      const_cast<char*>("accumulateDensity"),
+      "shaders/volumetric",
+      "accumulateDensity",
       error);
 
     char* marchVolume = stb_include_string(
       Utility::LoadFile("shaders/volumetric/marchVolume.comp.glsl").data(),
       nullptr,
-      const_cast<char*>("shaders/volumetric"),
-      const_cast<char*>("marchVolume"),
+      "shaders/volumetric",
+      "marchVolume",
       error);
 
     char* applyDeferred = stb_include_string(
       Utility::LoadFile("shaders/volumetric/applyDeferred.comp.glsl").data(),
       nullptr,
-      const_cast<char*>("shaders/volumetric"),
-      const_cast<char*>("applyDeferred"),
+      "shaders/volumetric",
+      "applyDeferred",
       error);
 
     std::string infoLog;
@@ -502,7 +515,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);
-  glEnable(GL_FRAMEBUFFER_SRGB);
+  //glEnable(GL_FRAMEBUFFER_SRGB);
   glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
   Fwog::Viewport mainViewport { .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
@@ -544,7 +557,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ShadingUniforms shadingUniforms
   {
     .sunDir = glm::normalize(glm::vec4{ -.1, -.3, -.6, 0 }),
-    .sunStrength = glm::vec4{ 2, 2, 2, 0 },
+    .sunStrength = glm::vec4{ 3, 3, 3, 0 },
   };
 
   //////////////////////////////////////// Clustered rendering stuff
@@ -581,6 +594,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   Fwog::GraphicsPipeline debugTexturePipeline = CreateDebugTexturePipeline();
   Fwog::ComputePipeline copyToEsmPipeline = CreateCopyToEsmPipeline();
   Fwog::ComputePipeline gaussianBlurPipeline = CreateGaussianBlurPipeline();
+  Fwog::ComputePipeline postprocessingPipeline = CreatePostprocessingPipeline();
 
   View camera;
   camera.position = { 0, 1.5, 2 };
@@ -629,6 +643,9 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto esmIntermediateTexView = exponentialShadowMapIntermediate->View();
   auto esmUniformBuffer = Fwog::Buffer::Create(sizeof(float), Fwog::BufferFlag::DYNAMIC_STORAGE);
   auto esmBlurUniformBuffer = Fwog::Buffer::Create(sizeof(glm::ivec2) * 2, Fwog::BufferFlag::DYNAMIC_STORAGE);
+
+  auto ldrSceneColorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
+  auto ldrSceneColorTexView = ldrSceneColorTex->View();
 
   float prevFrame = static_cast<float>(glfwGetTime());
   while (!glfwWindowShouldClose(window))
@@ -883,6 +900,18 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         *noiseTextureView);
     }
 
+    {
+      Fwog::BeginCompute();
+      Fwog::Cmd::BindComputePipeline(postprocessingPipeline);
+      Fwog::Cmd::BindSampledImage(0, *shadingTexView, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, *noiseTextureView, *nearestSampler);
+      Fwog::Cmd::BindImage(0, *ldrSceneColorTexView, 0);
+      Fwog::Extent2D numGroups = (ldrSceneColorTexView->Extent() + 7) / 8;
+      Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      Fwog::EndCompute();
+    }
+
     // on my driver (Nvidia 3.25.1.27), blitting appears to not perform automatic linear->sRGB conversions
     // hence, a full-screen triangle will instead be used
     //Fwog::BlitTextureToSwapchain(*shadingTexView,
@@ -903,7 +932,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-      Fwog::TextureView* tex = &shadingTexView.value();
+      Fwog::TextureView* tex = &ldrSceneColorTexView.value();
       if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
         tex = &gbufferColorView.value();
       if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
