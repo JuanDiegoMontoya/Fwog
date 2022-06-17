@@ -129,6 +129,8 @@ struct
 
   float volumeFarPlane = 60.0f;
   Fwog::Extent3D volumeExtent = { 160, 90, 256 };
+
+  float lightFarPlane = 30.f;
 }constexpr config;
 
 std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
@@ -550,6 +552,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   lights.push_back(Light{ .position = { -3, 1, -1, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
   lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
   lights.push_back(Light{ .position = { 3, 3, 2, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
+  lights.push_back(Light{ .position = { .9, 5.5, -1.65, 0 }, .intensity = { 5.2f, 4.8f, 12.5f }, .invRadius = 1.0f / 9.0f });
 
   auto globalUniformsBuffer = Fwog::Buffer::Create(sizeof(GlobalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
   auto shadingUniformsBuffer = Fwog::Buffer::Create(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
@@ -665,7 +668,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -10.f };
     float eyeWidth = 9.0f;
     shadingUniforms.sunViewProj =
-      glm::orthoZO(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, 0.f, 20.f) *
+      glm::orthoZO(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, 0.f, config.lightFarPlane) *
       glm::lookAt(eye, glm::vec3(0), glm::vec3{ 0, 1, 0 });
     shadingUniformsBuffer->SubData(shadingUniforms, 0);
 
