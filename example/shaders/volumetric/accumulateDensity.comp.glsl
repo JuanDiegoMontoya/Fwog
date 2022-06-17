@@ -19,6 +19,12 @@ layout(binding = 0, std140) uniform UNIFORMS
 
 float snoise(vec4 v);
 
+float sdBox(vec3 p, vec3 b)
+{
+  vec3 q = abs(p) - b;
+  return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 void main()
 {
@@ -47,12 +53,8 @@ void main()
   vec3 c = vec3(15, 15, 15); // ambient lighting
 
   // cube
-  if (all(greaterThan(p, vec3(0, 0, 0))) && all(lessThan(p, vec3(5, 5, 5))))
-  {
-    //d += 1.0;
-    //c += vec3(5.1);
-  }
-  
+  //d += 1.0 - smoothstep(0.0, .5, sdBox(p - 2.5, vec3(2.25)));
+
   // sphere
   //d += 1.0 - smoothstep(3, 5, distance(p, vec3(0, 5, 0)));
 
