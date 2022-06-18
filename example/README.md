@@ -14,3 +14,8 @@ An implementation of a basic deferred renderer with a single directional light. 
 
 A program that demonstrates the loading and rendering of glTF scene files using tinygltf and Fwog. Sponza glTF not included.
 ![gltf_viewer](media/gltf_viewer.png "View of the atrium in Sponza from below, with the sun illuminating the center of the ground floor")
+
+## volumetric
+
+A ray-marched volumetric fog implementation using a frustum-aligned 3D grid. Supports fog shadows and local lights.
+![volumetric](media/volumetric3.png "A simple forest scene featuring a cube of fog and some local lights illuminating it")
