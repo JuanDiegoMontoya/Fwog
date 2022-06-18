@@ -123,11 +123,11 @@ struct
 
   float nearPlane = 0.3f;
 
-  float esmExponent = 15.0f;
+  float esmExponent = 30.0f;
   size_t esmBlurPasses = 1;
   Fwog::Extent3D esmResolution = { 256, 256 };
 
-  float volumeFarPlane = 60.0f;
+  float volumeFarPlane = 30.0f;
   Fwog::Extent3D volumeExtent = { 160, 90, 256 };
 
   float lightFarPlane = 30.f;
@@ -901,6 +901,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     }
 
     {
+      Fwog::ScopedDebugMarker marker("Postprocessing");
       Fwog::BeginCompute();
       Fwog::Cmd::BindComputePipeline(postprocessingPipeline);
       Fwog::Cmd::BindSampledImage(0, *shadingTexView, *nearestSampler);

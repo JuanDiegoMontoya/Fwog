@@ -90,16 +90,13 @@ vec3 LocalLightIntensity(vec3 wPos, vec3 V, float b, float p, float d, vec4 s, f
   {
     Light light = lightBuffer.lights[i];
     
-    //if (distance(wPos, light.position.xyz) < 2)
-      //color += 3.0;
-    //continue;
     vec3 diffuse = s.rgb * light.intensity;
 
     vec3 localColor = diffuse;
     localColor *= GetSquareFalloffAttenuation(light.position.xyz - wPos, light.invRadius);
 
     vec3 L = normalize(light.position.xyz - wPos);
-    localColor *= phaseSchlick(k, dot(-V, L));
+    localColor *= phaseSchlick(k, dot(V, L));
 
     color += localColor;
   }
@@ -126,16 +123,18 @@ void main()
     // uvw is the current voxel in unorm (UV) space. One half is added to i to get the center of the voxel as usual.
     vec3 uvw = vec3(uv, (i + 0.5) * texel.z);
     
-    // Square the depth to bias precision towards the viewer,
-    // then 
+    // Starting with linear depth, square it to bias precision towards the viewer.
+    // Then, invert the depth as though it were multiplied by the volume projection.
     float zInv = InvertDepthZO(uvw.z * uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
+
+    // Unproject the inverted depth to get the world position of this froxel.
     vec3 pCur = UnprojectUVZO(zInv, uv, uniforms.invViewProjVolume);
-    //vec3 pCur = UnprojectUVZO(uvw.z, uv, uniforms.invViewProjVolume);
+    
     float d = distance(pPrev, pCur);
     pPrev = pCur;
 
     vec3 viewDir = normalize(pCur - uniforms.viewPos);
-    float g = 0.2;
+    float g = 0.4;
     float k = gToK(g);
 
     vec4 s = textureLod(s_colorDensityVolume, uvw, 0);
@@ -144,7 +143,7 @@ void main()
     float p = powder(densityAccum);
     inScatteringAccum += s.rgb * d * b * p * s.a * phaseSchlick(k, dot(-viewDir, uniforms.sunDir)) * ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
     inScatteringAccum += LocalLightIntensity(pCur, viewDir, b, p, d, s, k);
-    float transmittance = b;
+    float transmittance = b; // powder effect (p term) seems to not apply to transmittance
     imageStore(i_inScatteringTransmittanceVolume, ivec3(gid, i), vec4(inScatteringAccum, transmittance));
   }
 }
