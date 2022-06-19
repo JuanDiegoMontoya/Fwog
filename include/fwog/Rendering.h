@@ -46,6 +46,8 @@ namespace Fwog
     Rect2D drawRect = {};  // glViewport
     float minDepth = 0.0f; // glDepthRangef
     float maxDepth = 1.0f; // glDepthRangef
+
+    bool operator==(const Viewport&) const noexcept = default;
   };
 
   // I don't know how to get the default framebuffer's textures so I have this awful struct instead
@@ -117,6 +119,8 @@ namespace Fwog
     //void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
     void SetViewport(const Viewport& viewport);                  // glViewport
     
+    void SetScissor(const Rect2D& scissor);                      // glScissor
+
     // drawing operations
     void Draw(uint32_t vertexCount, uint32_t instanceCount,       // glDrawArraysInstancedBaseInstance
       uint32_t firstVertex, uint32_t firstInstance);

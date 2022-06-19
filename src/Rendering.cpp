@@ -42,6 +42,8 @@ namespace Fwog
     uint32_t sLastStencilMask[2] = { static_cast<uint32_t>(-1), static_cast<uint32_t>(-1) };
     bool sInitViewport = true;
     Viewport sLastViewport = {};
+    Rect2D sLastScissor = {};
+    bool sScissorEnabled = false;
 
     PrimitiveTopology sTopology{};
     IndexType sIndexType{};
@@ -226,6 +228,12 @@ namespace Fwog
     isRendering = false;
     isIndexBufferBound = false;
     isRenderingToSwapchain = false;
+
+    if (sScissorEnabled)
+    {
+      glDisable(GL_SCISSOR_TEST);
+      sScissorEnabled = false;
+    }
   }
 
   void BeginCompute()
@@ -538,6 +546,11 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
 
+      if (viewport == sLastViewport)
+      {
+        return;
+      }
+
       glViewport(
         viewport.drawRect.offset.x,
         viewport.drawRect.offset.y,
@@ -546,6 +559,30 @@ namespace Fwog
       glDepthRangef(viewport.minDepth, viewport.maxDepth);
 
       sLastViewport = viewport;
+    }
+
+    void SetScissor(const Rect2D& scissor)
+    {
+      FWOG_ASSERT(isRendering);
+
+      if (!sScissorEnabled)
+      {
+        glEnable(GL_SCISSOR_TEST);
+        sScissorEnabled = true;
+      }
+
+      if (scissor == sLastScissor)
+      {
+        return;
+      }
+
+      glScissor(
+        scissor.offset.x, 
+        scissor.offset.y, 
+        scissor.extent.width, 
+        scissor.extent.height);
+
+      sLastScissor = scissor;
     }
 
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride)
