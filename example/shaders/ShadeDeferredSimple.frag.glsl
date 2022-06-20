@@ -4,6 +4,7 @@ layout(binding = 0) uniform sampler2D s_gAlbedo;
 layout(binding = 1) uniform sampler2D s_gNormal;
 layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2DShadow s_shadowDepth;
+//layout(binding = 3) uniform sampler2D s_exponentialShadowDepth;
 
 layout(location = 0) in vec2 v_uv;
 
@@ -22,6 +23,11 @@ layout(binding = 1, std140) uniform ShadingUniforms
   vec4 sunDir;
   vec4 sunStrength;
 }shadingUniforms;
+
+// layout(binding = 2, std140) uniform ESM_UNIFORMS
+// {
+//   float depthExponent;
+// }esmUniforms;
 
 struct Light
 {
@@ -48,6 +54,15 @@ float Shadow(vec4 clip)
   clip.xy = clip.xy * .5 + .5;
   return textureProjLod(s_shadowDepth, clip, 0);
 }
+
+// float ShadowESM(vec4 clip)
+// {
+//   vec4 unorm = clip;
+//   unorm.xy = unorm.xy * .5 + .5;
+//   float lightDepth = textureLod(s_exponentialShadowDepth, unorm.xy, 0.0).x;
+//   float eyeDepth = unorm.z;
+//   return clamp(lightDepth * exp(-esmUniforms.depthExponent * eyeDepth), 0.0, 1.0);
+// }
 
 float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
 {

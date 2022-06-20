@@ -44,13 +44,13 @@ void main()
   d *= (1.0 - smoothstep(0, 10, p.y)) * (smoothstep(-15, 0, p.y));
   //d = 0;
 
-  d *= 1.0 - smoothstep(0, 10, distance(abs(p.xz) - 5, vec2(0)));
+  d *= 1.0 - smoothstep(0, 10, distance(abs(p.xz), vec2(0)) - 25);
 
   // clouds
   //float d = max((snoise(vec4(p * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
   //d += max((snoise(vec4(p * 0.01 + t * .2, t * 0.05)) + 0.1) * .01, 0.0);
   
-  vec3 c = vec3(15, 15, 15); // ambient lighting
+  vec3 c = vec3(12, 12, 12); // ambient lighting
 
   // cube
   d += 1.0 - smoothstep(0.0, .25, sdBox(p - vec3(3., 2., 0.), vec3(0.75)));

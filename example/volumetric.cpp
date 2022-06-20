@@ -9,8 +9,10 @@
 #include "common/common.h"
 
 #include <array>
+#include <vector>
 #include <charconv>
 #include <exception>
+#include <fstream>
 
 #include <fwog/BasicTypes.h>
 #include <fwog/Rendering.h>
@@ -118,19 +120,20 @@ float gSensitivity = 0.005f;
 
 struct
 {
-  uint32_t shadowmapWidth = 1024;
-  uint32_t shadowmapHeight = 1024;
+  Fwog::Extent3D shadowmapResolution = { 2048, 2048 };
 
   float nearPlane = 0.3f;
 
-  float esmExponent = 30.0f;
+  float esmExponent = 40.0f;
   size_t esmBlurPasses = 1;
-  Fwog::Extent3D esmResolution = { 256, 256 };
+  Fwog::Extent3D esmResolution = { 512, 512 };
 
-  float volumeFarPlane = 30.0f;
+  float volumeFarPlane = 60.0f;
   Fwog::Extent3D volumeExtent = { 160, 90, 256 };
 
-  float lightFarPlane = 30.f;
+  float lightFarPlane = 50.0f;
+  float lightProjWidth = 24.0f;
+  float lightDistance = 25.0f;
 }constexpr config;
 
 std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
@@ -377,6 +380,43 @@ public:
     accumulateDensityPipeline = *Fwog::CompileComputePipeline({ .shader = &accumulateShader.value() });
     marchVolumePipeline = *Fwog::CompileComputePipeline({ .shader = &marchShader.value() });
     applyDeferredPipeline = *Fwog::CompileComputePipeline({ .shader = &applyShader.value() });
+
+    // Load the normalized MiePlot generated scattering data.
+    // This texture is used if a compile-time switch is set in marchVolume.comp.glsl.
+    std::ifstream file{ "textures/fog_mie_data.txt" };
+
+    std::vector<glm::vec3> data;
+    data.reserve(500);
+
+    while (file.peek() != EOF)
+    {
+      std::string fs0, fs1, fs2;
+      std::getline(file, fs0);
+      std::getline(file, fs1);
+      std::getline(file, fs2);
+
+      float blue = std::stof(fs0);
+      float green = std::stof(fs1);
+      float red = std::stof(fs2);
+
+      data.push_back({ red, green, blue });
+    }
+
+    scatteringTex = Fwog::Texture::Create({
+        .imageType = Fwog::ImageType::TEX_1D,
+        .format = Fwog::Format::R16G16B16_FLOAT,
+        .extent = static_cast<uint32_t>(data.size()),
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .sampleCount = Fwog::SampleCount::SAMPLES_1 });
+    scatteringTexView = scatteringTex->View();
+
+    scatteringTex->SubImage({
+      .dimension = Fwog::UploadDimension::ONE,
+      .size = { static_cast<uint32_t>(data.size()) },
+      .format = Fwog::UploadFormat::RGB,
+      .type = Fwog::UploadType::FLOAT,
+      .pixels = data.data() });
   }
 
   void UpdateUniforms(const View& view, 
@@ -461,6 +501,7 @@ public:
     Fwog::Cmd::BindStorageBuffer(0, lightBuffer, 0, lightBuffer.Size());
     Fwog::Cmd::BindSampledImage(0, sourceVolume, *sampler);
     Fwog::Cmd::BindSampledImage(1, shadowDepth, *sampler);
+    Fwog::Cmd::BindSampledImage(2, *scatteringTexView, *sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
     Fwog::Extent3D numGroups = (targetVolume.Extent() + 15) / 16;
     Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
@@ -501,6 +542,8 @@ private:
   Fwog::ComputePipeline marchVolumePipeline;
   Fwog::ComputePipeline applyDeferredPipeline;
   std::optional<Fwog::Buffer> uniformBuffer;
+  std::optional<Fwog::Texture> scatteringTex;
+  std::optional<Fwog::TextureView> scatteringTexView;
 };
 
 void RenderScene(std::optional<std::string_view> fileName, float scale, bool binary)
@@ -520,8 +563,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   Fwog::Viewport mainViewport { .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
 
-  Fwog::Viewport shadowViewport { .drawRect { .extent = { config.shadowmapWidth, config.shadowmapHeight } } };
-
+  Fwog::Viewport shadowViewport { .drawRect { .extent = config.shadowmapResolution } };
+  
   // create gbuffer textures and render info
   auto gcolorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
   auto gnormalTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16_SNORM);
@@ -531,10 +574,10 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto gbufferDepthView = gdepthTex->View();
 
   // create shadow depth texture and render info
-  auto shadowDepthTex = Fwog::CreateTexture2D({ config.shadowmapWidth, config.shadowmapHeight }, Fwog::Format::D16_UNORM);
+  auto shadowDepthTex = Fwog::CreateTexture2D(config.shadowmapResolution, Fwog::Format::D16_UNORM);
   auto shadowDepthTexView = shadowDepthTex->View();
 
-  auto shadingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
+  auto shadingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
   auto shadingTexView = shadingTex->View();
 
   Utility::Scene scene;
@@ -682,10 +725,15 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     mainCameraUniforms.cameraPos = glm::vec4(camera.position, 0.0);
     globalUniformsBuffer->SubData(mainCameraUniforms, 0);
 
-    glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -10.f };
-    float eyeWidth = 9.0f;
+    glm::vec3 eye = glm::vec3{ -shadingUniforms.sunDir * config.lightDistance };
     shadingUniforms.sunViewProj =
-      glm::orthoZO(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, 0.f, config.lightFarPlane) *
+      glm::orthoZO(
+        -config.lightProjWidth, 
+         config.lightProjWidth, 
+        -config.lightProjWidth, 
+         config.lightProjWidth, 
+        0.f, 
+        config.lightFarPlane) *
       glm::lookAt(eye, glm::vec3(0), glm::vec3{ 0, 1, 0 });
     shadingUniformsBuffer->SubData(shadingUniforms, 0);
 
@@ -767,47 +815,10 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
       {
         const auto& mesh = scene.meshes[i];
-        const auto& material = scene.materials[mesh.materialIdx];
-        materialUniformsBuffer->SubData(material.gpuMaterial, 0);
-        if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
-        {
-          const auto& textureSampler = scene.textureSamplers[material.baseColorTextureIdx];
-          Fwog::Cmd::BindSampledImage(0, *textureSampler.textureView, *textureSampler.sampler);
-        }
         Fwog::Cmd::BindVertexBuffer(0, *mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
         Fwog::Cmd::BindIndexBuffer(*mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
         Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer->Size()) / sizeof(uint32_t), 1, 0, 0, i);
       }
-      Fwog::EndRendering();
-    }
-
-    globalUniformsBuffer->SubData(mainCameraUniforms, 0);
-
-    // shading pass (full screen tri)
-    {
-      Fwog::RenderAttachment shadingAttachment
-      {
-        .textureView = &shadingTexView.value(),
-        .clearOnLoad = false
-      };
-
-      Fwog::RenderInfo shadingRenderingInfo
-      {
-        .viewport = &mainViewport,
-        .colorAttachments = { &shadingAttachment, 1 }
-      };
-      Fwog::BeginRendering(shadingRenderingInfo);
-      Fwog::ScopedDebugMarker marker("Shading");
-      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-      Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
-      Fwog::Cmd::BindSampledImage(0, *gbufferColorView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, *gbufferNormalView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, *gbufferDepthView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, *shadowDepthTexView, *shadowSampler);
-      Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-      Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
-      Fwog::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
-      Fwog::Cmd::Draw(3, 1, 0, 0);
       Fwog::EndRendering();
     }
 
@@ -819,7 +830,11 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
           Fwog::ScopedDebugMarker marker("Copy to ESM");
           esmUniformBuffer->SubData(config.esmExponent, 0);
 
-          auto nearestSampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::NEAREST, .magFilter = Fwog::Filter::NEAREST });
+          auto nearestSampler = Fwog::TextureSampler::Create({ 
+            .minFilter = Fwog::Filter::NEAREST, 
+            .magFilter = Fwog::Filter::NEAREST, 
+            .addressModeU = Fwog::AddressMode::MIRRORED_REPEAT,
+            .addressModeV = Fwog::AddressMode::MIRRORED_REPEAT });
           Fwog::Cmd::BindComputePipeline(copyToEsmPipeline);
           Fwog::Cmd::BindSampledImage(0, *shadowDepthTexView, *nearestSampler);
           Fwog::Cmd::BindImage(0, *esmTexView, 0);
@@ -874,6 +889,36 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         }
       }
       Fwog::EndCompute();
+    }
+
+    globalUniformsBuffer->SubData(mainCameraUniforms, 0);
+
+    // shading pass (full screen tri)
+    {
+      Fwog::RenderAttachment shadingAttachment
+      {
+        .textureView = &shadingTexView.value(),
+        .clearOnLoad = false
+      };
+
+      Fwog::RenderInfo shadingRenderingInfo
+      {
+        .viewport = &mainViewport,
+        .colorAttachments = { &shadingAttachment, 1 }
+      };
+      Fwog::BeginRendering(shadingRenderingInfo);
+      Fwog::ScopedDebugMarker marker("Shading");
+      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
+      Fwog::Cmd::BindSampledImage(0, *gbufferColorView, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, *gbufferNormalView, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(2, *gbufferDepthView, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(3, *shadowDepthTexView, *shadowSampler);
+      Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
+      Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
+      Fwog::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
+      Fwog::Cmd::Draw(3, 1, 0, 0);
+      Fwog::EndRendering();
     }
 
     // volumetric fog pass

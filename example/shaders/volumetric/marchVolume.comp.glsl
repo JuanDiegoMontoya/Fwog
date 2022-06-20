@@ -2,8 +2,11 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.h"
 
+#define USE_SCATTERING_TEXTURE 1
+
 layout(binding = 0) uniform sampler3D s_colorDensityVolume;
 layout(binding = 1) uniform sampler2D s_exponentialShadowDepth;
+layout(binding = 2) uniform sampler1D s_fogScattering;
 layout(binding = 0) uniform writeonly image3D i_inScatteringTransmittanceVolume;
 
 layout(binding = 0, std140) uniform UNIFORMS 
@@ -48,6 +51,15 @@ float phaseSchlick(float k, float cosTheta)
 {
   float denom = 1.0 - k * cosTheta;
   return (1.0 - k * k) / (4.0 * PI * denom * denom);
+}
+
+vec3 phaseTex(float cosTheta)
+{
+  // [1, -1] -> [0, 1]
+  float u = 1.0 - (cosTheta * .5 + .5);
+  
+  // limit intensity (hack)
+  return log(1.0 + textureLod(s_fogScattering, u, 0).rgb);
 }
 
 float gToK(float g)
@@ -97,6 +109,7 @@ vec3 LocalLightIntensity(vec3 wPos, vec3 V, float b, float p, float d, vec4 s, f
 
     vec3 L = normalize(light.position.xyz - wPos);
     localColor *= phaseSchlick(k, dot(V, L));
+    //localColor *= phaseTex(dot(V, L));
 
     color += localColor;
   }
@@ -134,15 +147,30 @@ void main()
     pPrev = pCur;
 
     vec3 viewDir = normalize(pCur - uniforms.viewPos);
-    float g = 0.4;
+    float g = 0.2; // TODO: put this in a UBO
     float k = gToK(g);
 
     vec4 s = textureLod(s_colorDensityVolume, uvw, 0);
     densityAccum += s.a * d;
     float b = beer(densityAccum);
     float p = powder(densityAccum);
-    inScatteringAccum += s.rgb * d * b * p * s.a * phaseSchlick(k, dot(-viewDir, uniforms.sunDir)) * ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
+
+    float shadow = ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
+    inScatteringAccum += s.rgb * d * b * p * s.a * shadow
+#if USE_SCATTERING_TEXTURE
+      * phaseTex(dot(-viewDir, uniforms.sunDir));
+#else
+      * phaseSchlick(k, dot(-viewDir, uniforms.sunDir));
+#endif
+
+    // Local light(s) contribution.
     inScatteringAccum += LocalLightIntensity(pCur, viewDir, b, p, d, s, k);
+
+    // Ambient direct scattering hack because this is not PBR.
+    // Yes, the ambient term has up to 50% shadowing. This is because it looks cool.
+    float ambient = max(0.003, 0.04 * smoothstep(0., 1., min(1.0, .5 + dot(uniforms.sunDir, vec3(0, -1, 0)))));
+    inScatteringAccum += s.rgb * s.a * b * p * d * ambient * max(shadow, 0.5);
+
     float transmittance = b; // powder effect (p term) seems to not apply to transmittance
     imageStore(i_inScatteringTransmittanceVolume, ivec3(gid, i), vec4(inScatteringAccum, transmittance));
   }

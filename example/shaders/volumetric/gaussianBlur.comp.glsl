@@ -1,5 +1,5 @@
 #version 460 core
-#define KERNEL_RADIUS 2
+#define KERNEL_RADIUS 3
 
 layout(binding = 0) uniform sampler2D s_in;
 layout(binding = 0) uniform writeonly restrict image2D i_out;
