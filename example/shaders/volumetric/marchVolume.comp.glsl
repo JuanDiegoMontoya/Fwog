@@ -86,35 +86,44 @@ float ShadowESM(vec4 clip)
   return clamp(lightDepth * exp(-esmUniforms.depthExponent * eyeDepth), 0.0, 1.0);
 }
 
-float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
+float GetSquareFalloffAttenuation(float distanceSquared, float lightInvRadius)
 {
-  float distanceSquared = dot(posToLight, posToLight);
   float factor = distanceSquared * lightInvRadius * lightInvRadius;
   float smoothFactor = max(1.0 - factor * factor, 0.0);
   return (smoothFactor * smoothFactor) / max(distanceSquared, 1e-4);
 }
 
-vec3 LocalLightIntensity(vec3 wPos, vec3 V, float b, float p, float d, vec4 s, float k)
+vec3 LocalLightIntensity(vec3 wPos, vec3 V, vec3 froxelColor, float froxelDensity, float k)
 {
   vec3 color = { 0, 0, 0 };
 
+  // Accumulate contribuation from each local light.
   for (int i = 0; i < lightBuffer.lights.length(); i++)
   {
     Light light = lightBuffer.lights[i];
     
-    vec3 diffuse = s.rgb * light.intensity;
+    vec3 diffuse = froxelColor * light.intensity;
 
     vec3 localColor = diffuse;
-    localColor *= GetSquareFalloffAttenuation(light.position.xyz - wPos, light.invRadius);
+    vec3 posToLight = light.position.xyz - wPos;
+    float distanceSquared = dot(posToLight, posToLight);
+    localColor *= GetSquareFalloffAttenuation(distanceSquared, light.invRadius);
+
+    // Assume media density is constant from this cell to the light source.
+    // Probably close enough in most situations.
+    float d = sqrt(distanceSquared) * froxelDensity;
+    float localInScatteringCoefficient = beer(d);
 
     vec3 L = normalize(light.position.xyz - wPos);
     localColor *= phaseSchlick(k, dot(V, L));
     //localColor *= phaseTex(dot(V, L));
 
+    localColor *= localInScatteringCoefficient;
+    
     color += localColor;
   }
 
-  return color * d * b * p * s.a;
+  return color * froxelDensity;
 }
 
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -143,35 +152,43 @@ void main()
     // Unproject the inverted depth to get the world position of this froxel.
     vec3 pCur = UnprojectUVZO(zInv, uv, uniforms.invViewProjVolume);
     
+    // Calculate the distance traveled through the material from the last sample to the current.
     float d = distance(pPrev, pCur);
     pPrev = pCur;
+
+    vec4 froxelColorDensity = textureLod(s_colorDensityVolume, uvw, 0);
+    vec3 froxelColor = froxelColorDensity.rgb;
+    float froxelDensity = froxelColorDensity.a;
+
+    densityAccum += froxelDensity * d;// * uniforms.volumeFarPlane;
+    float b = beer(densityAccum);
+    float p = powder(densityAccum);
+    float inScatteringCoefficient = d * b * p;
+
+    float shadow = ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
 
     vec3 viewDir = normalize(pCur - uniforms.viewPos);
     float g = 0.2; // TODO: put this in a UBO
     float k = gToK(g);
 
-    vec4 s = textureLod(s_colorDensityVolume, uvw, 0);
-    densityAccum += s.a * d;
-    float b = beer(densityAccum);
-    float p = powder(densityAccum);
-
-    float shadow = ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
-    inScatteringAccum += s.rgb * d * b * p * s.a * shadow
+    float VoL = dot(-viewDir, uniforms.sunDir);
+    inScatteringAccum += froxelColor * froxelDensity * inScatteringCoefficient * shadow
 #if USE_SCATTERING_TEXTURE
-      * phaseTex(dot(-viewDir, uniforms.sunDir));
+      * phaseTex(VoL);
 #else
-      * phaseSchlick(k, dot(-viewDir, uniforms.sunDir));
+      * phaseSchlick(k, VoL);
 #endif
 
     // Local light(s) contribution.
-    inScatteringAccum += LocalLightIntensity(pCur, viewDir, b, p, d, s, k);
+    inScatteringAccum += inScatteringCoefficient * LocalLightIntensity(pCur, viewDir, froxelColor, froxelDensity, k);
 
     // Ambient direct scattering hack because this is not PBR.
     // Yes, the ambient term has up to 50% shadowing. This is because it looks cool.
     float ambient = max(0.003, 0.04 * smoothstep(0., 1., min(1.0, .5 + dot(uniforms.sunDir, vec3(0, -1, 0)))));
-    inScatteringAccum += s.rgb * s.a * b * p * d * ambient * max(shadow, 0.5);
+    inScatteringAccum += froxelColor * froxelDensity * inScatteringCoefficient * ambient * max(shadow, 0.5);
 
-    float transmittance = b; // powder effect (p term) seems to not apply to transmittance
+    // Powder effect (p term) seems to not apply well to transmittance
+    float transmittance = b; 
     imageStore(i_inScatteringTransmittanceVolume, ivec3(gid, i), vec4(inScatteringAccum, transmittance));
   }
 }
