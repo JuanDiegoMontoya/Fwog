@@ -18,4 +18,4 @@ A program that demonstrates the loading and rendering of glTF scene files using 
 ## volumetric
 
 A ray-marched volumetric fog implementation using a frustum-aligned 3D grid. Supports fog shadows and local lights.
-![volumetric](media/volumetric3.png "A simple forest scene featuring a cube of fog and some local lights illuminating it")
+![volumetric](media/volumetric0.png "A forest scene featuring a cube of fog and some local lights illuminating it")
