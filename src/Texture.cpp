@@ -330,22 +330,4 @@ namespace Fwog
     };
     return Texture::Create(createInfo, name);
   }
-
-  bool SamplerState::operator==(const SamplerState& rhs) const
-  {
-    return 
-      minFilter     == rhs.minFilter &&
-      magFilter     == rhs.magFilter &&
-      mipmapFilter  == rhs.mipmapFilter &&
-      addressModeU  == rhs.addressModeU &&
-      addressModeV  == rhs.addressModeV &&
-      addressModeW  == rhs.addressModeW &&
-      borderColor   == rhs.borderColor &&
-      anisotropy    == rhs.anisotropy &&
-      compareEnable == rhs.compareEnable &&
-      compareOp     == rhs.compareOp &&
-      lodBias       == rhs.lodBias &&
-      minLod        == rhs.minLod &&
-      maxLod        == rhs.maxLod;
-  }
 }

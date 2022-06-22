@@ -57,7 +57,7 @@ namespace Fwog
 
   struct SamplerState
   {
-    bool operator==(const SamplerState& rhs) const;
+    bool operator==(const SamplerState& rhs) const noexcept = default;
 
     float lodBias{ 0 };
     float minLod{ -1000 };

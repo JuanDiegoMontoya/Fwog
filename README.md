@@ -1,4 +1,4 @@
-# Fwog (previously g)
+# Fwog
 
 Low-level OpenGL 4.6 abstraction written in C++20. The abstraction attempts to mitigate the weak points of OpenGL while providing an interface fit for use in modern renderers (outlined in [my blog post about modern OpenGL best practices](https://juandiegomontoya.github.io/modern_opengl.html)).
 
@@ -6,7 +6,7 @@ Fwog is inspired by Vulkan's and D3D12's modern design, while maintaining the si
 
 The user must bind a pipeline with all the state they intend to use in a draw prior to submitting commands, but certain things, like buffer and texture creation, are simplified. The advantage of the pipeline approach is that it's impossible to leak pipeline state (with normal usage), clarity is improved, and the driver can more easily reason about the program state.
 
-**Fwog is a WIP and should be treated as such**. It is inefficient with redundant state setting, interfaces are not final, and the code is smelly in more than a few places. If you rely on it in its current form, you might croak. Use at your own risk!
+**Fwog is a WIP and should be treated as such**. Everything is subject to change. If you rely on it in its current form, you might croak. Use at your own risk!
 
 ## Goals of Fwog
 
@@ -15,8 +15,8 @@ The user must bind a pipeline with all the state they intend to use in a draw pr
     - Type wrappers with move semantics and no copyability
     - Strongly-typed enums instead of defines
   - Reduce or remove global state (by requiring render passes and pipelines)
-  - Sane vertex specification (using vertex format)
-  - Automatic object cleanup (RAII)
+  - Sane vertex specification (using vertex format + separate vertex buffer binding)
+  - Automatic object cleanup with RAII
   - Use C++ standard library features like std::span or std::vector instead of raw pointers
 - Ease of use
   - Easier to create and track objects
@@ -25,6 +25,7 @@ The user must bind a pipeline with all the state they intend to use in a draw pr
   - No built-in samplers on textures (require usage of sampler objects)
   - No binding to edit (replaced by member functions that internally use DSA)
   - No compatibility profile or "old" features (like glClear)
+  - No need to track framebuffers and specify draw buffers: just submit a list of render targets before drawing (internal framebuffers are deduplicated)
 
 It may be noted that the API heavily resembles Vulkan. This is intentional.
 
@@ -67,6 +68,7 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 
 - [x] Sampler deduplication
 - [X] State deduplication
+- [ ] Automated debug marker placement
 - [ ] Dynamic state (careful to allow only dynamic state that is free to change on modern hardware)
 - [ ] Context object/global object management
 - [ ] Forced driver pipeline compilation to reduce stuttering (issue dummy draw/dispatch when compiling pipelines)
