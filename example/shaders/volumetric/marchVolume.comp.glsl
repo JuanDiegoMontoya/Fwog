@@ -80,6 +80,7 @@ float powder(float d)
 float ShadowESM(vec4 clip)
 {
   vec4 unorm = clip;
+  if (any(greaterThan(unorm.xyz, vec3(1.0)))) return 1.0;
   unorm.xy = unorm.xy * .5 + .5;
   float lightDepth = textureLod(s_exponentialShadowDepth, unorm.xy, 0.0).x;
   float eyeDepth = unorm.z;
@@ -152,7 +153,7 @@ void main()
     // Unproject the inverted depth to get the world position of this froxel.
     vec3 pCur = UnprojectUVZO(zInv, uv, uniforms.invViewProjVolume);
     
-    // Calculate the distance traveled through the material from the last sample to the current.
+    // The step size is not constant, so we calculate it here.
     float d = distance(pPrev, pCur);
     pPrev = pCur;
 

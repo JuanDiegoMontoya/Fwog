@@ -40,25 +40,29 @@ void main()
     return;
   vec3 uvw = (vec3(gid) + 0.5) / targetDim;
 
+  // Apply our own curve by squaring the linear depth, then convert to inverted window-space Z and unproject it to get world position.
   float zInv = InvertDepthZO(uvw.z * uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
   vec3 p = UnprojectUVZO(zInv, uvw.xy, uniforms.invViewProjVolume);
-  //vec3 p = UnprojectUVZO(uvw.z, uvw.xy, uniforms.invViewProjVolume);
-  vec3 t = vec3(.2, 0.1, .3) * uniforms.time;
-  
-  // ground fog
-  float d = max((snoise(vec4(p * 0.21 + t, t * 1.2)) + 1.0) * .15, 0.0);
-  d *= (1.0 - smoothstep(0, 10, p.y)) * (smoothstep(-15, 0, p.y));
-  //d = 0;
 
+  // ground fog
+  vec3 t = vec3(.2, 0.1, .3) * uniforms.time;
+  float d = max((snoise(vec4(p * 0.11 + t, t * 1.2)) + 1.0) * .15, 0.0);
+
+  // Fade out fog if too low or too high.
+  d *= (1.0 - smoothstep(0, 10, p.y)) * (smoothstep(-15, 0, p.y));
+
+  // Fade out fog if too far from center of the world.
   d *= 1.0 - smoothstep(0, 10, distance(abs(p.xz), vec2(0)) - 25);
 
-  // clouds
-  //float d = max((snoise(vec4(p * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
-  //d += max((snoise(vec4(p * 0.01 + t * .2, t * 0.05)) + 0.1) * .01, 0.0);
+  // Clouds. Only work if volume far plane is quite large.
+  // float cd = max((snoise(vec4(p * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
+  // cd += max((snoise(vec4(p * 0.01 + t * .2, t * 0.05)) + 0.1) * .01, 0.0);
+  // cd *= (1.0 - smoothstep(10, 30, abs(p.y - 100.)));
+  // d += cd;
   
   vec3 c = vec3(12, 12, 12); // ambient lighting
 
-  // cube
+  // Fog cube.
   d += 1.0 - smoothstep(0.0, .25, sdBox(p - vec3(3., 2., 0.), vec3(0.75)));
 
 #if FROG
@@ -72,9 +76,6 @@ void main()
 
   // sphere
   //d += 1.0 - smoothstep(3, 5, distance(p, vec3(0, 5, 0)));
-
-  // clouds
-  //d *= (1.0 - smoothstep(10, 30, abs(p.y - 200.)));
 
   imageStore(i_target, gid, vec4(c, d));
 }
