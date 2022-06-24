@@ -322,24 +322,22 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto gcolorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
   auto gnormalTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16_SNORM);
   auto gdepthTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::D32_UNORM);
-  auto gcolorTexView = gcolorTex->View();
-  auto gnormalTexView = gnormalTex->View();
-  auto gdepthTexView = gdepthTex->View();
+
   Fwog::RenderAttachment gcolorAttachment
   {
-    .textureView = &gcolorTexView.value(),
+    .texture = &gcolorTex.value(),
     .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
     .clearOnLoad = true
   };
   Fwog::RenderAttachment gnormalAttachment
   {
-    .textureView = &gnormalTexView.value(),
+    .texture = &gnormalTex.value(),
     .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = false
   };
   Fwog::RenderAttachment gdepthAttachment
   {
-    .textureView = &gdepthTexView.value(),
+    .texture = &gdepthTex.value(),
     .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
     .clearOnLoad = true
   };
@@ -356,24 +354,22 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto rfluxTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::R11G11B10_FLOAT);
   auto rnormalTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::R16G16B16_SNORM);
   auto rdepthTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::D16_UNORM);
-  auto rfluxTexView = rfluxTex->View();
-  auto rnormalTexView = rnormalTex->View();
-  auto rdepthTexView = rdepthTex->View();
+
   Fwog::RenderAttachment rcolorAttachment
   {
-    .textureView = &rfluxTexView.value(),
+    .texture = &rfluxTex.value(),
     .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = false
   };
   Fwog::RenderAttachment rnormalAttachment
   {
-    .textureView = &rnormalTexView.value(),
+    .texture = &rnormalTex.value(),
     .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = false
   };
   Fwog::RenderAttachment rdepthAttachment
   {
-    .textureView = &rdepthTexView.value(),
+    .texture = &rdepthTex.value(),
     .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
     .clearOnLoad = true
   };
@@ -387,7 +383,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   };
 
   std::optional<Fwog::Texture> indirectLightingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
-  std::optional<Fwog::TextureView> indirectLightingTexView = indirectLightingTex->View();
 
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
@@ -439,7 +434,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   };
 
   auto clusterTexture = Fwog::Texture::Create(clusterTexInfo, "Cluster Texture");
-  auto clusterTextureView = clusterTexture->View();
 
   // atomic counter + uint array
   auto clusterIndicesBuffer = Fwog::Buffer::Create(sizeof(uint32_t) + sizeof(uint32_t) * 10000);
@@ -634,16 +628,16 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       //Fwog::TimerScoped scopedTimer(timer);
       Fwog::ScopedDebugMarker marker("Indirect Illumination");
       Fwog::Cmd::BindComputePipeline(rsmIndirectPipeline);
-      Fwog::Cmd::BindSampledImage(0, *indirectLightingTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, *gcolorTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, *gnormalTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, *gdepthTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, *rfluxTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(5, *rnormalTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(6, *rdepthTexView, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(0, *indirectLightingTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, *gcolorTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(2, *gnormalTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(3, *gdepthTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(4, *rfluxTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(5, *rnormalTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(6, *rdepthTex, *nearestSampler);
       Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       Fwog::Cmd::BindUniformBuffer(1, *rsmUniformBuffer, 0, rsmUniformBuffer->Size());
-      Fwog::Cmd::BindImage(0, *indirectLightingTexView, 0);
+      Fwog::Cmd::BindImage(0, *indirectLightingTex, 0);
 
       const int localSize = 8;
       const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
@@ -686,25 +680,25 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     {
       Fwog::ScopedDebugMarker marker("Shading");
       Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
-      Fwog::Cmd::BindSampledImage(0, *gcolorTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, *gnormalTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, *gdepthTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, *indirectLightingTexView, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, *rdepthTexView, *rsmShadowSampler);
+      Fwog::Cmd::BindSampledImage(0, *gcolorTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, *gnormalTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(2, *gdepthTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(3, *indirectLightingTex, *nearestSampler);
+      Fwog::Cmd::BindSampledImage(4, *rdepthTex, *rsmShadowSampler);
       Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
       Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
       Fwog::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
       Fwog::Cmd::Draw(3, 1, 0, 0);
 
-      Fwog::TextureView* tex{};
+      Fwog::Texture* tex{};
       if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-        tex = &gcolorTexView.value();
+        tex = &gcolorTex.value();
       if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-        tex = &gnormalTexView.value();
+        tex = &gnormalTex.value();
       if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
-        tex = &gdepthTexView.value();
+        tex = &gdepthTex.value();
       if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
-        tex = &indirectLightingTexView.value();
+        tex = &indirectLightingTex.value();
       if (tex)
       {
         Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);

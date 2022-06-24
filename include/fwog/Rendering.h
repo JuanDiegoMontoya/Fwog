@@ -6,7 +6,6 @@
 namespace Fwog
 {
   class Texture;
-  class TextureView;
   class TextureSampler;
   class Buffer;
   struct GraphicsPipeline;
@@ -36,7 +35,7 @@ namespace Fwog
 
   struct RenderAttachment
   {
-    TextureView* textureView = nullptr;
+    const Texture* texture = nullptr;
     ClearValue clearValue;
     bool clearOnLoad = false;
   };
@@ -81,8 +80,8 @@ namespace Fwog
   void EndCompute();
 
   void BlitTexture(
-    const TextureView& source,
-    const TextureView& target,
+    const Texture& source,
+    const Texture& target,
     Offset3D sourceOffset,
     Offset3D targetOffset,
     Extent3D sourceExtent,
@@ -92,7 +91,7 @@ namespace Fwog
 
   // blit to 0
   void BlitTextureToSwapchain(
-    const TextureView& source,
+    const Texture& source,
     Offset3D sourceOffset,
     Offset3D targetOffset,
     Extent3D sourceExtent,
@@ -101,8 +100,8 @@ namespace Fwog
     AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
   void CopyTexture(
-    const TextureView& source,
-    const TextureView& target,
+    const Texture& source,
+    const Texture& target,
     uint32_t sourceLevel,
     uint32_t targetLevel,
     Offset3D sourceOffset,
@@ -145,8 +144,8 @@ namespace Fwog
     // valid in render and compute scopes
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
-    void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
-    void BindImage(uint32_t index, const TextureView& textureView, uint32_t level);                       // glBindImageTexture{s}
+    void BindSampledImage(uint32_t index, const Texture& texture, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
+    void BindImage(uint32_t index, const Texture& texture, uint32_t level);                       // glBindImageTexture{s}
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset);

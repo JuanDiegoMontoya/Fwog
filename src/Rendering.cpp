@@ -124,17 +124,17 @@ namespace Fwog
 
     const auto& ri = renderInfo;
 
-    std::vector<const TextureView*> colorAttachments;
+    std::vector<const Texture*> colorAttachments;
     colorAttachments.reserve(ri.colorAttachments.size());
     for (const auto& attachment : ri.colorAttachments)
     {
-      colorAttachments.push_back(attachment.textureView);
+      colorAttachments.push_back(attachment.texture);
     }
     detail::RenderAttachments attachments
     {
       .colorAttachments = colorAttachments,
-      .depthAttachment = ri.depthAttachment ? ri.depthAttachment->textureView : nullptr,
-      .stencilAttachment = ri.stencilAttachment ? ri.stencilAttachment->textureView : nullptr,
+      .depthAttachment = ri.depthAttachment ? ri.depthAttachment->texture : nullptr,
+      .stencilAttachment = ri.stencilAttachment ? ri.stencilAttachment->texture : nullptr,
     };
 
     sFbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
@@ -150,7 +150,7 @@ namespace Fwog
           glColorMaski(i, true, true, true, true);
           sLastColorMask[i] = ColorComponentFlag::RGBA_BITS;
         }
-        auto format = attachment.textureView->CreateInfo().format;
+        auto format = attachment.texture->CreateInfo().format;
         auto baseTypeClass = detail::FormatToBaseTypeClass(format);
         switch (baseTypeClass)
         {
@@ -705,20 +705,20 @@ namespace Fwog
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
-    void BindSampledImage(uint32_t index, const TextureView& textureView, const TextureSampler& sampler)
+    void BindSampledImage(uint32_t index, const Texture& texture, const TextureSampler& sampler)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
 
-      glBindTextureUnit(index, textureView.Handle());
+      glBindTextureUnit(index, texture.Handle());
       glBindSampler(index, sampler.Handle());
     }
 
-    void BindImage(uint32_t index, const TextureView& textureView, uint32_t level)
+    void BindImage(uint32_t index, const Texture& texture, uint32_t level)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
-      FWOG_ASSERT(level < textureView.CreateInfo().numLevels);
+      FWOG_ASSERT(level < texture.CreateInfo().mipLevels);
 
-      glBindImageTexture(index, textureView.Handle(), level, GL_TRUE, 0, GL_READ_WRITE, detail::FormatToGL(textureView.CreateInfo().format));
+      glBindImageTexture(index, texture.Handle(), level, GL_TRUE, 0, GL_READ_WRITE, detail::FormatToGL(texture.CreateInfo().format));
     }
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

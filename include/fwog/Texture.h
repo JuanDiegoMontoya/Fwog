@@ -12,6 +12,7 @@ namespace Fwog
   }
 
   class TextureSampler;
+  class TextureView;
   class Texture;
 
   struct TextureCreateInfo
@@ -75,39 +76,6 @@ namespace Fwog
     CompareOp compareOp      = CompareOp::NEVER;
   };
 
-  // serves as lightweight view of an image, cheap to construct, copy, and meant to be passed by value
-  class TextureView
-  {
-  public:
-    // make a texture view with explicit parameters
-    [[nodiscard]] static std::optional<TextureView> Create(const TextureViewCreateInfo& createInfo, const Texture& texture, std::string_view name = "");
-    [[nodiscard]] static std::optional<TextureView> Create(const TextureViewCreateInfo& createInfo, const TextureView& textureView, std::string_view name = "");
-
-    // make a texture view with automatic parameters (view of whole texture, same type)
-    [[nodiscard]] static std::optional<TextureView> Create(const Texture& texture, std::string_view name = "");
-
-    TextureView(const TextureView& other);
-    TextureView(TextureView&& old) noexcept;
-    TextureView& operator=(const TextureView& other);
-    TextureView& operator=(TextureView&& old) noexcept;
-    ~TextureView();
-
-    void SubImage(const TextureUpdateInfo& info) const;
-    void ClearImage(const TextureClearInfo& info);
-    [[nodiscard]] uint32_t Handle() const { return id_; }
-    [[nodiscard]] TextureViewCreateInfo CreateInfo() const { return createInfo_; }
-    [[nodiscard]] Extent3D Extent() const { return extent_; }
-
-  private:
-    friend class Texture;
-    static std::optional<TextureView> Create(const TextureViewCreateInfo& createInfo, uint32_t texture, Extent3D extent, std::string_view name = "");
-    TextureView() {};
-    uint32_t id_{};
-    TextureViewCreateInfo createInfo_{};
-    Extent3D extent_{};
-  };
-
-  // serves as the physical storage for textures
   class Texture
   {
   public:
@@ -120,18 +88,45 @@ namespace Fwog
     void ClearImage(const TextureClearInfo& info);
     void GenMipmaps();
     [[nodiscard]] uint32_t Handle() const { return id_; }
-    [[nodiscard]] std::optional<TextureView> View() const;
-    [[nodiscard]] std::optional<TextureView> MipView(uint32_t level) const;
+    [[nodiscard]] std::optional<TextureView> View() const; // TODO: rename to CreateView
+    [[nodiscard]] std::optional<TextureView> MipView(uint32_t level) const; // TODO: rename to CreateMipView
+    //[[nodiscard]] std::optional<TextureView> LayerView(uint32_t layer) const; // TODO: rename to CreateLayerView
     [[nodiscard]] const TextureCreateInfo& CreateInfo() const { return createInfo_; }
+    [[nodiscard]] Extent3D Extent() const { return createInfo_.extent; }
 
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
 
-  private:
-    friend class TextureView;
+  protected:
+    friend class TextureView; // TODO: remove
     Texture() {};
     uint32_t id_{};
     TextureCreateInfo createInfo_{};
+  };
+
+  class TextureView : public Texture
+  {
+  public:
+    // make a texture view with explicit parameters
+    [[nodiscard]] static std::optional<TextureView> Create(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name = "");
+    [[nodiscard]] static std::optional<TextureView> Create(const TextureViewCreateInfo& viewInfo, const TextureView& textureView, std::string_view name = "");
+
+    // make a texture view with automatic parameters (view of whole texture, same type)
+    [[nodiscard]] static std::optional<TextureView> Create(const Texture& texture, std::string_view name = "");
+
+    TextureView(TextureView&& old) noexcept;
+    TextureView& operator=(TextureView&& old) noexcept;
+    ~TextureView();
+
+    [[nodiscard]] TextureViewCreateInfo ViewInfo() const { return viewInfo_; }
+    
+    TextureView(const TextureView& other) = delete;
+    TextureView& operator=(const TextureView& other) = delete;
+
+  private:
+    friend class Texture; // TODO: remove
+    TextureView() {};
+    TextureViewCreateInfo viewInfo_{};
   };
 
   // trivially copy + move constructible
@@ -143,20 +138,11 @@ namespace Fwog
 
   private:
     friend class detail::SamplerCache;
-
     TextureSampler() {}; // you cannot create samplers out of thin air
     explicit TextureSampler(uint32_t id) : id_(id) {};
 
     uint32_t id_{};
   };
-
-  // unsafe way to bind texture view and sampler using only API handles
-  void BindTextureViewNative(uint32_t slot, uint32_t textureViewAPIHandle, uint32_t samplerAPIHandle);
-  
-  void BindTextureView(uint32_t slot, const TextureView& textureView, const TextureSampler& textureSampler);
-  void UnbindTextureView(uint32_t slot);
-
-  void BindImage(uint32_t slot, const TextureView& textureView, uint32_t level);
 
   // convenience functions
   std::optional<Texture> CreateTexture2D(Extent2D size, Format format, std::string_view name = "");

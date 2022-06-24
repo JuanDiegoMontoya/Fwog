@@ -4,16 +4,16 @@
 
 namespace Fwog
 {
-  class TextureView;
+  class Texture;
 }
 
 namespace Fwog::detail
 {
   struct RenderAttachments
   {
-    std::vector<const TextureView*> colorAttachments;
-    const TextureView* depthAttachment = nullptr;
-    const TextureView* stencilAttachment = nullptr;
+    std::vector<const Texture*> colorAttachments;
+    const Texture* depthAttachment = nullptr;
+    const Texture* stencilAttachment = nullptr;
 
     bool operator==(const RenderAttachments& rhs) const;
   };
