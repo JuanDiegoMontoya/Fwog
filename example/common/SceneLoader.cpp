@@ -373,7 +373,7 @@ namespace Utility
         samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
       }
 
-      auto sampler = Fwog::TextureSampler::Create(samplerState);
+      auto sampler = Fwog::Sampler::Create(samplerState);
 
       FWOG_ASSERT(image.component == 4);
       FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);

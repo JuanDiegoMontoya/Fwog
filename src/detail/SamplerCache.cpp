@@ -6,7 +6,7 @@
 
 namespace Fwog::detail
 {
-  TextureSampler SamplerCache::CreateOrGetCachedTextureSampler(const SamplerState& samplerState)
+  Sampler SamplerCache::CreateOrGetCachedTextureSampler(const SamplerState& samplerState)
   {
     if (auto it = samplerCache_.find(samplerState); it != samplerCache_.end())
     {
@@ -95,7 +95,7 @@ namespace Fwog::detail
 
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_LOD, samplerState.maxLod);
 
-    return samplerCache_.insert({ samplerState, TextureSampler(sampler) }).first->second;
+    return samplerCache_.insert({ samplerState, Sampler(sampler) }).first->second;
   }
 
   size_t SamplerCache::Size() const

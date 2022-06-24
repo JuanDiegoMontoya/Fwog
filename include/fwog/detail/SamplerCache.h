@@ -17,11 +17,11 @@ namespace Fwog::detail
   class SamplerCache
   {
   public:
-    TextureSampler CreateOrGetCachedTextureSampler(const SamplerState& samplerState);
+    Sampler CreateOrGetCachedTextureSampler(const SamplerState& samplerState);
     size_t Size() const;
     void Clear();
 
   private:
-    std::unordered_map<SamplerState, TextureSampler> samplerCache_;
+    std::unordered_map<SamplerState, Sampler> samplerCache_;
   };
 }

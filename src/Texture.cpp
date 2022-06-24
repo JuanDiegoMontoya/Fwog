@@ -244,7 +244,7 @@ namespace Fwog
 
 
 
-  std::optional<TextureSampler> TextureSampler::Create(const SamplerState& samplerState)
+  std::optional<Sampler> Sampler::Create(const SamplerState& samplerState)
   {
     return sSamplerCache.CreateOrGetCachedTextureSampler(samplerState);
   }

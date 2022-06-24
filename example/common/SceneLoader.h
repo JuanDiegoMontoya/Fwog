@@ -23,7 +23,7 @@ namespace Utility
   {
     std::optional<Fwog::Texture> texture;
     std::optional<Fwog::TextureView> textureView;
-    std::optional<Fwog::TextureSampler> sampler;
+    std::optional<Fwog::Sampler> sampler;
   };
 
   enum class MaterialFlagBit

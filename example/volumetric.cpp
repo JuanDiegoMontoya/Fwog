@@ -488,9 +488,9 @@ public:
     assert(sourceVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
     assert(targetVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
 
-    auto sampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
+    auto sampler = Fwog::Sampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-    //auto shadowSampler = Fwog::TextureSampler::Create({ .compareEnable = true, .compareOp = Fwog::CompareOp::LESS });
+    //auto shadowSampler = Fwog::Sampler::Create({ .compareEnable = true, .compareOp = Fwog::CompareOp::LESS });
 
     Fwog::BeginCompute();
     Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
@@ -517,7 +517,7 @@ public:
     assert(sourceVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
     assert(targetColor.Extent() == gbufferColor.Extent() && targetColor.Extent() == gbufferDepth.Extent());
 
-    auto sampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
+    auto sampler = Fwog::Sampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
 
     Fwog::Extent3D targetDim = targetColor.Extent();
 
@@ -616,13 +616,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ss.magFilter = Fwog::Filter::NEAREST;
   ss.addressModeU = Fwog::AddressMode::REPEAT;
   ss.addressModeV = Fwog::AddressMode::REPEAT;
-  auto nearestSampler = Fwog::TextureSampler::Create(ss);
+  auto nearestSampler = Fwog::Sampler::Create(ss);
 
   ss.compareEnable = true;
   ss.compareOp = Fwog::CompareOp::LESS_OR_EQUAL;
   ss.minFilter = Fwog::Filter::LINEAR;
   ss.magFilter = Fwog::Filter::LINEAR;
-  auto shadowSampler = Fwog::TextureSampler::Create(ss);
+  auto shadowSampler = Fwog::Sampler::Create(ss);
 
   Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
   Fwog::GraphicsPipeline shadowPipeline = CreateShadowPipeline();
@@ -818,7 +818,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
           Fwog::ScopedDebugMarker marker("Copy to ESM");
           esmUniformBuffer->SubData(config.esmExponent, 0);
 
-          auto nearestSampler = Fwog::TextureSampler::Create({ 
+          auto nearestSampler = Fwog::Sampler::Create({ 
             .minFilter = Fwog::Filter::NEAREST, 
             .magFilter = Fwog::Filter::NEAREST, 
             .addressModeU = Fwog::AddressMode::MIRRORED_REPEAT,
@@ -838,7 +838,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
           Fwog::ScopedDebugMarker marker("Blur ESM");
           Fwog::Cmd::BindComputePipeline(gaussianBlurPipeline);
 
-          auto linearSampler = Fwog::TextureSampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
+          auto linearSampler = Fwog::Sampler::Create({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
 
           struct
           {

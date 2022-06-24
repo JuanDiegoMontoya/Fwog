@@ -454,27 +454,27 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ss.magFilter = Fwog::Filter::NEAREST;
   ss.addressModeU = Fwog::AddressMode::REPEAT;
   ss.addressModeV = Fwog::AddressMode::REPEAT;
-  auto nearestSampler = Fwog::TextureSampler::Create(ss);
+  auto nearestSampler = Fwog::Sampler::Create(ss);
 
   ss.minFilter = Fwog::Filter::LINEAR;
   ss.magFilter = Fwog::Filter::LINEAR;
   ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
   ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
   ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
-  auto rsmColorSampler = Fwog::TextureSampler::Create(ss);
+  auto rsmColorSampler = Fwog::Sampler::Create(ss);
 
   ss.minFilter = Fwog::Filter::NEAREST;
   ss.magFilter = Fwog::Filter::NEAREST;
   ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
   ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
   ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
-  auto rsmDepthSampler = Fwog::TextureSampler::Create(ss);
+  auto rsmDepthSampler = Fwog::Sampler::Create(ss);
 
   ss.compareEnable = true;
   ss.compareOp = Fwog::CompareOp::LESS;
   ss.minFilter = Fwog::Filter::LINEAR;
   ss.magFilter = Fwog::Filter::LINEAR;
-  auto rsmShadowSampler = Fwog::TextureSampler::Create(ss);
+  auto rsmShadowSampler = Fwog::Sampler::Create(ss);
 
   Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
   Fwog::GraphicsPipeline rsmScenePipeline = CreateShadowPipeline();

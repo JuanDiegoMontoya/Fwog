@@ -6,7 +6,7 @@
 namespace Fwog
 {
   class Texture;
-  class TextureSampler;
+  class Sampler;
   class Buffer;
   struct GraphicsPipeline;
   struct ComputePipeline;
@@ -144,7 +144,7 @@ namespace Fwog
     // valid in render and compute scopes
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
-    void BindSampledImage(uint32_t index, const Texture& texture, const TextureSampler& sampler); // glBindTextureUnit + glBindSampler
+    void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler); // glBindTextureUnit + glBindSampler
     void BindImage(uint32_t index, const Texture& texture, uint32_t level);                       // glBindImageTexture{s}
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);

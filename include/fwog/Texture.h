@@ -11,9 +11,7 @@ namespace Fwog
     class SamplerCache;
   }
 
-  class TextureSampler;
   class TextureView;
-  class Texture;
 
   struct TextureCreateInfo
   {
@@ -130,16 +128,16 @@ namespace Fwog
   };
 
   // trivially copy + move constructible
-  class TextureSampler
+  class Sampler
   {
   public:
-    [[nodiscard]] static std::optional<TextureSampler> Create(const SamplerState& samplerState);
+    [[nodiscard]] static std::optional<Sampler> Create(const SamplerState& samplerState);
     [[nodiscard]] uint32_t Handle() const { return id_; }
 
   private:
     friend class detail::SamplerCache;
-    TextureSampler() {}; // you cannot create samplers out of thin air
-    explicit TextureSampler(uint32_t id) : id_(id) {};
+    Sampler() {}; // you cannot create samplers out of thin air
+    explicit Sampler(uint32_t id) : id_(id) {};
 
     uint32_t id_{};
   };

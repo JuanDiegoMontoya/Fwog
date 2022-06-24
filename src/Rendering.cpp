@@ -705,7 +705,7 @@ namespace Fwog
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
-    void BindSampledImage(uint32_t index, const Texture& texture, const TextureSampler& sampler)
+    void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler)
     {
       FWOG_ASSERT(isRendering || isComputeActive);
 
