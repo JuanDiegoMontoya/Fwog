@@ -1,7 +1,7 @@
-#include <fwog/Common.h>
-#include <fwog/detail/ApiToEnum.h>
-#include <fwog/detail/SamplerCache.h>
-#include <fwog/Texture.h>
+#include <Fwog/Common.h>
+#include <Fwog/detail/ApiToEnum.h>
+#include <Fwog/detail/SamplerCache.h>
+#include <Fwog/Texture.h>
 #include <utility>
 #include <array>
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <glad/gl.h>
-#include <fwog/BasicTypes.h>
-#include <fwog/Buffer.h>
+#include <Fwog/BasicTypes.h>
+#include <Fwog/Buffer.h>
 
 namespace Fwog::detail
 {

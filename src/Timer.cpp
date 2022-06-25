@@ -1,5 +1,5 @@
-#include <fwog/Common.h>
-#include <fwog/Timer.h>
+#include <Fwog/Common.h>
+#include <Fwog/Timer.h>
 #include <numeric>
 
 namespace Fwog

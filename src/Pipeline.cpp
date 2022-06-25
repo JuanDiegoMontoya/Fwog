@@ -1,5 +1,5 @@
-#include <fwog/Pipeline.h>
-#include <fwog/detail/PipelineManager.h>
+#include <Fwog/Pipeline.h>
+#include <Fwog/detail/PipelineManager.h>
 
 namespace Fwog
 {

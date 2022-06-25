@@ -1,9 +1,9 @@
-#include "fwog/detail/VertexArrayCache.h"
-#include "fwog/detail/Hash.h"
-#include "fwog/detail/ApiToEnum.h"
-#include "fwog/detail/PipelineManager.h"
-#include "fwog/Pipeline.h"
-#include "fwog/Common.h"
+#include "Fwog/detail/VertexArrayCache.h"
+#include "Fwog/detail/Hash.h"
+#include "Fwog/detail/ApiToEnum.h"
+#include "Fwog/detail/PipelineManager.h"
+#include "Fwog/Pipeline.h"
+#include "Fwog/Common.h"
 
 namespace Fwog::detail
 {

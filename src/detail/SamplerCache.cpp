@@ -1,8 +1,8 @@
-#include "fwog/detail/SamplerCache.h"
-#include "fwog/detail/ApiToEnum.h"
-#include "fwog/detail/Hash.h"
+#include "Fwog/detail/SamplerCache.h"
+#include "Fwog/detail/ApiToEnum.h"
+#include "Fwog/detail/Hash.h"
 #include "glad/gl.h"
-#include "fwog/Common.h"
+#include "Fwog/Common.h"
 
 namespace Fwog::detail
 {

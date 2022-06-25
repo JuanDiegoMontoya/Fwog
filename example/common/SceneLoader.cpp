@@ -7,7 +7,7 @@
 #include <tuple>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
-#include <fwog/Common.h>
+#include <Fwog/Common.h>
 
 //#include <glm/gtx/string_cast.hpp>
 

@@ -1,6 +1,6 @@
 #include <Fwog/Common.h>
 #include <Fwog/Shader.h>
-#include <fwog/Exception.h>
+#include <Fwog/Exception.h>
 #include <string_view>
 #include <string>
 

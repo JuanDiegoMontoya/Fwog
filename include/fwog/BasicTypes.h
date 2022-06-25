@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <fwog/detail/Flags.h>
+#include <Fwog/detail/Flags.h>
 
 namespace Fwog
 {

@@ -1,6 +1,6 @@
-#include "fwog/detail/FramebufferCache.h"
-#include "fwog/detail/Hash.h"
-#include "fwog/Texture.h"
+#include "Fwog/detail/FramebufferCache.h"
+#include "Fwog/detail/Hash.h"
+#include "Fwog/Texture.h"
 #include "glad/gl.h"
 
 namespace Fwog::detail

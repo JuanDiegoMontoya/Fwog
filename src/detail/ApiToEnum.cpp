@@ -1,5 +1,5 @@
-#include <fwog/Common.h>
-#include <fwog/detail/ApiToEnum.h>
+#include <Fwog/Common.h>
+#include <Fwog/detail/ApiToEnum.h>
 
 namespace Fwog::detail
 {

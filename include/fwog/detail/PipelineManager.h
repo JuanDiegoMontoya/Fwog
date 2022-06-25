@@ -1,5 +1,5 @@
 #pragma once
-#include <fwog/Pipeline.h>
+#include <Fwog/Pipeline.h>
 #include <vector>
 #include <memory>
 

@@ -1,6 +1,6 @@
 #pragma once
-#include <fwog/detail/Flags.h>
-#include <fwog/BasicTypes.h>
+#include <Fwog/detail/Flags.h>
+#include <Fwog/BasicTypes.h>
 #include <span>
 #include <type_traits>
 

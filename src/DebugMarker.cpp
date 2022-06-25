@@ -1,5 +1,5 @@
-#include <fwog/Common.h>
-#include <fwog/DebugMarker.h>
+#include <Fwog/Common.h>
+#include <Fwog/DebugMarker.h>
 
 namespace Fwog
 {

@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.14)
 
-project(fwog)
+project(Fwog)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -25,25 +25,25 @@ set(fwog_source_files
 )
 
 set(fwog_header_files
-	include/fwog/Common.h
-	include/fwog/BasicTypes.h
-	include/fwog/Buffer.h
-	include/fwog/DebugMarker.h
-	include/fwog/Fence.h
-	include/fwog/Indirect.h
-	include/fwog/Shader.h
-	include/fwog/Texture.h
-	include/fwog/Rendering.h
-	include/fwog/Pipeline.h
-	include/fwog/Timer.h
-	include/fwog/Exception.h
-	include/fwog/detail/Flags.h
-	include/fwog/detail/ApiToEnum.h
-	include/fwog/detail/PipelineManager.h
-	include/fwog/detail/FramebufferCache.h
-	include/fwog/detail/Hash.h
-	include/fwog/detail/SamplerCache.h
-	include/fwog/detail/VertexArrayCache.h
+	include/Fwog/Common.h
+	include/Fwog/BasicTypes.h
+	include/Fwog/Buffer.h
+	include/Fwog/DebugMarker.h
+	include/Fwog/Fence.h
+	include/Fwog/Indirect.h
+	include/Fwog/Shader.h
+	include/Fwog/Texture.h
+	include/Fwog/Rendering.h
+	include/Fwog/Pipeline.h
+	include/Fwog/Timer.h
+	include/Fwog/Exception.h
+	include/Fwog/detail/Flags.h
+	include/Fwog/detail/ApiToEnum.h
+	include/Fwog/detail/PipelineManager.h
+	include/Fwog/detail/FramebufferCache.h
+	include/Fwog/detail/Hash.h
+	include/Fwog/detail/SamplerCache.h
+	include/Fwog/detail/VertexArrayCache.h
 )
 
 add_library(lib_fwog ${fwog_source_files} ${fwog_header_files})

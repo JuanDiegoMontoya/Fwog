@@ -1,6 +1,6 @@
-#include <fwog/Common.h>
-#include <fwog/detail/ApiToEnum.h>
-#include <fwog/Buffer.h>
+#include <Fwog/Common.h>
+#include <Fwog/detail/ApiToEnum.h>
+#include <Fwog/Buffer.h>
 
 namespace Fwog
 {

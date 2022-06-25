@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string_view>
-#include <fwog/BasicTypes.h>
+#include <Fwog/BasicTypes.h>
 
 namespace Fwog
 {
