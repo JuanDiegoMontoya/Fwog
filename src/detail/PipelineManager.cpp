@@ -1,7 +1,8 @@
-#include <fwog/Common.h>
-#include <fwog/detail/PipelineManager.h>
-#include <fwog/detail/Hash.h>
-#include <fwog/Shader.h>
+#include <Fwog/Common.h>
+#include <Fwog/detail/PipelineManager.h>
+#include <Fwog/detail/Hash.h>
+#include <Fwog/Shader.h>
+#include <Fwog/Exception.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -31,7 +32,7 @@ namespace Fwog::detail
       };
     }
 
-    bool LinkProgram(GLuint program, std::string* outInfoLog)
+    bool LinkProgram(GLuint program, std::string& outInfoLog)
     {
       glLinkProgram(program);
 
@@ -39,12 +40,9 @@ namespace Fwog::detail
       glGetProgramiv(program, GL_LINK_STATUS, &success);
       if (!success)
       {
-        if (outInfoLog)
-        {
-          const GLsizei length = 512;
-          outInfoLog->resize(length + 1, '\0');
-          glGetProgramInfoLog(program, length, nullptr, outInfoLog->data());
-        }
+        const GLsizei length = 512;
+        outInfoLog.resize(length + 1, '\0');
+        glGetProgramInfoLog(program, length, nullptr, outInfoLog.data());
         return false;
       }
 
@@ -52,7 +50,7 @@ namespace Fwog::detail
     }
   }
 
-  std::optional<GraphicsPipeline> CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
+  GraphicsPipeline CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
     FWOG_ASSERT(info.vertexShader && "A graphics pipeline must at least have a vertex shader");
     GLuint program = glCreateProgram();
@@ -62,10 +60,11 @@ namespace Fwog::detail
       glAttachShader(program, info.fragmentShader->Handle());
     }
 
-    if (!LinkProgram(program, nullptr))
+    std::string infolog;
+    if (!LinkProgram(program, infolog))
     {
       glDeleteProgram(program);
-      return std::nullopt;
+      throw PipelineCompilationException("Failed to compile graphics pipeline.\n" + infolog);
     }
 
     if (auto it = gGraphicsPipelines.find(program); it != gGraphicsPipelines.end())
@@ -100,16 +99,17 @@ namespace Fwog::detail
     return true;
   }
 
-  std::optional<ComputePipeline> CompileComputePipelineInternal(const ComputePipelineInfo& info)
+  ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info)
   {
     FWOG_ASSERT(info.shader);
     GLuint program = glCreateProgram();
     glAttachShader(program, info.shader->Handle());
 
-    if (!LinkProgram(program, nullptr))
+    std::string infolog;
+    if (!LinkProgram(program, infolog))
     {
       glDeleteProgram(program);
-      return std::nullopt;
+      throw PipelineCompilationException("Failed to compile compute pipeline.\n" + infolog);
     }
 
     if (auto it = gComputePipelines.find(program); it != gComputePipelines.end())

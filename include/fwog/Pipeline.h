@@ -2,7 +2,6 @@
 #include <fwog/BasicTypes.h>
 #include <fwog/detail/Flags.h>
 #include <span>
-#include <optional>
 
 namespace Fwog
 {
@@ -125,9 +124,9 @@ namespace Fwog
     uint64_t id;
   };
 
-  std::optional<GraphicsPipeline> CompileGraphicsPipeline(const GraphicsPipelineInfo& info);
+  GraphicsPipeline CompileGraphicsPipeline(const GraphicsPipelineInfo& info);
   bool DestroyGraphicsPipeline(GraphicsPipeline pipeline);
 
-  std::optional<ComputePipeline> CompileComputePipeline(const ComputePipelineInfo& info);
+  ComputePipeline CompileComputePipeline(const ComputePipelineInfo& info);
   bool DestroyComputePipeline(ComputePipeline pipeline);
 }

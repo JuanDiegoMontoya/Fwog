@@ -36,6 +36,7 @@ set(fwog_header_files
 	include/fwog/Rendering.h
 	include/fwog/Pipeline.h
 	include/fwog/Timer.h
+	include/fwog/Exception.h
 	include/fwog/detail/Flags.h
 	include/fwog/detail/ApiToEnum.h
 	include/fwog/detail/PipelineManager.h

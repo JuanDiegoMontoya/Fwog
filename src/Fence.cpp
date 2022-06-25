@@ -1,15 +1,9 @@
-#include <fwog/Common.h>
-#include <fwog/Fence.h>
+#include <Fwog/Common.h>
+#include <Fwog/Fence.h>
 #include <numeric>
-#include <optional>
 
 namespace Fwog
 {
-
-  std::optional<Fence> Fence::Create()
-  {
-    return Fence{};
-  }
 
   Fence::Fence()
   {

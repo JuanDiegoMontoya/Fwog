@@ -1,12 +1,14 @@
 #include "common/common.h"
 
 #include <array>
+#include <iostream>
 
-#include <fwog/BasicTypes.h>
-#include <fwog/Rendering.h>
-#include <fwog/Pipeline.h>
-#include <fwog/Buffer.h>
-#include <fwog/Shader.h>
+#include <Fwog/BasicTypes.h>
+#include <Fwog/Rendering.h>
+#include <Fwog/Pipeline.h>
+#include <Fwog/Buffer.h>
+#include <Fwog/Shader.h>
+#include <Fwog/Exception.h>
 
 ////////////////////////////////////// Globals
 const char* gVertexSource = R"(
@@ -64,20 +66,18 @@ Fwog::GraphicsPipeline CreatePipeline()
   };
   Fwog::VertexInputBindingDescription inputDescs[] = { descPos, descColor };
 
-  auto vertexShader = Fwog::Shader::Create(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource);
-  auto fragmentShader = Fwog::Shader::Create(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
+  auto vertexShader = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource);
+  auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .vertexShader = &vertexShader.value(),
-      .fragmentShader = &fragmentShader.value(),
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
       .vertexInputState = inputDescs,
       .depthState = { .depthTestEnable = false, .depthWriteEnable = false }
     });
 
-  if (!pipeline)
-    throw std::exception("Invalid pipeline");
-  return *pipeline;
+  return pipeline;
 }
 
 int main()
@@ -107,8 +107,8 @@ int main()
     .clearStencilOnLoad = false,
   };
 
-  auto vertexPosBuffer = Fwog::Buffer::Create(gTriVertices);
-  auto vertexColorBuffer = Fwog::Buffer::Create(gTriColors);
+  auto vertexPosBuffer = Fwog::Buffer(gTriVertices);
+  auto vertexColorBuffer = Fwog::Buffer(gTriColors);
 
   Fwog::GraphicsPipeline pipeline = CreatePipeline();
 
@@ -122,8 +122,8 @@ int main()
 
     Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
     Fwog::Cmd::BindGraphicsPipeline(pipeline);
-    Fwog::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
-    Fwog::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+    Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
+    Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
     Fwog::Cmd::Draw(3, 1, 0, 0);
     Fwog::EndRendering();
 

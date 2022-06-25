@@ -4,15 +4,22 @@
 
 namespace Fwog
 {
-  std::optional<Buffer> Buffer::CreateInternal(const void* data, size_t size, BufferFlags flags)
+  Buffer::Buffer(const void* data, size_t size, BufferFlags flags)
+    : size_(std::max(size, 1ull))
   {
-    size = std::max(size, 1ull);
     GLbitfield glflags = detail::BufferFlagsToGL(flags);
-    Buffer buffer{};
-    buffer.size_ = size;
-    glCreateBuffers(1, &buffer.id_);
-    glNamedBufferStorage(buffer.id_, size, data, glflags);
-    return buffer;
+    glCreateBuffers(1, &id_);
+    glNamedBufferStorage(id_, size, data, glflags);
+  }
+
+  Buffer::Buffer(size_t size, BufferFlags flags)
+    : Buffer(nullptr, size, flags)
+  {
+  }
+
+  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferFlags flags)
+    : Buffer(data.data(), data.size_bytes(), flags)
+  {
   }
 
   Buffer::Buffer(Buffer&& old) noexcept
@@ -37,6 +44,11 @@ namespace Fwog
     {
       glDeleteBuffers(1, &id_);
     }
+  }
+
+  void Buffer::SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes)
+  {
+    SubData(data.data(), data.size_bytes(), destOffsetBytes);
   }
 
   void Buffer::SubData(const void* data, size_t size, size_t offset)

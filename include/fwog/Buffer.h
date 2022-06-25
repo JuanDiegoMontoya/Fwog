@@ -1,7 +1,6 @@
 #pragma once
 #include <fwog/detail/Flags.h>
 #include <fwog/BasicTypes.h>
-#include <optional>
 #include <span>
 #include <type_traits>
 
@@ -37,42 +36,27 @@ namespace Fwog
   class Buffer
   {
   public:
-    [[nodiscard]] static std::optional<Buffer> Create(size_t size, BufferFlags flags = BufferFlag::NONE)
-    {
-      return CreateInternal(nullptr, size, flags);
-    }
-
-    [[nodiscard]] static std::optional<Buffer> Create(TriviallyCopyableByteSpan data, BufferFlags flags = BufferFlag::NONE)
-    {
-      return CreateInternal(data.data(), data.size_bytes(), flags);
-    }
-
-    Buffer(const Buffer& other) = delete;
+    explicit Buffer(size_t size, BufferFlags flags = BufferFlag::NONE);
+    explicit Buffer(TriviallyCopyableByteSpan data, BufferFlags flags = BufferFlag::NONE);
     Buffer(Buffer&& other) noexcept;
-    Buffer& operator=(const Buffer&) = delete;
     Buffer& operator=(Buffer&& other) noexcept;
+    Buffer(const Buffer& other) = delete;
+    Buffer& operator=(const Buffer&) = delete;
     ~Buffer();
 
-    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes)
-    {
-      SubData(data.data(), data.size_bytes(), destOffsetBytes);
-    }
-
-    [[nodiscard]] void* GetMappedPointer();
-
-    void UnmapPointer();
-
+    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes);
     void ClearSubData(size_t offset, size_t size, Format internalFormat, UploadFormat uploadFormat, UploadType uploadType, const void* data);
 
-    [[nodiscard]] bool IsMapped() { return isMapped_; }
+    [[nodiscard]] void* GetMappedPointer();
+    void UnmapPointer();
 
     [[nodiscard]] auto Handle() const { return id_; }
-
     [[nodiscard]] auto Size() const { return size_; }
+    [[nodiscard]] bool IsMapped() { return isMapped_; }
 
   private:
     Buffer() {}
-    static std::optional<Buffer> CreateInternal(const void* data, size_t size, BufferFlags flags);
+    Buffer(const void* data, size_t size, BufferFlags flags);
 
     void SubData(const void* data, size_t size, size_t offset = 0);
 

@@ -1,6 +1,5 @@
 #pragma once
 #include <span>
-#include <optional>
 #include <fwog/BasicTypes.h>
 
 namespace Fwog

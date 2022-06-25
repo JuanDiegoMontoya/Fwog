@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <optional>
 #include <string_view>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
@@ -21,9 +20,8 @@ namespace Utility
 
   struct CombinedTextureSampler
   {
-    std::optional<Fwog::Texture> texture;
-    std::optional<Fwog::TextureView> textureView;
-    std::optional<Fwog::Sampler> sampler;
+    Fwog::Texture texture;
+    Fwog::Sampler sampler;
   };
 
   enum class MaterialFlagBit
@@ -57,8 +55,8 @@ namespace Utility
   struct Mesh
   {
     //const GeometryBuffers* buffers;
-    std::optional<Fwog::Buffer> vertexBuffer;
-    std::optional<Fwog::Buffer> indexBuffer;
+    Fwog::Buffer vertexBuffer;
+    Fwog::Buffer indexBuffer;
     int materialIdx{};
     glm::mat4 transform{};
   };

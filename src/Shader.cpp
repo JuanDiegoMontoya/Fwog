@@ -1,9 +1,8 @@
-#include <fwog/Common.h>
-#include <fwog/Shader.h>
+#include <Fwog/Common.h>
+#include <Fwog/Shader.h>
+#include <fwog/Exception.h>
 #include <string_view>
 #include <string>
-#include <optional>
-#include <utility>
 
 namespace Fwog
 {
@@ -25,7 +24,7 @@ namespace Fwog
   {
   }
 
-  std::optional<Shader> Shader::Create(PipelineStage stage, std::string_view source, std::string* outInfoLog)
+  Shader::Shader(PipelineStage stage, std::string_view source)
   {
     const GLchar* strings = source.data();
 
@@ -37,18 +36,14 @@ namespace Fwog
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-      if (outInfoLog)
-      {
-        const GLsizei infoLength = 512;
-        outInfoLog->resize(infoLength + 1, '\0');
-        glGetShaderInfoLog(id, infoLength, nullptr, outInfoLog->data());
-      }
-      return std::nullopt;
+      std::string infoLog;
+      const GLsizei infoLength = 512;
+      infoLog.resize(infoLength + 1, '\0');
+      glGetShaderInfoLog(id, infoLength, nullptr, infoLog.data());
+      throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
     }
 
-    Shader shader{};
-    shader.id_ = id;
-    return shader;
+    id_ = id;
   }
 
   Shader::Shader(Shader&& old) noexcept

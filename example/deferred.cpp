@@ -9,14 +9,14 @@
 #include <glm/vec2.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <fwog/BasicTypes.h>
-#include <fwog/Rendering.h>
-#include <fwog/DebugMarker.h>
-#include <fwog/Timer.h>
-#include <fwog/Pipeline.h>
-#include <fwog/Texture.h>
-#include <fwog/Buffer.h>
-#include <fwog/Shader.h>
+#include <Fwog/BasicTypes.h>
+#include <Fwog/Rendering.h>
+#include <Fwog/DebugMarker.h>
+#include <Fwog/Timer.h>
+#include <Fwog/Pipeline.h>
+#include <Fwog/Texture.h>
+#include <Fwog/Buffer.h>
+#include <Fwog/Shader.h>
 
 ////////////////////////////////////// Types
 struct View
@@ -194,39 +194,37 @@ std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 
 Fwog::GraphicsPipeline CreateScenePipeline()
 {
-  auto vertexShader = Fwog::Shader::Create(
+  auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
     Utility::LoadFile("shaders/SceneDeferred.vert.glsl"));
-  auto fragmentShader = Fwog::Shader::Create(
+  auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .vertexShader = &vertexShader.value(),
-      .fragmentShader = &fragmentShader.value(),
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
       .vertexInputState = GetSceneInputBindingDescs(),
       .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
-  if (!pipeline)
-    throw std::exception("Invalid pipeline");
-  return *pipeline;
+  return pipeline;
 }
 
 Fwog::GraphicsPipeline CreateShadowPipeline()
 {
-  auto vertexShader = Fwog::Shader::Create(
+  auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
     Utility::LoadFile("shaders/SceneDeferred.vert.glsl"));
-  auto fragmentShader = Fwog::Shader::Create(
+  auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/RSMScene.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .vertexShader = &vertexShader.value(),
-      .fragmentShader = &fragmentShader.value(),
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
       .vertexInputState = GetSceneInputBindingDescs(),
       .rasterizationState =
       {
@@ -237,64 +235,56 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
       .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
-  if (!pipeline)
-    throw std::exception("Invalid pipeline");
-  return *pipeline;
+  return pipeline;
 }
 
 Fwog::GraphicsPipeline CreateShadingPipeline()
 {
-  auto vertexShader = Fwog::Shader::Create(
+  auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
     Utility::LoadFile("shaders/FullScreenTri.vert.glsl"));
-  auto fragmentShader = Fwog::Shader::Create(
+  auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/ShadeDeferred.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .vertexShader = &vertexShader.value(),
-      .fragmentShader = &fragmentShader.value(),
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
       .rasterizationState = { .cullMode = Fwog::CullMode::NONE },
     });
 
-  if (!pipeline)
-    throw std::exception("Invalid pipeline");
-  return *pipeline;
+  return pipeline;
 }
 
 Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 {
-  auto vertexShader = Fwog::Shader::Create(
+  auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
     Utility::LoadFile("shaders/FullScreenTri.vert.glsl"));
-  auto fragmentShader = Fwog::Shader::Create(
+  auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
     Utility::LoadFile("shaders/Texture.frag.glsl"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
-      .vertexShader = &vertexShader.value(),
-      .fragmentShader = &fragmentShader.value(),
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
     });
 
-  if (!pipeline)
-    throw std::exception("Invalid pipeline");
-  return *pipeline;
+  return pipeline;
 }
 
 Fwog::ComputePipeline CreateRSMIndirectPipeline()
 {
-  auto shader = Fwog::Shader::Create(
+  auto shader = Fwog::Shader(
     Fwog::PipelineStage::COMPUTE_SHADER,
     Utility::LoadFile("shaders/RSMIndirect.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({ &shader.value()});
+  auto pipeline = Fwog::CompileComputePipeline({ &shader });
 
-  if (!pipeline)
-    throw std::exception("Invalid pipeline");
-  return *pipeline;
+  return pipeline;
 }
 
 void CursorPosCallback(GLFWwindow* window, double currentCursorX, double currentCursorY)
@@ -365,19 +355,19 @@ void RenderScene()
 
   Fwog::RenderAttachment gcolorAttachment
   {
-    .texture = &gcolorTex.value(),
+    .texture = &gcolorTex,
     .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
     .clearOnLoad = true
   };
   Fwog::RenderAttachment gnormalAttachment
   {
-    .texture = &gnormalTex.value(),
+    .texture = &gnormalTex,
     .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = false
   };
   Fwog::RenderAttachment gdepthAttachment
   {
-    .texture = &gdepthTex.value(),
+    .texture = &gdepthTex,
     .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
     .clearOnLoad = true
   };
@@ -397,19 +387,19 @@ void RenderScene()
 
   Fwog::RenderAttachment rcolorAttachment
   {
-    .texture = &rfluxTex.value(),
+    .texture = &rfluxTex,
     .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = false
   };
   Fwog::RenderAttachment rnormalAttachment
   {
-    .texture = &rnormalTex.value(),
+    .texture = &rnormalTex,
     .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
     .clearOnLoad = false
   };
   Fwog::RenderAttachment rdepthAttachment
   {
-    .texture = &rdepthTex.value(),
+    .texture = &rdepthTex,
     .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
     .clearOnLoad = true
   };
@@ -422,7 +412,7 @@ void RenderScene()
     .stencilAttachment = nullptr
   };
 
-  std::optional<Fwog::Texture> indirectLightingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
+  auto indirectLightingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
   
   auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
@@ -464,39 +454,39 @@ void RenderScene()
 
   GlobalUniforms globalUniforms{};
 
-  auto vertexBuffer = Fwog::Buffer::Create(gCubeVertices);
-  auto indexBuffer = Fwog::Buffer::Create(gCubeIndices);
-  auto objectBuffer = Fwog::Buffer::Create(std::span(objectUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto globalUniformsBuffer = Fwog::Buffer::Create(sizeof(globalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto shadingUniformsBuffer = Fwog::Buffer::Create(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto rsmUniformBuffer = Fwog::Buffer::Create(rsmUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto vertexBuffer = Fwog::Buffer(gCubeVertices);
+  auto indexBuffer = Fwog::Buffer(gCubeIndices);
+  auto objectBuffer = Fwog::Buffer(std::span(objectUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto globalUniformsBuffer = Fwog::Buffer(sizeof(globalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto rsmUniformBuffer = Fwog::Buffer(rsmUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
 
   Fwog::SamplerState ss;
   ss.minFilter = Fwog::Filter::NEAREST;
   ss.magFilter = Fwog::Filter::NEAREST;
   ss.addressModeU = Fwog::AddressMode::REPEAT;
   ss.addressModeV = Fwog::AddressMode::REPEAT;
-  auto nearestSampler = Fwog::Sampler::Create(ss);
+  auto nearestSampler = Fwog::Sampler(ss);
 
   ss.minFilter = Fwog::Filter::LINEAR;
   ss.magFilter = Fwog::Filter::LINEAR;
   ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
   ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
   ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
-  auto rsmColorSampler = Fwog::Sampler::Create(ss);
+  auto rsmColorSampler = Fwog::Sampler(ss);
 
   ss.minFilter = Fwog::Filter::NEAREST;
   ss.magFilter = Fwog::Filter::NEAREST;
   ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
   ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
   ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
-  auto rsmDepthSampler = Fwog::Sampler::Create(ss);
+  auto rsmDepthSampler = Fwog::Sampler(ss);
 
   ss.compareEnable = true;
   ss.compareOp = Fwog::CompareOp::LESS;
   ss.minFilter = Fwog::Filter::LINEAR;
   ss.magFilter = Fwog::Filter::LINEAR;
-  auto rsmShadowSampler = Fwog::Sampler::Create(ss);
+  auto rsmShadowSampler = Fwog::Sampler(ss);
 
   Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
   Fwog::GraphicsPipeline rsmScenePipeline = CreateShadowPipeline();
@@ -563,7 +553,7 @@ void RenderScene()
     }
 
     glm::mat4 viewProj = proj * camera.GetViewMatrix();
-    globalUniformsBuffer->SubData(viewProj, 0);
+    globalUniformsBuffer.SubData(viewProj, 0);
 
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
     float eyeWidth = 2.5f;
@@ -571,43 +561,43 @@ void RenderScene()
     shadingUniforms.sunViewProj =
       glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 10.f) *
       glm::lookAt(eye, glm::vec3(0), glm::vec3{ 0, 1, 0 });
-    shadingUniformsBuffer->SubData(shadingUniforms, 0);
+    shadingUniformsBuffer.SubData(shadingUniforms, 0);
 
     // geometry buffer pass
     Fwog::BeginRendering(gbufferRenderInfo);
     {
       Fwog::ScopedDebugMarker marker("Geometry");
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
-      Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-      Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
-      Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-      Fwog::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+      Fwog::Cmd::BindVertexBuffer(0, vertexBuffer, 0, sizeof(Vertex));
+      Fwog::Cmd::BindIndexBuffer(indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
+      Fwog::Cmd::BindStorageBuffer(1, objectBuffer, 0, objectBuffer.Size());
       Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), static_cast<uint32_t>(objectUniforms.size()), 0, 0, 0);
     }
     Fwog::EndRendering();
 
-    globalUniformsBuffer->SubData(shadingUniforms.sunViewProj, 0);
+    globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
 
     // shadow map (RSM) scene pass
     Fwog::BeginRendering(rsmRenderInfo);
     {
       Fwog::ScopedDebugMarker marker("RSM Scene");
       Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
-      Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-      Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
-      Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-      Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
-      Fwog::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+      Fwog::Cmd::BindVertexBuffer(0, vertexBuffer, 0, sizeof(Vertex));
+      Fwog::Cmd::BindIndexBuffer(indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
+      Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
+      Fwog::Cmd::BindStorageBuffer(1, objectBuffer, 0, objectBuffer.Size());
       Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), static_cast<uint32_t>(objectUniforms.size()), 0, 0, 0);
     }
     Fwog::EndRendering();
 
-    globalUniformsBuffer->SubData(viewProj, 0);
-    globalUniformsBuffer->SubData(glm::inverse(viewProj), sizeof(glm::mat4));
+    globalUniformsBuffer.SubData(viewProj, 0);
+    globalUniformsBuffer.SubData(glm::inverse(viewProj), sizeof(glm::mat4));
 
     rsmUniforms.sunViewProj = shadingUniforms.sunViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
-    rsmUniformBuffer->SubData(rsmUniforms, 0);
+    rsmUniformBuffer.SubData(rsmUniforms, 0);
 
     // RSM indirect illumination calculation pass
     Fwog::BeginCompute();
@@ -621,38 +611,38 @@ void RenderScene()
       //Fwog::TimerScoped scopedTimer(timer);
       Fwog::ScopedDebugMarker marker("Indirect Illumination");
       Fwog::Cmd::BindComputePipeline(rsmIndirectPipeline);
-      Fwog::Cmd::BindSampledImage(0, *indirectLightingTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, *gcolorTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, *gnormalTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, *gdepthTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, *rfluxTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(5, *rnormalTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(6, *rdepthTex, *nearestSampler);
-      Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-      Fwog::Cmd::BindUniformBuffer(1, *rsmUniformBuffer, 0, rsmUniformBuffer->Size());
-      Fwog::Cmd::BindImage(0, *indirectLightingTex, 0);
+      Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, gcolorTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(2, gnormalTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(3, gdepthTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(4, rfluxTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(5, rnormalTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(6, rdepthTex, nearestSampler);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
+      Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer, 0, rsmUniformBuffer.Size());
+      Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
 
       const int localSize = 8;
       const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
       const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
 
       uint32_t currentPass = 0;
-      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
       currentPass = 1;
-      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
       currentPass = 2;
-      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
       currentPass = 3;
-      rsmUniformBuffer->SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
     }
@@ -663,28 +653,28 @@ void RenderScene()
     {
       Fwog::ScopedDebugMarker marker("Shading");
       Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
-      Fwog::Cmd::BindSampledImage(0, *gcolorTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, *gnormalTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, *gdepthTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, *indirectLightingTex, *nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, *rdepthTex, *rsmShadowSampler);
-      Fwog::Cmd::BindUniformBuffer(0, *globalUniformsBuffer, 0, globalUniformsBuffer->Size());
-      Fwog::Cmd::BindUniformBuffer(1, *shadingUniformsBuffer, 0, shadingUniformsBuffer->Size());
+      Fwog::Cmd::BindSampledImage(0, gcolorTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, gnormalTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(2, gdepthTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(3, indirectLightingTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(4, rdepthTex, rsmShadowSampler);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
+      Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
       Fwog::Cmd::Draw(3, 1, 0, 0);
 
       Fwog::Texture* tex{};
       if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-        tex = &gcolorTex.value(); 
+        tex = &gcolorTex; 
       if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-        tex = &gnormalTex.value();
+        tex = &gnormalTex;
       if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
-        tex = &gdepthTex.value();
+        tex = &gdepthTex;
       if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
-        tex = &indirectLightingTex.value();
+        tex = &indirectLightingTex;
       if (tex)
       {
         Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
-        Fwog::Cmd::BindSampledImage(0, *tex, *nearestSampler);
+        Fwog::Cmd::BindSampledImage(0, *tex, nearestSampler);
         Fwog::Cmd::Draw(3, 1, 0, 0);
       }
     }

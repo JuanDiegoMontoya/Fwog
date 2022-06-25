@@ -373,7 +373,7 @@ namespace Utility
         samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
       }
 
-      auto sampler = Fwog::Sampler::Create(samplerState);
+      auto sampler = Fwog::Sampler(samplerState);
 
       FWOG_ASSERT(image.component == 4);
       FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
@@ -398,12 +398,11 @@ namespace Utility
         .type = Fwog::UploadType::UBYTE,
         .pixels = image.image.data()
       };
-      textureData->SubImage(updateInfo);
+      textureData.SubImage(updateInfo);
       //textureData->GenMipmaps();
 
-      auto view = textureData->View();
-
-      textureSamplers.emplace_back(CombinedTextureSampler({ std::move(textureData), std::move(view), std::move(sampler) }));
+      //textureSamplers.emplace_back(CombinedTextureSampler({ std::move(textureData), std::move(sampler) }));
+      textureSamplers.emplace_back(std::move(textureData), std::move(sampler));
     }
 
     return textureSamplers;
@@ -538,8 +537,8 @@ namespace Utility
           auto vertices = ConvertVertexBufferFormat(model, primitive);
           auto indices = ConvertIndexBufferFormat(model, primitive);
 
-          auto vertexBuffer = Fwog::Buffer::Create(std::span(vertices));
-          auto indexBuffer = Fwog::Buffer::Create(std::span(indices));
+          auto vertexBuffer = Fwog::Buffer(std::span(vertices));
+          auto indexBuffer = Fwog::Buffer(std::span(indices));
 
           scene.meshes.emplace_back(Mesh
             {

@@ -3,7 +3,7 @@
 
 namespace Fwog
 {
-  std::optional<GraphicsPipeline> CompileGraphicsPipeline(const GraphicsPipelineInfo& info)
+  GraphicsPipeline CompileGraphicsPipeline(const GraphicsPipelineInfo& info)
   {
     return detail::CompileGraphicsPipelineInternal(info);
   }
@@ -13,7 +13,7 @@ namespace Fwog
     return detail::DestroyGraphicsPipelineInternal(pipeline);
   }
 
-  std::optional<ComputePipeline> CompileComputePipeline(const ComputePipelineInfo& info)
+  ComputePipeline CompileComputePipeline(const ComputePipelineInfo& info)
   {
     return detail::CompileComputePipelineInternal(info);
   }

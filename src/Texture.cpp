@@ -77,40 +77,43 @@ namespace Fwog
 
 
 
-  std::optional<Texture> Texture::Create(const TextureCreateInfo& createInfo, std::string_view name)
+  Texture::Texture()
   {
-    Texture texture;
-    texture.createInfo_ = createInfo;
-    glCreateTextures(detail::ImageTypeToGL(createInfo.imageType), 1, &texture.id_);
+  }
+
+  Texture::Texture(const TextureCreateInfo& createInfo, std::string_view name)
+    : createInfo_(createInfo)
+  {
+    glCreateTextures(detail::ImageTypeToGL(createInfo.imageType), 1, &id_);
 
     switch (createInfo.imageType)
     {
     case ImageType::TEX_1D:
-      glTextureStorage1D(texture.id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width);
+      glTextureStorage1D(id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width);
       break;
     case ImageType::TEX_2D:
-      glTextureStorage2D(texture.id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height);
+      glTextureStorage2D(id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height);
       break;
     case ImageType::TEX_3D:
-      glTextureStorage3D(texture.id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, createInfo.extent.depth);
+      glTextureStorage3D(id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, createInfo.extent.depth);
       break;
     case ImageType::TEX_1D_ARRAY:
-      glTextureStorage2D(texture.id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.arrayLayers);
+      glTextureStorage2D(id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.arrayLayers);
       break;
     case ImageType::TEX_2D_ARRAY:
-      glTextureStorage3D(texture.id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, createInfo.arrayLayers);
+      glTextureStorage3D(id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, createInfo.arrayLayers);
       break;
     case ImageType::TEX_CUBEMAP:
-      glTextureStorage2D(texture.id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height);
+      glTextureStorage2D(id_, createInfo.mipLevels, detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height);
       break;
       //case ImageType::TEX_CUBEMAP_ARRAY:
       //  ASSERT(false);
       //  break;
     case ImageType::TEX_2D_MULTISAMPLE:
-      glTextureStorage2DMultisample(texture.id_, detail::SampleCountToGL(createInfo.sampleCount), detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, GL_FALSE);
+      glTextureStorage2DMultisample(id_, detail::SampleCountToGL(createInfo.sampleCount), detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, GL_FALSE);
       break;
     case ImageType::TEX_2D_MULTISAMPLE_ARRAY:
-      glTextureStorage3DMultisample(texture.id_, detail::SampleCountToGL(createInfo.sampleCount), detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, createInfo.arrayLayers, GL_FALSE);
+      glTextureStorage3DMultisample(id_, detail::SampleCountToGL(createInfo.sampleCount), detail::FormatToGL(createInfo.format), createInfo.extent.width, createInfo.extent.height, createInfo.arrayLayers, GL_FALSE);
       break;
     default:
       break;
@@ -118,15 +121,14 @@ namespace Fwog
 
     if (!name.empty())
     {
-      glObjectLabel(GL_TEXTURE, texture.id_, static_cast<GLsizei>(name.length()), name.data());
+      glObjectLabel(GL_TEXTURE, id_, static_cast<GLsizei>(name.length()), name.data());
     }
-    return texture;
   }
 
   Texture::Texture(Texture&& old) noexcept
+    : id_(std::exchange(old.id_, 0)),
+    createInfo_(old.createInfo_)
   {
-    id_ = std::exchange(old.id_, 0);
-    createInfo_ = old.createInfo_;
   }
 
   Texture& Texture::operator=(Texture&& old) noexcept
@@ -143,12 +145,7 @@ namespace Fwog
     glDeleteTextures(1, &id_);
   }
 
-  std::optional<TextureView> Texture::View() const
-  {
-    return TextureView::Create(*this);
-  }
-
-  std::optional<TextureView> Texture::MipView(uint32_t level) const
+  TextureView Texture::CreateMipView(uint32_t level) const
   {
     TextureViewCreateInfo createInfo
     {
@@ -159,7 +156,21 @@ namespace Fwog
       .minLayer = 0,
       .numLayers = createInfo_.arrayLayers
     };
-    return TextureView::Create(createInfo, *this);
+    return TextureView(createInfo, *this);
+  }
+
+  TextureView Texture::CreateLayerView(uint32_t layer) const
+  {
+    TextureViewCreateInfo createInfo
+    {
+      .viewType = createInfo_.imageType,
+      .format = createInfo_.format,
+      .minLevel = 0,
+      .numLevels = createInfo_.mipLevels,
+      .minLayer = layer,
+      .numLayers = 1
+    };
+    return TextureView(createInfo, *this);
   }
 
   void Texture::SubImage(const TextureUpdateInfo& info)
@@ -179,54 +190,56 @@ namespace Fwog
 
 
 
-  std::optional<TextureView> TextureView::Create(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name)
+  TextureView::TextureView()
   {
-    TextureView view;
-    view.createInfo_ = texture.createInfo_;
-    view.viewInfo_ = viewInfo;
-    glGenTextures(1, &view.id_); // glCreateTextures does not work here
-    glTextureView(view.id_, detail::ImageTypeToGL(viewInfo.viewType), texture.id_,
+  }
+
+  TextureView::TextureView(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name)
+    : viewInfo_(viewInfo)
+  {
+    createInfo_ = texture.createInfo_;
+    glGenTextures(1, &id_); // glCreateTextures does not work here
+    glTextureView(id_, detail::ImageTypeToGL(viewInfo.viewType), texture.id_,
       detail::FormatToGL(viewInfo.format), viewInfo.minLevel,
       viewInfo.numLevels, viewInfo.minLayer,
       viewInfo.numLayers);
     if (!name.empty())
     {
-      glObjectLabel(GL_TEXTURE, view.id_, static_cast<GLsizei>(name.length()), name.data());
+      glObjectLabel(GL_TEXTURE, id_, static_cast<GLsizei>(name.length()), name.data());
     }
-    return view;
   }
 
-  std::optional<TextureView> TextureView::Create(const TextureViewCreateInfo& viewInfo, const TextureView& textureView, std::string_view name)
+  TextureView::TextureView(const TextureViewCreateInfo& viewInfo, const TextureView& textureView, std::string_view name)
+    : TextureView(viewInfo, static_cast<const Texture&>(textureView), name)
   {
-    auto view = Create(viewInfo, textureView, name);
-    view->createInfo_ = TextureCreateInfo{
+    createInfo_ = TextureCreateInfo
+    {
       .imageType = textureView.viewInfo_.viewType,
       .format = textureView.viewInfo_.format,
       .extent = textureView.createInfo_.extent,
       .mipLevels = textureView.viewInfo_.numLevels,
       .arrayLayers = textureView.viewInfo_.numLayers
     };
-    return view;
   }
 
-  std::optional<TextureView> TextureView::Create(const Texture& texture, std::string_view name)
+  TextureView::TextureView(const Texture& texture, std::string_view name)
+    : TextureView(TextureViewCreateInfo
+      {
+        .viewType = texture.createInfo_.imageType,
+        .format = texture.createInfo_.format,
+        .minLevel = 0,
+        .numLevels = texture.createInfo_.mipLevels,
+        .minLayer = 0,
+        .numLayers = texture.createInfo_.arrayLayers
+      },
+      texture, name)
   {
-    TextureViewCreateInfo createInfo
-    {
-      .viewType = texture.createInfo_.imageType,
-      .format = texture.createInfo_.format,
-      .minLevel = 0,
-      .numLevels = texture.createInfo_.mipLevels,
-      .minLayer = 0,
-      .numLayers = texture.createInfo_.arrayLayers
-    };
-    return Create(createInfo, texture, name);
   }
 
   TextureView::TextureView(TextureView&& old) noexcept
-    : Texture(std::move(old))
+    : Texture(std::move(old)),
+    viewInfo_(old.viewInfo_)
   {
-    viewInfo_ = old.viewInfo_;
   }
 
   TextureView& TextureView::operator=(TextureView&& old) noexcept
@@ -244,14 +257,14 @@ namespace Fwog
 
 
 
-  std::optional<Sampler> Sampler::Create(const SamplerState& samplerState)
+  Sampler::Sampler(const SamplerState& samplerState)
+    : Sampler(sSamplerCache.CreateOrGetCachedTextureSampler(samplerState))
   {
-    return sSamplerCache.CreateOrGetCachedTextureSampler(samplerState);
   }
 
 
 
-  std::optional<Texture> CreateTexture2D(Extent2D size, Format format, std::string_view name)
+  Texture CreateTexture2D(Extent2D size, Format format, std::string_view name)
   {
     TextureCreateInfo createInfo
     {
@@ -262,10 +275,10 @@ namespace Fwog
       .arrayLayers = 1,
       .sampleCount = SampleCount::SAMPLES_1
     };
-    return Texture::Create(createInfo, name);
+    return Texture(createInfo, name);
   }
 
-  std::optional<Texture> CreateTexture2DMip(Extent2D size, Format format, uint32_t mipLevels, std::string_view name)
+  Texture CreateTexture2DMip(Extent2D size, Format format, uint32_t mipLevels, std::string_view name)
   {
     TextureCreateInfo createInfo
     {
@@ -276,6 +289,6 @@ namespace Fwog
       .arrayLayers = 1,
       .sampleCount = SampleCount::SAMPLES_1
     };
-    return Texture::Create(createInfo, name);
+    return Texture(createInfo, name);
   }
 }

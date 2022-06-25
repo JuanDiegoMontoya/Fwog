@@ -1,6 +1,6 @@
 #pragma once
-#include "fwog/BasicTypes.h"
-#include "fwog/Texture.h"
+#include "Fwog/BasicTypes.h"
+#include "Fwog/Texture.h"
 #include <unordered_map>
 
 namespace std
