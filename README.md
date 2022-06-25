@@ -93,8 +93,8 @@ The draw loop of hello triangle looks like this:
 ```cpp
 Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
 Fwog::Cmd::BindGraphicsPipeline(pipeline);
-Fwog::Cmd::BindVertexBuffer(0, *vertexPosBuffer, 0, 2 * sizeof(float));
-Fwog::Cmd::BindVertexBuffer(1, *vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
+Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
 Fwog::Cmd::Draw(3, 1, 0, 0);
 Fwog::EndRendering();
 ```
