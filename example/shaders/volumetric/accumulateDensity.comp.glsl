@@ -29,7 +29,8 @@ void main()
 
   // ground fog
   vec3 t = vec3(.2, 0.1, .3) * uniforms.time;
-  float d = max((snoise(vec4(p * 0.11 + t, t * 1.2)) + 1.0) * .15, 0.0);
+  float d = max((snoise(vec4(p * 0.11 + t, t * 1.2)) + 1.0), 0.0);
+  d *= uniforms.groundFogDensity;
 
   // Fade out fog if too low or too high.
   d *= (1.0 - smoothstep(0, 10, p.y)) * (smoothstep(-15, 0, p.y));

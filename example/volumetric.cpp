@@ -140,6 +140,7 @@ struct
   float volumeIsotropyG = 0.2f;
   float volumeNoiseOffsetScale = 1.0f;
   bool frog = false;
+  float volumetricGroundFogDensity = .15f;
 
   float lightFarPlane = 50.0f;
   float lightProjWidth = 24.0f;
@@ -425,7 +426,8 @@ public:
     bool useScatteringTexture,
     float isotropyG,
     float noiseOffsetScale,
-    bool frog)
+    bool frog,
+    float groundFogDensity)
   {
     struct
     {
@@ -442,6 +444,7 @@ public:
       float isotropyG;
       float noiseOffsetScale;
       uint32_t frog;
+      float groundFogDensity;
     }uniforms;
 
     glm::mat4 projVolume = glm::perspectiveZO(fovy, aspectRatio, volumeNearPlane, volumeFarPlane);
@@ -462,7 +465,8 @@ public:
       .useScatteringTexture = useScatteringTexture,
       .isotropyG = isotropyG,
       .noiseOffsetScale = noiseOffsetScale,
-      .frog = frog
+      .frog = frog,
+      .groundFogDensity = groundFogDensity
     };
 
     if (!uniformBuffer)
@@ -571,7 +575,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);
-  //glfwSwapInterval(1);
   glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
   Fwog::Viewport mainViewport { .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
@@ -740,6 +743,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     ImGui::SliderFloat("Volume isotropy", &config.volumeIsotropyG, -1, 1);
     ImGui::SliderFloat("Volume noise scale", &config.volumeNoiseOffsetScale, 0, 1);
     ImGui::Checkbox("Frog", &config.frog);
+    ImGui::SliderFloat("Volume ground density", &config.volumetricGroundFogDensity, 0, 1);
     ImGui::End();
 
     if (!cursorIsActive)
@@ -974,7 +978,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         config.volumeUseScatteringTexture,
         config.volumeIsotropyG,
         config.volumeNoiseOffsetScale,
-        config.frog);
+        config.frog,
+        config.volumetricGroundFogDensity);
 
       volumetric.AccumulateDensity(densityVolume);
 
@@ -1056,12 +1061,12 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
 int main(int argc, const char* const* argv)
 {
+  std::optional<std::string_view> fileName;
+  float scale = 1.0f;
+  bool binary = false;
+
   try
   {
-    std::optional<std::string_view> fileName;
-    float scale = 1.0f;
-    bool binary = false;
-
     if (argc > 1)
     {
       fileName = argv[1];
@@ -1084,19 +1089,14 @@ int main(int argc, const char* const* argv)
         throw std::exception("Binary should be 0 or 1");
       }
     }
-
-    RenderScene(fileName, scale, binary);
   }
   catch (std::exception e)
   {
-    printf("Error: %s\n", e.what());
+    printf("Argument parsing error: %s\n", e.what());
     throw;
   }
-  catch (...)
-  {
-    printf("Unknown error\n");
-    throw;
-  }
+
+  RenderScene(fileName, scale, binary);
 
   return 0;
 }

@@ -43,8 +43,11 @@ vec3 phaseTex(float cosTheta)
   // [1, -1] -> [0, 1]
   float u = 1.0 - (cosTheta * .5 + .5);
   
+  vec3 intensity = textureLod(s_fogScattering, u, 0).rgb;
+
   // limit intensity (hack)
-  return log(1.0 + textureLod(s_fogScattering, u, 0).rgb);
+  //return log(1.0 + intensity);
+  return intensity / (1.0 + intensity);
 }
 
 float gToK(float g)

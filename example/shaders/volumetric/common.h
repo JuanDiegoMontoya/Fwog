@@ -45,6 +45,7 @@ layout(binding = 0, std140) uniform UNIFORMS
   float isotropyG;
   float noiseOffsetScale;
   uint frog;
+  float groundFogDensity;
 }uniforms;
 
 #endif

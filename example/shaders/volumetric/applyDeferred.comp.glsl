@@ -26,7 +26,6 @@ void main()
 
   // World position to volume clip space.
   vec4 volumeClip = uniforms.viewProjVolume * vec4(pWorld, 1.0);
-  volumeClip.xyz = clamp(volumeClip.xyz, -volumeClip.www, volumeClip.www);
 
   // Volume clip to volume UV (perspective divide).
   vec3 volumeUV = volumeClip.xyz / volumeClip.w;
