@@ -2,25 +2,10 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.h"
 
-#define USE_SCATTERING_TEXTURE 1
-
 layout(binding = 0) uniform sampler3D s_colorDensityVolume;
 layout(binding = 1) uniform sampler2D s_exponentialShadowDepth;
 layout(binding = 2) uniform sampler1D s_fogScattering;
 layout(binding = 0) uniform writeonly image3D i_inScatteringTransmittanceVolume;
-
-layout(binding = 0, std140) uniform UNIFORMS 
-{
-  vec3 viewPos;
-  float time;
-  mat4 invViewProjScene;
-  mat4 viewProjVolume;
-  mat4 invViewProjVolume;
-  mat4 sunViewProj;
-  vec3 sunDir;
-  float volumeNearPlane;
-  float volumeFarPlane;
-}uniforms;
 
 layout(binding = 1, std140) uniform ESM_UNIFORMS
 {
@@ -64,7 +49,7 @@ vec3 phaseTex(float cosTheta)
 
 float gToK(float g)
 {
-  return 1.55 * g - 0.55 * g * g * g;
+  return clamp(1.55 * g - 0.55 * g * g * g, -0.999, 0.999);
 }
 
 float beer(float d)
@@ -169,16 +154,17 @@ void main()
     float shadow = ShadowESM(uniforms.sunViewProj * vec4(pCur, 1.0));
 
     vec3 viewDir = normalize(pCur - uniforms.viewPos);
-    float g = 0.2; // TODO: put this in a UBO
-    float k = gToK(g);
+    float k = gToK(uniforms.isotropyG);
 
     float VoL = dot(-viewDir, uniforms.sunDir);
-    inScatteringAccum += froxelColor * froxelDensity * inScatteringCoefficient * shadow
-#if USE_SCATTERING_TEXTURE
-      * phaseTex(VoL);
-#else
-      * phaseSchlick(k, VoL);
-#endif
+
+    vec3 inScattering = froxelColor * froxelDensity * inScatteringCoefficient * shadow;
+    if (uniforms.useScatteringTexture != 0)
+      inScattering *= phaseTex(VoL);
+    else
+      inScattering *= phaseSchlick(k, VoL);
+
+    inScatteringAccum += inScattering;
 
     // Local light(s) contribution.
     inScatteringAccum += inScatteringCoefficient * LocalLightIntensity(pCur, viewDir, froxelColor, froxelDensity, k);

@@ -51,7 +51,6 @@ It may be noted that the API heavily resembles Vulkan. This is intentional.
 - [x] Graphics pipeline
 - [x] Compute pipeline
 
-
 ## API Object Abstractions
 
 - [x] Texture

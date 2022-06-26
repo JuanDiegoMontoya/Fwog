@@ -2,26 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.h"
 
-#define FROG 0
-
-#if FROG
 #include "frog.h"
-#endif
 
 layout(binding = 0) uniform writeonly image3D i_target;
-
-layout(binding = 0, std140) uniform UNIFORMS 
-{
-  vec3 viewPos;
-  float time;
-  mat4 invViewProjScene;
-  mat4 viewProjVolume;
-  mat4 invViewProjVolume;
-  mat4 sunViewProj;
-  vec3 sunDir;
-  float volumeNearPlane;
-  float volumeFarPlane;
-}uniforms;
 
 float snoise(vec4 v);
 
@@ -65,14 +48,15 @@ void main()
   // Fog cube.
   d += 1.0 - smoothstep(0.0, .25, sdBox(p - vec3(3., 2., 0.), vec3(0.75)));
 
-#if FROG
-  sdfRet ret = map(0.125 * (p - vec3(1, 5, 2)));
-  float froge = 1.0 - smoothstep(0.0, 0.05, ret.sdf);
+  if (uniforms.frog != 0)
   {
-    c += froge * 15 * idtocol(ret.id);
-    d += froge * 1.0;
+    sdfRet ret = map(0.125 * (p - vec3(1, 5, 2)));
+    float froge = 1.0 - smoothstep(0.0, 0.05, ret.sdf);
+    {
+      c += froge * 15 * idtocol(ret.id);
+      d += froge * 1.0;
+    }
   }
-#endif
 
   // sphere
   //d += 1.0 - smoothstep(3, 5, distance(p, vec3(0, 5, 0)));

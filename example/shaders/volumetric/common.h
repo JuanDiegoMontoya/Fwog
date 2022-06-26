@@ -30,4 +30,21 @@ float InvertDepthZO(float linearZ, float zn, float zf)
   return (zn - zf * linearZ) / (linearZ * (zn - zf));
 }
 
+layout(binding = 0, std140) uniform UNIFORMS 
+{
+  vec3 viewPos;
+  float time;
+  mat4 invViewProjScene;
+  mat4 viewProjVolume;
+  mat4 invViewProjVolume;
+  mat4 sunViewProj;
+  vec3 sunDir;
+  float volumeNearPlane;
+  float volumeFarPlane;
+  uint useScatteringTexture;
+  float isotropyG;
+  float noiseOffsetScale;
+  uint frog;
+}uniforms;
+
 #endif

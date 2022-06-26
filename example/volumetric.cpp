@@ -40,6 +40,10 @@
 // #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_glfw.h>
+
 ////////////////////////////////////// Types
 struct View
 {
@@ -123,19 +127,24 @@ struct
 {
   Fwog::Extent3D shadowmapResolution = { 2048, 2048 };
 
-  float nearPlane = 0.3f;
+  float viewNearPlane = 0.3f;
 
   float esmExponent = 40.0f;
   size_t esmBlurPasses = 1;
   Fwog::Extent3D esmResolution = { 512, 512 };
 
+  float volumeNearPlane = viewNearPlane;
   float volumeFarPlane = 60.0f;
   Fwog::Extent3D volumeExtent = { 160, 90, 256 };
+  bool volumeUseScatteringTexture = true;
+  float volumeIsotropyG = 0.2f;
+  float volumeNoiseOffsetScale = 1.0f;
+  bool frog = false;
 
   float lightFarPlane = 50.0f;
   float lightProjWidth = 24.0f;
   float lightDistance = 25.0f;
-}constexpr config;
+}config;
 
 std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 {
@@ -412,7 +421,11 @@ public:
     float aspectRatio, 
     float volumeNearPlane, 
     float volumeFarPlane, 
-    float time)
+    float time,
+    bool useScatteringTexture,
+    float isotropyG,
+    float noiseOffsetScale,
+    bool frog)
   {
     struct
     {
@@ -425,6 +438,10 @@ public:
       glm::vec3 sunDir;
       float volumeNearPlane;
       float volumeFarPlane;
+      uint32_t useScatteringTexture;
+      float isotropyG;
+      float noiseOffsetScale;
+      uint32_t frog;
     }uniforms;
 
     glm::mat4 projVolume = glm::perspectiveZO(fovy, aspectRatio, volumeNearPlane, volumeFarPlane);
@@ -441,7 +458,11 @@ public:
       .sunViewProj = sunViewProj,
       .sunDir = sunDir,
       .volumeNearPlane = volumeNearPlane,
-      .volumeFarPlane = volumeFarPlane
+      .volumeFarPlane = volumeFarPlane,
+      .useScatteringTexture = useScatteringTexture,
+      .isotropyG = isotropyG,
+      .noiseOffsetScale = noiseOffsetScale,
+      .frog = frog
     };
 
     if (!uniformBuffer)
@@ -540,6 +561,14 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     .height = gWindowHeight });
   Utility::InitOpenGL();
 
+  ImGui::CreateContext();
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init();
+  ImGui::StyleColorsDark();
+  auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
+  
+  //ImGui::GetIO().Fonts->GetTexDataAsRGBA32()
+
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);
   //glfwSwapInterval(1);
@@ -625,7 +654,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   const auto fovy = glm::radians(70.f);
   const auto aspectRatio = gWindowWidth / (float)gWindowHeight;
   //auto proj = glm::perspective(fovy, aspectRatio, 0.1f, 100.f);
-  auto proj = InfReverseZPerspectiveRH(fovy, aspectRatio, config.nearPlane);
+  auto proj = InfReverseZPerspectiveRH(fovy, aspectRatio, config.viewNearPlane);
 
   auto volumeInfo = Fwog::TextureCreateInfo
   {
@@ -664,6 +693,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   auto ldrSceneColorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
 
+  bool cursorIsActive = false;
+
   float prevFrame = static_cast<float>(glfwGetTime());
   while (!glfwWindowShouldClose(window))
   {
@@ -680,8 +711,41 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     {
       glfwSetWindowShouldClose(window, true);
     }
+    if (ImGui::GetIO().KeysDownDuration[GLFW_KEY_GRAVE_ACCENT] == 0.0f)
+    {
+      cursorIsActive = !cursorIsActive;
+      glfwSetInputMode(window, GLFW_CURSOR, cursorIsActive ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+    }
 
-    camera = ProcessMovement(window, camera, dt);
+    // hack to prevent the "disabled" (but actually just invisible) cursor from being able to click stuff in ImGui
+    if (!cursorIsActive)
+    {
+      glfwSetCursorPos(window, 0, 0);
+      gPreviousCursorX = 0;
+      gPreviousCursorY = 0;
+    }
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Options");
+    ImGui::SliderFloat("Volume near plane", &config.volumeNearPlane, 0.1f, 1.0f);
+    ImGui::SliderFloat("Volume far plane", &config.volumeFarPlane, 20.0f, 500.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+    ImGui::SliderFloat("ESM exponent", &config.esmExponent, 1.0f, 90.0f);
+    int passes = static_cast<int>(config.esmBlurPasses);
+    ImGui::SliderInt("ESM blur passes", &passes, 0, 5);
+    config.esmBlurPasses = static_cast<size_t>(passes);
+    ImGui::Checkbox("Use scattering texture", &config.volumeUseScatteringTexture);
+    ImGui::SliderFloat("Volume isotropy", &config.volumeIsotropyG, -1, 1);
+    ImGui::SliderFloat("Volume noise scale", &config.volumeNoiseOffsetScale, 0, 1);
+    ImGui::Checkbox("Frog", &config.frog);
+    ImGui::End();
+
+    if (!cursorIsActive)
+    {
+      camera = ProcessMovement(window, camera, dt);
+    }
 
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
     {
@@ -904,9 +968,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         shadingUniforms.sunDir,
         fovy,
         aspectRatio,
-        config.nearPlane,
+        config.volumeNearPlane,
         config.volumeFarPlane,
-        curFrame);
+        curFrame,
+        config.volumeUseScatteringTexture,
+        config.volumeIsotropyG,
+        config.volumeNoiseOffsetScale,
+        config.frog);
 
       volumetric.AccumulateDensity(densityVolume);
 
@@ -969,8 +1037,19 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::EndRendering();
     }
 
+    ImGui::Render();
+    {
+      auto marker = Fwog::ScopedDebugMarker("Draw GUI");
+      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+    ImGui::EndFrame();
+
     glfwSwapBuffers(window);
   }
+
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 
   glfwTerminate();
 }

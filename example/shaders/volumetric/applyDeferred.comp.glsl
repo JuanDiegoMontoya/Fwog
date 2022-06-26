@@ -10,19 +10,6 @@ layout(binding = 2) uniform sampler3D s_volume;
 layout(binding = 3) uniform sampler2D s_blueNoise;
 layout(binding = 0) uniform writeonly image2D i_target;
 
-layout(binding = 0, std140) uniform UNIFORMS 
-{
-  vec3 viewPos;
-  float time;
-  mat4 invViewProjScene;
-  mat4 viewProjVolume;
-  mat4 invViewProjVolume;
-  mat4 sunViewProj;
-  vec3 sunDir;
-  float volumeNearPlane;
-  float volumeFarPlane;
-}uniforms;
-
 layout(local_size_x = 16, local_size_y = 16) in;
 void main()
 {
@@ -49,7 +36,7 @@ void main()
   volumeUV.z *= sqrt(LinearizeDepthZO(volumeUV.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane));
 
   // Random UV offset of up to half a froxel.
-  vec3 offset = texelFetch(s_blueNoise, gid % textureSize(s_blueNoise, 0).xy, 0).xyz - 0.5;
+  vec3 offset = uniforms.noiseOffsetScale * (texelFetch(s_blueNoise, gid % textureSize(s_blueNoise, 0).xy, 0).xyz - 0.5);
   volumeUV += offset / vec3(textureSize(s_volume, 0).xyz);
 
   vec3 baseColor = texelFetch(s_color, gid, 0).xyz;
