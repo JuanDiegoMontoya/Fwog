@@ -52,7 +52,7 @@ namespace Fwog
 
     [[nodiscard]] auto Handle() const { return id_; }
     [[nodiscard]] auto Size() const { return size_; }
-    [[nodiscard]] bool IsMapped() { return isMapped_; }
+    [[nodiscard]] bool IsMapped() const { return isMapped_; }
 
   private:
     Buffer() {}
