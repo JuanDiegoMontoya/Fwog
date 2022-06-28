@@ -429,6 +429,10 @@ public:
     bool frog,
     float groundFogDensity)
   {
+    glm::mat4 projVolume = glm::perspectiveZO(fovy, aspectRatio, volumeNearPlane, volumeFarPlane);
+    glm::mat4 viewMat = view.GetViewMatrix();
+    glm::mat4 viewProjVolume = projVolume * viewMat;
+
     struct
     {
       glm::vec3 viewPos;
@@ -446,10 +450,6 @@ public:
       uint32_t frog;
       float groundFogDensity;
     }uniforms;
-
-    glm::mat4 projVolume = glm::perspectiveZO(fovy, aspectRatio, volumeNearPlane, volumeFarPlane);
-    glm::mat4 viewMat = view.GetViewMatrix();
-    glm::mat4 viewProjVolume = projVolume * viewMat;
     
     uniforms =
     {
@@ -476,13 +476,23 @@ public:
     uniformBuffer->SubData(uniforms, 0);
   }
 
-  void AccumulateDensity(const Fwog::Texture& densityVolume)
+  void AccumulateDensity(
+    const Fwog::Texture& densityVolume,
+    const Fwog::Texture& shadowDepth,
+    const Fwog::Buffer& esmUniformBuffer,
+    const Fwog::Buffer& lightBuffer)
   {
     assert(densityVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
+
+    auto sampler = Fwog::Sampler({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
 
     Fwog::BeginCompute();
     Fwog::Cmd::BindComputePipeline(accumulateDensityPipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer, 0, esmUniformBuffer.Size());
+    Fwog::Cmd::BindStorageBuffer(0, lightBuffer, 0, lightBuffer.Size());
+    Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
+    Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
     Fwog::Cmd::BindImage(0, densityVolume, 0);
     Fwog::Extent3D numGroups = (densityVolume.Extent() + 7) / 8;
     Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, numGroups.depth);
@@ -491,27 +501,18 @@ public:
 
   void MarchVolume(
     const Fwog::Texture& sourceVolume,
-    const Fwog::Texture& targetVolume,
-    const Fwog::Texture& shadowDepth,
-    const Fwog::Buffer& esmUniformBuffer,
-    const Fwog::Buffer& lightBuffer)
+    const Fwog::Texture& targetVolume)
   {
     assert(sourceVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
     assert(targetVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
 
     auto sampler = Fwog::Sampler({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-    //auto shadowSampler = Fwog::Sampler::Create({ .compareEnable = true, .compareOp = Fwog::CompareOp::LESS });
-
     Fwog::BeginCompute();
     Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(marchVolumePipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
-    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer, 0, esmUniformBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(0, lightBuffer, 0, lightBuffer.Size());
     Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
-    Fwog::Cmd::BindSampledImage(1, shadowDepth, sampler);
-    Fwog::Cmd::BindSampledImage(2, *scatteringTexture, sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
     Fwog::Extent3D numGroups = (targetVolume.Extent() + 15) / 16;
     Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
@@ -981,9 +982,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         config.frog,
         config.volumetricGroundFogDensity);
 
-      volumetric.AccumulateDensity(densityVolume);
+      volumetric.AccumulateDensity(densityVolume,
+        exponentialShadowMap,
+        esmUniformBuffer,
+        lightBuffer);
 
-      volumetric.MarchVolume(densityVolume, scatteringVolume, exponentialShadowMap, esmUniformBuffer, lightBuffer);
+      volumetric.MarchVolume(densityVolume,
+        scatteringVolume);
 
       volumetric.ApplyDeferred(shadingTex,
         gBufferDepthTexture,

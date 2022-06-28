@@ -4,7 +4,26 @@
 
 #include "frog.h"
 
+layout(binding = 0) uniform sampler2D s_exponentialShadowDepth;
+layout(binding = 1) uniform sampler1D s_fogScattering;
 layout(binding = 0) uniform writeonly image3D i_target;
+
+layout(binding = 1, std140) uniform ESM_UNIFORMS
+{
+  float depthExponent;
+}esmUniforms;
+
+struct Light
+{
+  vec4 position;
+  vec3 intensity;
+  float invRadius;
+};
+
+layout(binding = 0, std430) readonly buffer LightBuffer
+{
+  Light lights[];
+}lightBuffer;
 
 float snoise(vec4 v);
 
@@ -12,6 +31,92 @@ float sdBox(vec3 p, vec3 b)
 {
   vec3 q = abs(p) - b;
   return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+vec3 phaseTex(float cosTheta)
+{
+  // [1, -1] -> [0, 1]
+  float u = 1.0 - (cosTheta * .5 + .5);
+  
+  vec3 intensity = textureLod(s_fogScattering, u, 0).rgb;
+
+  // limit intensity (hack)
+  //return log(1.0 + intensity);
+  return intensity / (1.0 + intensity);
+}
+
+float ShadowESM(vec4 clip)
+{
+  vec4 unorm = clip;
+  if (any(greaterThan(unorm.xyz, vec3(1.0)))) return 1.0;
+  unorm.xy = unorm.xy * .5 + .5;
+  float lightDepth = textureLod(s_exponentialShadowDepth, unorm.xy, 0.0).x;
+  float eyeDepth = unorm.z;
+  return clamp(lightDepth * exp(-esmUniforms.depthExponent * eyeDepth), 0.0, 1.0);
+}
+
+float GetSquareFalloffAttenuation(float distanceSquared, float lightInvRadius)
+{
+  float factor = distanceSquared * lightInvRadius * lightInvRadius;
+  float smoothFactor = max(1.0 - factor * factor, 0.0);
+  return (smoothFactor * smoothFactor) / max(distanceSquared, 1e-4);
+}
+
+vec3 LocalLightIntensity(vec3 wPos, vec3 V, vec3 froxelColor, float froxelDensity, float k)
+{
+  vec3 lightAccum = { 0, 0, 0 };
+
+  // Accumulate contribuation from each local light.
+  for (int i = 0; i < lightBuffer.lights.length(); i++)
+  {
+    Light light = lightBuffer.lights[i];
+
+    vec3 posToLight = light.position.xyz - wPos;
+    float distanceSquared = dot(posToLight, posToLight);
+    vec3 localLight = GetSquareFalloffAttenuation(distanceSquared, light.invRadius).xxx;
+
+    // Assume media density is constant from this cell to the light source.
+    // Probably close enough in most situations.
+    float d = sqrt(distanceSquared) * froxelDensity;
+    float localInScatteringCoefficient = beer(d);
+
+    vec3 L = normalize(light.position.xyz - wPos);
+    localLight *= phaseSchlick(k, dot(V, L));
+    //localLight *= phaseTex(dot(V, L));
+
+    localLight *= localInScatteringCoefficient;
+    
+    lightAccum += localLight * light.intensity.rgb;
+  }
+
+  return lightAccum;
+}
+
+vec3 CalculateFroxelLighting(vec3 froxelColor, float froxelDensity, vec3 wPos)
+{
+    float shadow = ShadowESM(uniforms.sunViewProj * vec4(wPos, 1.0));
+
+    vec3 viewDir = normalize(wPos - uniforms.viewPos);
+    float k = gToK(uniforms.isotropyG);
+
+    float VoL = dot(-viewDir, uniforms.sunDir);
+
+    vec3 sunlight = froxelColor * shadow * vec3(1.0); // .1 = sun strength
+    if (uniforms.useScatteringTexture != 0)
+      sunlight *= phaseTex(VoL);
+    else
+      sunlight *= phaseSchlick(k, VoL);
+
+    // Local light(s) contribution.
+    vec3 localLight = froxelColor * LocalLightIntensity(wPos, viewDir, froxelColor, froxelDensity, k);
+
+    // Ambient direct scattering hack because this is not PBR.
+    // Yes, the ambient term has up to 50% shadowing. This is because it looks cool.
+    float ambientFactor = max(0.005, 0.01 * smoothstep(0., 1., min(1.0, .5 + dot(uniforms.sunDir, vec3(0, -1, 0)))));
+    //ambientFactor = 0;
+    vec3 ambient = froxelColor * ambientFactor * max(shadow, 0.5);
+
+    return froxelDensity * (sunlight + localLight + ambient);
 }
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
@@ -25,18 +130,18 @@ void main()
 
   // Apply our own curve by squaring the linear depth, then convert to inverted window-space Z and unproject it to get world position.
   float zInv = InvertDepthZO(uvw.z * uvw.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane);
-  vec3 p = UnprojectUVZO(zInv, uvw.xy, uniforms.invViewProjVolume);
+  vec3 wPos = UnprojectUVZO(zInv, uvw.xy, uniforms.invViewProjVolume);
 
   // ground fog
   vec3 t = vec3(.2, 0.1, .3) * uniforms.time;
-  float d = max((snoise(vec4(p * 0.11 + t, t * 1.2)) + 1.0), 0.0);
+  float d = max((snoise(vec4(wPos * 0.11 + t, t * 1.2)) + 1.0), 0.0);
   d *= uniforms.groundFogDensity;
 
   // Fade out fog if too low or too high.
-  d *= (1.0 - smoothstep(0, 10, p.y)) * (smoothstep(-15, 0, p.y));
+  d *= (1.0 - smoothstep(0, 10, wPos.y)) * (smoothstep(-15, 0, wPos.y));
 
   // Fade out fog if too far from center of the world.
-  d *= 1.0 - smoothstep(0, 10, distance(abs(p.xz), vec2(0)) - 25);
+  d *= 1.0 - smoothstep(0, 10, distance(abs(wPos.xz), vec2(0)) - 25);
 
   // Clouds. Only work if volume far plane is quite large.
   // float cd = max((snoise(vec4(p * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
@@ -44,25 +149,29 @@ void main()
   // cd *= (1.0 - smoothstep(10, 30, abs(p.y - 100.)));
   // d += cd;
   
-  vec3 c = vec3(12, 12, 12); // ambient lighting
+  vec3 c = vec3(1, 1, 1); // base color
 
   // Fog cube.
-  d += 1.0 - smoothstep(0.0, .25, sdBox(p - vec3(3., 2., 0.), vec3(0.75)));
+  d += 1.0 - smoothstep(0.0, .25, sdBox(wPos - vec3(3., 2., 0.), vec3(0.75)));
 
   if (uniforms.frog != 0)
   {
-    sdfRet ret = map(0.125 * (p - vec3(1, 5, 2)));
+    vec3 frogPos = vec3(1, 5, 2);
+    frogPos.x += sin(uniforms.time);
+    frogPos.y += cos(uniforms.time);
+    frog_sdfRet ret = frog_map(0.125 * (wPos - frogPos));
     float froge = 1.0 - smoothstep(0.0, 0.05, ret.sdf);
     {
-      c += froge * 15 * idtocol(ret.id);
+      c = mix(c, frog_idtocol(ret.id), froge);
       d += froge * 1.0;
     }
   }
 
   // sphere
   //d += 1.0 - smoothstep(3, 5, distance(p, vec3(0, 5, 0)));
+  vec3 light = CalculateFroxelLighting(c, d, wPos);
 
-  imageStore(i_target, gid, vec4(c, d));
+  imageStore(i_target, gid, vec4(light, d));
 }
 
 
@@ -88,7 +197,8 @@ vec4 grad4(float j, vec4 ip){
   return p;
 }
 
-float snoise(vec4 v){
+float snoise(vec4 v)
+{
   const vec2  C = vec2( 0.138196601125010504,  // (5 - sqrt(5))/20  G4
                         0.309016994374947451); // (sqrt(5) - 1)/4   F4
 // First corner

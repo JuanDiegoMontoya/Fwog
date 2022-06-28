@@ -48,4 +48,37 @@ layout(binding = 0, std140) uniform UNIFORMS
   float groundFogDensity;
 }uniforms;
 
+#define M_PI 3.1415926
+
+// Henyey-Greenstein phase function for isotropic in-scattering
+float phaseHG(float g, float cosTheta)
+{
+  return (1.0 - g * g) / (4.0 * M_PI * pow(1.0 + g * g - 2.0 * g * cosTheta, 1.5));
+}
+
+// Schlick's efficient approximation of HG
+float phaseSchlick(float k, float cosTheta)
+{
+  float denom = 1.0 - k * cosTheta;
+  return (1.0 - k * k) / (4.0 * M_PI * denom * denom);
+}
+
+// Conversion of HG's G parameter to Schlick's K parameter
+float gToK(float g)
+{
+  return clamp(1.55 * g - 0.55 * g * g * g, -0.999, 0.999);
+}
+
+// Beer-Lambert law
+float beer(float d)
+{
+  return exp(-d);
+}
+
+// Powder scattering effect for large volumes (darkens edges, used with beer)
+float powder(float d)
+{
+  return 1.0 - exp(-d * 2.0);
+}
+
 #endif
