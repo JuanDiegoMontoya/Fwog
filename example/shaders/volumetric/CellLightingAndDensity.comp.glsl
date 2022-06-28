@@ -157,8 +157,8 @@ void main()
   if (uniforms.frog != 0)
   {
     vec3 frogPos = vec3(1, 5, 2);
-    frogPos.x += sin(uniforms.time);
-    frogPos.y += cos(uniforms.time);
+    frogPos.x += sin(uniforms.time) * 2;
+    frogPos.y += cos(uniforms.time) * 2;
     frog_sdfRet ret = frog_map(0.125 * (wPos - frogPos));
     float froge = 1.0 - smoothstep(0.0, 0.05, ret.sdf);
     {
