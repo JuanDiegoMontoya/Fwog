@@ -1,6 +1,6 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
-#include "common.h"
+#include "Common.h"
 
 layout(binding = 0) uniform sampler3D s_colorDensityVolume;
 layout(binding = 0) uniform writeonly image3D i_inScatteringTransmittanceVolume;

@@ -1,8 +1,8 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
-#include "common.h"
+#include "Common.h"
 
-#include "frog.h"
+#include "Frog.h"
 
 layout(binding = 0) uniform sampler2D s_exponentialShadowDepth;
 layout(binding = 1) uniform sampler1D s_fogScattering;

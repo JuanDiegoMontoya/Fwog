@@ -260,7 +260,7 @@ Fwog::ComputePipeline CreateCopyToEsmPipeline()
 {
   auto shader = Fwog::Shader(
     Fwog::PipelineStage::COMPUTE_SHADER,
-    Utility::LoadFile("shaders/volumetric/depth2exponential.comp.glsl"));
+    Utility::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
 
   auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader });
 
@@ -271,7 +271,7 @@ Fwog::ComputePipeline CreateGaussianBlurPipeline()
 {
   auto shader = Fwog::Shader(
     Fwog::PipelineStage::COMPUTE_SHADER,
-    Utility::LoadFile("shaders/volumetric/gaussianBlur.comp.glsl"));
+    Utility::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
 
   auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader });
 
@@ -282,7 +282,7 @@ Fwog::ComputePipeline CreatePostprocessingPipeline()
 {
   auto shader = Fwog::Shader(
     Fwog::PipelineStage::COMPUTE_SHADER,
-    Utility::LoadFile("shaders/volumetric/tonemapAndDither.comp.glsl"));
+    Utility::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
 
   auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader });
 
@@ -338,21 +338,21 @@ public:
   {
     char error[256] = {};
     char* accumulateDensity = stb_include_string(
-      Utility::LoadFile("shaders/volumetric/accumulateDensity.comp.glsl").data(),
+      Utility::LoadFile("shaders/volumetric/CellLightingAndDensity.comp.glsl").data(),
       nullptr,
       "shaders/volumetric",
-      "accumulateDensity",
+      "CellLightingAndDensity",
       error);
 
     char* marchVolume = stb_include_string(
-      Utility::LoadFile("shaders/volumetric/marchVolume.comp.glsl").data(),
+      Utility::LoadFile("shaders/volumetric/MarchVolume.comp.glsl").data(),
       nullptr,
       "shaders/volumetric",
       "marchVolume",
       error);
 
     char* applyDeferred = stb_include_string(
-      Utility::LoadFile("shaders/volumetric/applyDeferred.comp.glsl").data(),
+      Utility::LoadFile("shaders/volumetric/ApplyVolumetricsDeferred.comp.glsl").data(),
       nullptr,
       "shaders/volumetric",
       "applyDeferred",
