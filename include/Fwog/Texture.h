@@ -96,7 +96,6 @@ namespace Fwog
     [[nodiscard]] uint32_t Handle() const { return id_; }
 
   protected:
-    friend class TextureView; // TODO: remove
     Texture();
     uint32_t id_{};
     TextureCreateInfo createInfo_{};
@@ -121,7 +120,6 @@ namespace Fwog
     [[nodiscard]] TextureViewCreateInfo ViewInfo() const { return viewInfo_; }
     
   private:
-    friend class Texture; // TODO: remove
     TextureView();
     TextureViewCreateInfo viewInfo_{};
   };

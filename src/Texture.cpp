@@ -197,9 +197,9 @@ namespace Fwog
   TextureView::TextureView(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name)
     : viewInfo_(viewInfo)
   {
-    createInfo_ = texture.createInfo_;
+    createInfo_ = texture.CreateInfo();
     glGenTextures(1, &id_); // glCreateTextures does not work here
-    glTextureView(id_, detail::ImageTypeToGL(viewInfo.viewType), texture.id_,
+    glTextureView(id_, detail::ImageTypeToGL(viewInfo.viewType), texture.Handle(),
       detail::FormatToGL(viewInfo.format), viewInfo.minLevel,
       viewInfo.numLevels, viewInfo.minLayer,
       viewInfo.numLayers);
@@ -225,12 +225,12 @@ namespace Fwog
   TextureView::TextureView(const Texture& texture, std::string_view name)
     : TextureView(TextureViewCreateInfo
       {
-        .viewType = texture.createInfo_.imageType,
-        .format = texture.createInfo_.format,
+        .viewType = texture.CreateInfo().imageType,
+        .format = texture.CreateInfo().format,
         .minLevel = 0,
-        .numLevels = texture.createInfo_.mipLevels,
+        .numLevels = texture.CreateInfo().mipLevels,
         .minLayer = 0,
-        .numLayers = texture.createInfo_.arrayLayers
+        .numLayers = texture.CreateInfo().arrayLayers
       },
       texture, name)
   {
