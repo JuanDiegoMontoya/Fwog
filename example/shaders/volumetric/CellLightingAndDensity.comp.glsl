@@ -144,9 +144,9 @@ void main()
   d *= 1.0 - smoothstep(0, 10, distance(abs(wPos.xz), vec2(0)) - 25);
 
   // Clouds. Only work if volume far plane is quite large.
-  // float cd = max((snoise(vec4(p * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
-  // cd += max((snoise(vec4(p * 0.01 + t * .2, t * 0.05)) + 0.1) * .01, 0.0);
-  // cd *= (1.0 - smoothstep(10, 30, abs(p.y - 100.)));
+  // float cd = max((snoise(vec4(wPos * 0.001 + t * .1, t * 0.05)) + 0.1) * .05, 0.0);
+  // cd += max((snoise(vec4(wPos * 0.01 + t * .2, t * 0.05)) + 0.1) * .01, 0.0);
+  // cd *= (1.0 - smoothstep(10, 30, abs(wPos.y - 100.)));
   // d += cd;
   
   vec3 c = vec3(1, 1, 1); // base color

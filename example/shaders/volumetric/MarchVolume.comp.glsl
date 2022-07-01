@@ -40,12 +40,11 @@ void main()
     float froxelDensity = froxelInfo.a;
 
     densityAccum += froxelDensity * stepSize;
-    float b = beer(densityAccum);
+    float transmittance = beer(densityAccum);
 
     // 10*stepSize makes the accumulation independent of volume size and depth distribution
-    inScatteringAccum += 10 * stepSize * b * froxelLight;
+    inScatteringAccum += 10 * stepSize * transmittance * froxelLight;
 
-    float transmittance = b;
     imageStore(i_inScatteringTransmittanceVolume, ivec3(gid, i), vec4(inScatteringAccum, transmittance));
   }
 }
