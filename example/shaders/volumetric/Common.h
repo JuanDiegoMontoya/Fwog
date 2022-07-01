@@ -42,7 +42,7 @@ layout(binding = 0, std140) uniform UNIFORMS
   float volumeNearPlane;
   float volumeFarPlane;
   uint useScatteringTexture;
-  float isotropyG;
+  float anisotropyG;
   float noiseOffsetScale;
   uint frog;
   float groundFogDensity;

@@ -97,7 +97,7 @@ vec3 CalculateFroxelLighting(vec3 froxelColor, float froxelDensity, vec3 wPos)
     float shadow = ShadowESM(uniforms.sunViewProj * vec4(wPos, 1.0));
 
     vec3 viewDir = normalize(wPos - uniforms.viewPos);
-    float k = gToK(uniforms.isotropyG);
+    float k = gToK(uniforms.anisotropyG);
 
     float VoL = dot(-viewDir, uniforms.sunDir);
 

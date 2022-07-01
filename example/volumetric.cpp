@@ -137,7 +137,7 @@ struct
   float volumeFarPlane = 60.0f;
   Fwog::Extent3D volumeExtent = { 160, 90, 256 };
   bool volumeUseScatteringTexture = true;
-  float volumeIsotropyG = 0.2f;
+  float volumeAnisotropyG = 0.2f;
   float volumeNoiseOffsetScale = 1.0f;
   bool frog = false;
   float volumetricGroundFogDensity = .15f;
@@ -741,7 +741,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     ImGui::SliderInt("ESM blur passes", &passes, 0, 5);
     config.esmBlurPasses = static_cast<size_t>(passes);
     ImGui::Checkbox("Use scattering texture", &config.volumeUseScatteringTexture);
-    ImGui::SliderFloat("Volume isotropy", &config.volumeIsotropyG, -1, 1);
+    ImGui::SliderFloat("Volume anisotropy", &config.volumeAnisotropyG, -1, 1);
     ImGui::SliderFloat("Volume noise scale", &config.volumeNoiseOffsetScale, 0, 1);
     ImGui::Checkbox("Frog", &config.frog);
     ImGui::SliderFloat("Volume ground density", &config.volumetricGroundFogDensity, 0, 1);
@@ -977,7 +977,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         config.volumeFarPlane,
         curFrame,
         config.volumeUseScatteringTexture,
-        config.volumeIsotropyG,
+        config.volumeAnisotropyG,
         config.volumeNoiseOffsetScale,
         config.frog,
         config.volumetricGroundFogDensity);
