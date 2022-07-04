@@ -706,12 +706,12 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
 int main(int argc, const char* const* argv)
 {
+  std::optional<std::string_view> fileName;
+  float scale = 1.0f;
+  bool binary = false;
+
   try
   {
-    std::optional<std::string_view> fileName;
-    float scale = 1.0f;
-    bool binary = false;
-
     if (argc > 1)
     {
       fileName = argv[1];
@@ -734,19 +734,14 @@ int main(int argc, const char* const* argv)
         throw std::exception("Binary should be 0 or 1");
       }
     }
-
-    RenderScene(fileName, scale, binary);
   }
   catch (std::exception e)
   {
-    printf("Error: %s\n", e.what());
-    throw;
+    printf("Argument parsing error: %s\n", e.what());
+    return -1;
   }
-  catch (...)
-  {
-    printf("Unknown error\n");
-    throw;
-  }
+
+  RenderScene(fileName, scale, binary);
 
   return 0;
 }

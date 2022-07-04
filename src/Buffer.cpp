@@ -46,32 +46,37 @@ namespace Fwog
     }
   }
 
-  void Buffer::SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes)
+  void Buffer::SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes) const
   {
     SubData(data.data(), data.size_bytes(), destOffsetBytes);
   }
 
-  void Buffer::SubData(const void* data, size_t size, size_t offset)
+  void Buffer::SubData(const void* data, size_t size, size_t offset) const
   {
     FWOG_ASSERT(size + offset <= Size());
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
   }
 
-  void* Buffer::GetMappedPointer()
+  void* Buffer::Map() const
   {
     FWOG_ASSERT(!IsMapped() && "Buffers cannot be mapped more than once at a time");
     isMapped_ = true;
-    return glMapNamedBuffer(id_, GL_READ_WRITE);
+    return glMapNamedBuffer(id_, GL_WRITE_ONLY);
   }
 
-  void Buffer::UnmapPointer()
+  void Buffer::Unmap() const
   {
     FWOG_ASSERT(IsMapped() && "Buffers that aren't mapped cannot be unmapped");
     isMapped_ = false;
     glUnmapNamedBuffer(id_);
   }
 
-  void Buffer::ClearSubData(size_t offset, size_t size, Format internalFormat, UploadFormat uploadFormat, UploadType uploadType, const void* data)
+  void Buffer::ClearSubData(size_t offset, 
+    size_t size, 
+    Format internalFormat, 
+    UploadFormat uploadFormat, 
+    UploadType uploadType, 
+    const void* data) const
   {
     glClearNamedBufferSubData(
       id_,

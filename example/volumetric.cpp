@@ -622,7 +622,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   lights.push_back(Light{ .position = { 3, 3, 2, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
   lights.push_back(Light{ .position = { .9, 5.5, -1.65, 0 }, .intensity = { 5.2f, 4.8f, 12.5f }, .invRadius = 1.0f / 9.0f });
 
-  auto globalUniformsBuffer = Fwog::Buffer(sizeof(GlobalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  //auto globalUniformsBuffer = Fwog::Buffer(sizeof(GlobalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferFlag::DYNAMIC_STORAGE | Fwog::BufferFlag::MAP_WRITE);
   auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
   auto materialUniformsBuffer = Fwog::Buffer(sizeof(Utility::GpuMaterial), Fwog::BufferFlag::DYNAMIC_STORAGE);
 
@@ -766,7 +767,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     mainCameraUniforms.viewProj = proj * camera.GetViewMatrix();
     mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
     mainCameraUniforms.cameraPos = glm::vec4(camera.position, 0.0);
-    globalUniformsBuffer.SubData(mainCameraUniforms, 0);
+    globalUniformsBuffer.SubDataTyped(mainCameraUniforms);
 
     glm::vec3 eye = glm::vec3{ -shadingUniforms.sunDir * config.lightDistance };
     shadingUniforms.sunViewProj =
@@ -832,7 +833,9 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::EndRendering();
     }
 
-    globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
+    auto* ptr = globalUniformsBuffer.MapTyped();
+    ptr->viewProj = shadingUniforms.sunViewProj;
+    globalUniformsBuffer.Unmap();
 
     // shadow map scene pass
     {
@@ -1098,7 +1101,7 @@ int main(int argc, const char* const* argv)
   catch (std::exception e)
   {
     printf("Argument parsing error: %s\n", e.what());
-    throw;
+    return -1;
   }
 
   RenderScene(fileName, scale, binary);

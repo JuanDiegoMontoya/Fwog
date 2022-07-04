@@ -44,24 +44,63 @@ namespace Fwog
     Buffer& operator=(const Buffer&) = delete;
     ~Buffer();
 
-    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes);
-    void ClearSubData(size_t offset, size_t size, Format internalFormat, UploadFormat uploadFormat, UploadType uploadType, const void* data);
+    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes) const;
+    void ClearSubData(size_t offset, 
+      size_t size, 
+      Format internalFormat, 
+      UploadFormat uploadFormat, 
+      UploadType uploadType, 
+      const void* data) const;
 
-    [[nodiscard]] void* GetMappedPointer();
-    void UnmapPointer();
+    // TODO: add range and read/write flags
+    [[nodiscard]] void* Map() const;
+    void Unmap() const;
 
     [[nodiscard]] auto Handle() const { return id_; }
     [[nodiscard]] auto Size() const { return size_; }
     [[nodiscard]] bool IsMapped() const { return isMapped_; }
 
-  private:
+  protected:
     Buffer() {}
     Buffer(const void* data, size_t size, BufferFlags flags);
 
-    void SubData(const void* data, size_t size, size_t offset = 0);
+    void SubData(const void* data, size_t size, size_t offset = 0) const;
 
     uint32_t id_{};
     size_t size_{};
-    bool isMapped_{ false };
+    mutable bool isMapped_{ false };
+  };
+
+  template<class T> requires(std::is_trivially_copyable_v<T>)
+  class TypedBuffer : public Buffer
+  {
+  public:
+    explicit TypedBuffer(BufferFlags flags = BufferFlag::NONE)
+      : Buffer(sizeof(T), flags) {}
+    explicit TypedBuffer(size_t count, BufferFlags flags = BufferFlag::NONE)
+      : Buffer(sizeof(T)* count, flags) {}
+    explicit TypedBuffer(std::span<const T> data, BufferFlags flags = BufferFlag::NONE)
+      : Buffer(data, flags) {}
+    TypedBuffer(TypedBuffer&& other) noexcept = default;
+    TypedBuffer& operator=(TypedBuffer&& other) noexcept = default;
+    TypedBuffer(const TypedBuffer& other) = delete;
+    TypedBuffer& operator=(const TypedBuffer&) = delete;
+
+    void SubDataTyped(const T& data, size_t startIndex = 0) const
+    {
+      Buffer::SubData(data, sizeof(T) * startIndex);
+    }
+
+    void SubDataTyped(std::span<const T> data, size_t startIndex = 0) const
+    {
+      Buffer::SubData(data, sizeof(T) * startIndex);
+    }
+
+    [[nodiscard]] T* MapTyped() const
+    {
+      return reinterpret_cast<T*>(Buffer::Map());
+    }
+
+  private:
   };
 }
