@@ -11,6 +11,7 @@ namespace Fwog
   }
 
   class TextureView;
+  class Sampler;
 
   struct TextureCreateInfo
   {
@@ -90,6 +91,7 @@ namespace Fwog
     // create a view of a single mip or layer of this texture
     [[nodiscard]] TextureView CreateMipView(uint32_t level) const;
     [[nodiscard]] TextureView CreateLayerView(uint32_t layer) const;
+    [[nodiscard]] uint64_t GetBindlessHandle(Sampler sampler);
 
     [[nodiscard]] const TextureCreateInfo& CreateInfo() const { return createInfo_; }
     [[nodiscard]] Extent3D Extent() const { return createInfo_.extent; }
@@ -99,6 +101,7 @@ namespace Fwog
     Texture();
     uint32_t id_{};
     TextureCreateInfo createInfo_{};
+    uint64_t bindlessHandle_ = 0;
   };
 
   class TextureView : public Texture

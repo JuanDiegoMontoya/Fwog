@@ -137,11 +137,16 @@ namespace Fwog
     this->~Texture();
     id_ = std::exchange(old.id_, 0);
     createInfo_ = old.createInfo_;
+    bindlessHandle_ = std::exchange(old.bindlessHandle_, 0);
     return *this;
   }
 
   Texture::~Texture()
   {
+    if (bindlessHandle_ != 0)
+    {
+      glMakeTextureHandleNonResidentARB(bindlessHandle_);
+    }
     glDeleteTextures(1, &id_);
   }
 
@@ -171,6 +176,14 @@ namespace Fwog
       .numLayers = 1
     };
     return TextureView(createInfo, *this);
+  }
+
+  uint64_t Texture::GetBindlessHandle(Sampler sampler)
+  {
+    FWOG_ASSERT(isBindlessResident_ == false && "Texture already has bindless handle resident.");
+    bindlessHandle_ = glGetTextureSamplerHandleARB(id_, sampler.Handle());
+    glMakeTextureHandleResidentARB(bindlessHandle_);
+    return bindlessHandle_;
   }
 
   void Texture::SubImage(const TextureUpdateInfo& info)
