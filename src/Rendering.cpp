@@ -20,6 +20,17 @@ static void GLEnableOrDisable(GLenum state, GLboolean value)
     glDisable(state);
 }
 
+static size_t GetIndexSize(Fwog::IndexType indexType)
+{
+  switch (indexType)
+  {
+  case Fwog::IndexType::UNSIGNED_BYTE: return 1;
+  case Fwog::IndexType::UNSIGNED_SHORT: return 2;
+  case Fwog::IndexType::UNSIGNED_INT: return 4;
+  default: FWOG_UNREACHABLE; return 0;
+  }
+}
+
 namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
@@ -250,8 +261,8 @@ namespace Fwog
   }
 
   void BlitTexture(
-    const TextureView& source, 
-    const TextureView& target, 
+    const Texture& source, 
+    const Texture& target, 
     Offset3D sourceOffset, 
     Offset3D targetOffset, 
     Extent3D sourceExtent, 
@@ -280,7 +291,7 @@ namespace Fwog
       detail::FilterToGL(filter));
   }
   
-  void BlitTextureToSwapchain(const TextureView& source,
+  void BlitTextureToSwapchain(const Texture& source,
     Offset3D sourceOffset,
     Offset3D targetOffset,
     Extent3D sourceExtent,
@@ -307,8 +318,8 @@ namespace Fwog
   }
 
   void CopyTexture(
-    const TextureView& source,
-    const TextureView& target,
+    const Texture& source,
+    const Texture& target,
     uint32_t sourceLevel,
     uint32_t targetLevel,
     Offset3D sourceOffset,
@@ -627,7 +638,7 @@ namespace Fwog
         detail::PrimitiveTopologyToGL(sTopology),
         indexCount,
         detail::IndexTypeToGL(sIndexType),
-        reinterpret_cast<void*>(static_cast<uintptr_t>(firstIndex)), // double cast is needed to prevent compiler from complaining about 32->64 bit pointer cast
+        reinterpret_cast<void*>(static_cast<uintptr_t>(firstIndex * GetIndexSize(sIndexType))), // double cast is needed to prevent compiler from complaining about 32->64 bit pointer cast
         instanceCount,
         vertexOffset,
         firstInstance);

@@ -317,7 +317,7 @@ namespace Utility
     return vertices;
   }
 
-  std::vector<uint32_t> ConvertIndexBufferFormat(const tinygltf::Model& model, const tinygltf::Primitive& primitive)
+  std::vector<index_t> ConvertIndexBufferFormat(const tinygltf::Model& model, const tinygltf::Primitive& primitive)
   {
     int accessorIndex = primitive.indices;
     const tinygltf::Accessor& accessor = model.accessors[accessorIndex];
@@ -327,7 +327,7 @@ namespace Utility
     size_t totalByteOffset = accessor.byteOffset + bufferView.byteOffset;
     int stride = accessor.ByteStride(bufferView);
     
-    std::vector<uint32_t> indices;
+    std::vector<index_t> indices;
     indices.resize(accessor.count);
     
     if (accessor.componentType == GL_UNSIGNED_INT)
@@ -383,7 +383,7 @@ namespace Utility
 
       auto textureData = Fwog::CreateTexture2DMip(
         dims,
-        Fwog::Format::R8G8B8A8_SRGB,
+        Fwog::Format::R8G8B8A8_UNORM,
         //ceil(log2(glm::max(dims.width, dims.height))),
         1,
         image.name);
@@ -438,11 +438,27 @@ namespace Utility
     return materials;
   }
 
-  bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
+  struct CpuMesh
   {
-    const int baseMaterialIndex = static_cast<int>(scene.materials.size());
-    const int baseTextureSamplerIndex = static_cast<int>(scene.textureSamplers.size());
+    std::vector<Vertex> vertices;
+    std::vector<index_t> indices;
+    uint32_t materialIdx;
+    glm::mat4 transform;
+  };
 
+  struct LoadModelResult
+  {
+    std::vector<CpuMesh> meshes;
+    std::vector<Material> materials;
+    std::vector<CombinedTextureSampler> textureSamplers;
+  };
+
+  std::optional<LoadModelResult> LoadModelFromFileBase(std::string_view fileName, 
+    glm::mat4 rootTransform, 
+    bool binary,
+    uint32_t baseMaterialIndex,
+    uint32_t baseTextureSamplerIndex)
+  {
     tinygltf::TinyGLTF loader;
     tinygltf::Model model;
     std::string error;
@@ -452,7 +468,7 @@ namespace Utility
 
     std::vector<RawImageData> rawImageData;
     loader.SetImageLoader(LoadImageData, &rawImageData);
-    
+
     bool result;
     if (binary)
     {
@@ -476,18 +492,23 @@ namespace Utility
     if (result == false)
     {
       std::cout << "Failed to load glTF: " << fileName << '\n';
-      return false;
+      return std::nullopt;
     }
 
     bool loadImageResult = LoadImageDataParallel(rawImageData, model.images, { .preserve_channels = false });
     if (loadImageResult == false)
     {
       std::cout << "Failed to load glTF images" << '\n';
-      return false;
+      return std::nullopt;
     }
+
+    // let's not deal with glTFs containing multiple scenes right now
+    FWOG_ASSERT(model.scenes.size() == 1);
 
     auto ms = timer.Elapsed_us() / 1000;
     std::cout << "Loading took " << ms << " ms\n";
+
+    LoadModelResult scene;
 
     auto textureSamplers = LoadTextureSamplers(model);
     for (auto& textureSampler : textureSamplers)
@@ -500,13 +521,10 @@ namespace Utility
     {
       scene.materials.emplace_back(material);
     }
-    
-    // let's not deal with glTFs containing multiple scenes right now
-    FWOG_ASSERT(model.scenes.size() == 1);
 
     // <node*, global transform>
     std::stack<std::pair<const tinygltf::Node*, glm::mat4>> nodeStack;
-    
+
     for (int nodeIndex : model.scenes[0].nodes)
     {
       nodeStack.emplace(&model.nodes[nodeIndex], rootTransform);
@@ -537,13 +555,10 @@ namespace Utility
           auto vertices = ConvertVertexBufferFormat(model, primitive);
           auto indices = ConvertIndexBufferFormat(model, primitive);
 
-          auto vertexBuffer = Fwog::Buffer(std::span(vertices));
-          auto indexBuffer = Fwog::Buffer(std::span(indices));
-
-          scene.meshes.emplace_back(Mesh
+          scene.meshes.emplace_back(CpuMesh
             {
-              std::move(vertexBuffer),
-              std::move(indexBuffer),
+              std::move(vertices),
+              std::move(indices),
               baseMaterialIndex + std::max(primitive.material, 0),
               globalTransform
             });
@@ -552,6 +567,99 @@ namespace Utility
     }
 
     std::cout << "Loaded glTF: " << fileName << '\n';
+
+    return scene;
+  }
+
+  bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
+  {
+    const auto baseMaterialIndex = static_cast<uint32_t>(scene.materials.size());
+    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.textureSamplers.size());
+
+    auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex, baseTextureSamplerIndex);
+
+    if (!loadedScene)
+      return false;
+
+    scene.meshes.reserve(scene.meshes.size() + loadedScene->meshes.size());
+    for (auto& mesh : loadedScene->meshes)
+    {
+      scene.meshes.emplace_back(Mesh
+        {
+          .vertexBuffer = Fwog::Buffer(std::span(mesh.vertices)),
+          .indexBuffer = Fwog::Buffer(std::span(mesh.indices)),
+          .materialIdx = mesh.materialIdx,
+          .transform = mesh.transform
+        });
+    }
+
+    scene.materials.reserve(scene.materials.size() + loadedScene->materials.size());
+    for (auto& material : loadedScene->materials)
+    {
+      scene.materials.emplace_back(std::move(material));
+    }
+
+    scene.textureSamplers.reserve(scene.textureSamplers.size() + loadedScene->textureSamplers.size());
+    for (auto& textureSampler : loadedScene->textureSamplers)
+    {
+      scene.textureSamplers.emplace_back(std::move(textureSampler));
+    }
+
+    return true;
+  }
+
+  bool LoadModelFromFileBindless(SceneBindless& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
+  {
+    const auto baseMaterialIndex = static_cast<uint32_t>(scene.materials.size());
+    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.textureSamplers.size());
+
+    auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex, baseTextureSamplerIndex);
+
+    if (!loadedScene)
+      return false;
+
+    scene.meshes.reserve(scene.meshes.size() + loadedScene->meshes.size());
+    for (auto& mesh : loadedScene->meshes)
+    {
+      scene.meshes.emplace_back(MeshBindless
+        {
+          .startVertex = static_cast<int32_t>(scene.vertices.size()),
+          .startIndex = static_cast<uint32_t>(scene.indices.size()),
+          .indexCount = static_cast<uint32_t>(mesh.indices.size()),
+          .materialIdx = mesh.materialIdx,
+          .transform = mesh.transform
+        });
+
+      std::vector<Vertex> tempVertices = std::move(mesh.vertices);
+      scene.vertices.insert(scene.vertices.end(), tempVertices.begin(), tempVertices.end());
+
+      std::vector<index_t> tempIndices = std::move(mesh.indices);
+      scene.indices.insert(scene.indices.end(), tempIndices.begin(), tempIndices.end());
+    }
+
+    scene.textureSamplers.reserve(scene.textureSamplers.size() + loadedScene->textureSamplers.size());
+    for (auto& textureSampler : loadedScene->textureSamplers)
+    {
+      scene.textureSamplers.emplace_back(std::move(textureSampler));
+    }
+
+    scene.materials.reserve(scene.materials.size() + loadedScene->materials.size());
+    for (auto& material : loadedScene->materials)
+    {
+      GpuMaterialBindless bindlessMaterial
+      {
+        .flags = material.gpuMaterial.flags,
+        .alphaCutoff = material.gpuMaterial.alphaCutoff,
+        .baseColorTextureHandle = 0,
+        .baseColorFactor = material.gpuMaterial.baseColorFactor
+      };
+      if (material.gpuMaterial.flags & MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
+      {
+        auto& [texture, sampler] = scene.textureSamplers[material.baseColorTextureIdx];
+        bindlessMaterial.baseColorTextureHandle = texture.GetBindlessHandle(sampler);
+      }
+      scene.materials.emplace_back(bindlessMaterial);
+    }
 
     return true;
   }

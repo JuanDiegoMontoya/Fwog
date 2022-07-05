@@ -66,7 +66,8 @@ namespace Fwog::detail
     }
     case BorderColor::INT_OPAQUE_BLACK:
     {
-      constexpr GLint color[4]{ 0, 0, 0, 255 };
+      //constexpr GLint color[4]{ 0, 0, 0, 255 };
+      constexpr GLint color[4]{ 0, 0, 0, 1 };
       glSamplerParameteriv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
@@ -78,7 +79,8 @@ namespace Fwog::detail
     }
     case BorderColor::INT_OPAQUE_WHITE:
     {
-      constexpr GLint color[4]{ 255, 255, 255, 255 };
+      //constexpr GLint color[4]{ 255, 255, 255, 255 };
+      constexpr GLint color[4]{ 1, 1, 1, 1 };
       glSamplerParameteriv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }

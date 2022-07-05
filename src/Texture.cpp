@@ -180,8 +180,18 @@ namespace Fwog
 
   uint64_t Texture::GetBindlessHandle(Sampler sampler)
   {
-    FWOG_ASSERT(isBindlessResident_ == false && "Texture already has bindless handle resident.");
-    bindlessHandle_ = glGetTextureSamplerHandleARB(id_, sampler.Handle());
+    FWOG_ASSERT(bindlessHandle_ == 0 && "Texture already has bindless handle resident.");
+    bindlessHandle_ = glGetTextureHandleARB(id_);
+    for (auto err = glGetError(); err != GL_NO_ERROR; err = glGetError())
+    {
+      printf("ERROR: %d\n", err);
+    }
+    //bindlessHandle_ = glGetTextureSamplerHandleARB(id_, sampler.Handle());
+    //for (auto err = glGetError(); err != GL_NO_ERROR; err = glGetError())
+    //{
+    //  printf("ERROR: %d\n", err);
+    //}
+    FWOG_ASSERT(glIsSampler(sampler.Handle()));
     glMakeTextureHandleResidentARB(bindlessHandle_);
     return bindlessHandle_;
   }

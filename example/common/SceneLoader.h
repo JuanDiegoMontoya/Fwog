@@ -18,6 +18,8 @@ namespace Utility
     glm::vec2 texcoord;
   };
 
+  using index_t = uint32_t;
+
   struct CombinedTextureSampler
   {
     Fwog::Texture texture;
@@ -39,35 +41,61 @@ namespace Utility
     glm::vec4 baseColorFactor{};
   };
 
+  struct GpuMaterialBindless
+  {
+    MaterialFlags flags{};
+    float alphaCutoff{};
+    uint64_t baseColorTextureHandle{};
+    glm::vec4 baseColorFactor{};
+  };
+
   struct Material
   {
     GpuMaterial gpuMaterial{};
     int baseColorTextureIdx{};
   };
 
-  //struct GeometryBuffers
-  //{
-  //  std::optional<Fwog::Buffer> vertexBuffer;
-  //  std::optional<Fwog::Buffer> indexBuffer;
-  //  Fwog::IndexType indexType;
-  //};
-
   struct Mesh
   {
     //const GeometryBuffers* buffers;
     Fwog::Buffer vertexBuffer;
     Fwog::Buffer indexBuffer;
-    int materialIdx{};
+    uint32_t materialIdx{};
     glm::mat4 transform{};
   };
 
   struct Scene
   {
     std::vector<Mesh> meshes;
-    //std::vector<GeometryBuffers> geometry;
     std::vector<Material> materials;
     std::vector<CombinedTextureSampler> textureSamplers;
   };
 
-  bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform = glm::mat4{ 1 }, bool binary = false);
+  struct MeshBindless
+  {
+    int32_t startVertex{};
+    uint32_t startIndex{};
+    uint32_t indexCount{};
+    uint32_t materialIdx{};
+    glm::mat4 transform{};
+  };
+
+  struct SceneBindless
+  {
+    std::vector<MeshBindless> meshes;
+    std::vector<Vertex> vertices;
+    std::vector<index_t> indices;
+    std::vector<GpuMaterialBindless> materials;
+    std::vector<CombinedTextureSampler> textureSamplers;
+  };
+
+  bool LoadModelFromFile(Scene& scene, 
+    std::string_view fileName, 
+    glm::mat4 rootTransform = glm::mat4{ 1 }, 
+    bool binary = false);
+
+  bool LoadModelFromFileBindless(SceneBindless& scene, 
+    std::string_view fileName, 
+    glm::mat4 rootTransform = glm::mat4{ 1 }, 
+    bool binary = false);
 }
