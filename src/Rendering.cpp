@@ -498,10 +498,10 @@ namespace Fwog
         glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
       }
 
-      FWOG_ASSERT((cb.attachments.empty()
-        || (isRenderingToSwapchain && !cb.attachments.empty()))
-        || sLastRenderInfo->colorAttachments.size() >= cb.attachments.size()
-        && "There must be at least a color blend attachment for each render target, or none");
+      //FWOG_ASSERT((cb.attachments.empty()
+      //  || (isRenderingToSwapchain && !cb.attachments.empty()))
+      //  || sLastRenderInfo->colorAttachments.size() >= cb.attachments.size()
+      //  && "There must be at least a color blend attachment for each render target, or none");
 
       if (!sLastGraphicsPipeline || cb.attachments.empty() != sLastGraphicsPipeline->colorBlendState.attachments.empty())
       {
@@ -539,6 +539,7 @@ namespace Fwog
             (cba.colorWriteMask & ColorComponentFlag::G_BIT) != ColorComponentFlag::NONE,
             (cba.colorWriteMask & ColorComponentFlag::B_BIT) != ColorComponentFlag::NONE,
             (cba.colorWriteMask & ColorComponentFlag::A_BIT) != ColorComponentFlag::NONE);
+          sLastColorMask[i] = cba.colorWriteMask;
         }
       }
 

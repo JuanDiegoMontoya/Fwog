@@ -13,6 +13,7 @@
 #include <charconv>
 #include <exception>
 #include <fstream>
+#include <iostream>
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Rendering.h>
@@ -113,6 +114,8 @@ float gSensitivity = 0.005f;
 struct
 {
   float viewNearPlane = 0.3f;
+  bool freezeCulling = false;
+  bool viewBoundingBoxes = false;
 }config;
 
 std::string LoadFileWithInclude(std::string_view path, std::string_view includeDir)
@@ -204,14 +207,14 @@ Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
     LoadFileWithInclude("shaders/gpu_driven/BoundingBox.vert.glsl", "shaders/gpu_driven"));
   auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
-    LoadFileWithInclude("shaders/gpu_driven/SolidColor.frag.glsl", "shaders/gpu_driven"));
+    LoadFileWithInclude("shaders/gpu_driven/CullVisibility.frag.glsl", "shaders/gpu_driven"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .inputAssemblyState = {.topology = Fwog::PrimitiveTopology::TRIANGLE_STRIP },
-      .rasterizationState = {.polygonMode = Fwog::PolygonMode::LINE, .cullMode = Fwog::CullMode::NONE },
+      .rasterizationState = {.polygonMode = Fwog::PolygonMode::FILL, .cullMode = Fwog::CullMode::NONE },
       .depthState = {.depthTestEnable = true, .depthWriteEnable = false, .depthCompareOp = Fwog::CompareOp::LESS },
     });
 
@@ -288,6 +291,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
   Fwog::GraphicsPipeline boundingBoxDebugPipeline = CreateBoundingBoxDebugPipeline();
+  Fwog::GraphicsPipeline boundingBoxCullingPipeline = CreateBoundingBoxCullingPipeline();
 
   Utility::SceneBindless scene;
   bool success = false;
@@ -299,6 +303,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   }
   else
   {
+    //success = Utility::LoadModelFromFileBindless(scene, "models/simple_scene.glb", glm::mat4{ .5 }, true);
     success = Utility::LoadModelFromFileBindless(scene, *fileName, glm::scale(glm::vec3{ scale }), binary);
   }
 
@@ -310,8 +315,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   std::vector<ObjectUniforms> meshUniforms;
   std::vector<BoundingBox> boundingBoxes;
-  std::vector<Fwog::DrawIndexedIndirectCommand> drawCommands;
   std::vector<uint32_t> objectIndices = { static_cast<uint32_t>(scene.meshes.size()) };
+  std::vector<Fwog::DrawIndexedIndirectCommand> drawCommands;
 
   int curObjectIndex = 0;
   for (const auto& mesh : scene.meshes)
@@ -329,7 +334,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     drawCommands.push_back(Fwog::DrawIndexedIndirectCommand
       {
         .indexCount = mesh.indexCount,
-        .instanceCount = 1,
+        .instanceCount = 0,
         .firstIndex = mesh.startIndex,
         .vertexOffset = mesh.startVertex,
         .firstInstance = 0
@@ -337,9 +342,10 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     objectIndices.push_back(curObjectIndex++);
   }
 
+
+  auto drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
   auto vertexBuffer = Fwog::TypedBuffer<Utility::Vertex>(scene.vertices);
   auto indexBuffer = Fwog::TypedBuffer<Utility::index_t>(scene.indices);
-  auto drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
   auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferFlag::DYNAMIC_STORAGE | Fwog::BufferFlag::MAP_WRITE);
   auto meshUniformBuffer = Fwog::TypedBuffer<ObjectUniforms>(meshUniforms);
   auto boundingBoxesBuffer = Fwog::TypedBuffer<BoundingBox>(boundingBoxes);
@@ -391,11 +397,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     ImGui::NewFrame();
 
     ImGui::Begin("Options");
-    ImGui::Text("Henlo");
-    for (const auto& [texture, sampler] : scene.textureSamplers)
-    {
-      ImGui::Image(reinterpret_cast<ImTextureID>(texture.Handle()), { 100, 100 });
-    }
+    ImGui::Checkbox("Freeze culling", &config.freezeCulling);
+    ImGui::Checkbox("View bounding boxes", &config.viewBoundingBoxes);
     ImGui::End();
 
     if (!cursorIsActive)
@@ -403,7 +406,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       camera = ProcessMovement(window, camera, dt);
     }
 
-    // update global uniforms
+    // Update global uniforms
     GlobalUniforms mainCameraUniforms{};
     mainCameraUniforms.viewProj = proj * camera.GetViewMatrix();
     mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
@@ -436,22 +439,45 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::ScopedDebugMarker marker("Scene");
       Fwog::BeginRendering(sceneRenderInfo);
 
+      Fwog::Cmd::MemoryBarrier(
+        Fwog::MemoryBarrierAccessBit::COMMAND_BUFFER_BIT |
+        Fwog::MemoryBarrierAccessBit::SHADER_STORAGE_BIT);
+
       Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
       Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer,    0, meshUniformBuffer.Size());
       Fwog::Cmd::BindStorageBuffer(1, materialsBuffer,      0, materialsBuffer.Size());
       Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer,  0, boundingBoxesBuffer.Size());
       Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer,  0, objectIndicesBuffer.Size());
 
+      // Draw the visible scene.
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
       Fwog::Cmd::BindVertexBuffer(0, vertexBuffer, 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-
-      // Draw the whole scene.
       Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer, 0, scene.meshes.size(), 0);
 
-      // Draw debug bounding boxes
-      Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
-      Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0);
+      if (config.viewBoundingBoxes)
+      {
+        Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
+        Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0);
+      }
+
+      Fwog::EndRendering();
+    }
+
+    if (!config.freezeCulling)
+    {
+      Fwog::ScopedDebugMarker marker("Culling");
+      gDepthAttachment.clearOnLoad = false;
+      Fwog::BeginRendering({ .viewport = &mainViewport, .depthAttachment = &gDepthAttachment });
+
+      // Re-upload the draw commands buffer to reset the instance counts to 0 for culling
+      drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
+
+      Fwog::Cmd::BindStorageBuffer(4, drawCommandsBuffer, 0, drawCommandsBuffer.Size());
+
+      // Draw visible bounding boxes.
+      Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
+      Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0); // TODO: upgrade to indirect draw after frustum culling is added
 
       Fwog::EndRendering();
     }
@@ -512,13 +538,21 @@ int main(int argc, const char* const* argv)
       }
     }
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     printf("Argument parsing error: %s\n", e.what());
     return -1;
   }
 
+  //try
+  //{
   RenderScene(fileName, scale, binary);
+  //}
+  //catch (std::exception& e)
+  //{
+  //  std::cout << "Runtime error!\n" << e.what() << '\n';
+  //  return -1;
+  //}
 
   return 0;
 }
