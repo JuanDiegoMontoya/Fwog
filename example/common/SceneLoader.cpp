@@ -438,6 +438,24 @@ namespace Utility
     return materials;
   }
 
+  // compute the object-space bounding box
+  Box3D GetBoundingBox(std::span<const Vertex> vertices)
+  {
+    glm::vec3 min{1e20};
+    glm::vec3 max{};
+    for (const auto& vertex : vertices)
+    {
+      min = glm::min(min, vertex.position);
+      max = glm::max(max, vertex.position);
+    }
+
+    return Box3D
+    {
+      .offset = (min + max) / 2.0f,
+      .halfExtent = (max - min) / 2.0f
+    };
+  }
+
   struct CpuMesh
   {
     std::vector<Vertex> vertices;
@@ -627,7 +645,8 @@ namespace Utility
           .startIndex = static_cast<uint32_t>(scene.indices.size()),
           .indexCount = static_cast<uint32_t>(mesh.indices.size()),
           .materialIdx = mesh.materialIdx,
-          .transform = mesh.transform
+          .transform = mesh.transform,
+          .boundingBox = GetBoundingBox(mesh.vertices)
         });
 
       std::vector<Vertex> tempVertices = std::move(mesh.vertices);

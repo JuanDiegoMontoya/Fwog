@@ -68,7 +68,7 @@ namespace Fwog
     AddressMode addressModeU = AddressMode::CLAMP_TO_EDGE;
     AddressMode addressModeV = AddressMode::CLAMP_TO_EDGE;
     AddressMode addressModeW = AddressMode::CLAMP_TO_EDGE;
-    BorderColor borderColor  = BorderColor::INT_OPAQUE_WHITE;
+    BorderColor borderColor  = BorderColor::FLOAT_OPAQUE_WHITE;
     SampleCount anisotropy   = SampleCount::SAMPLES_1;
     bool compareEnable       = false;
     CompareOp compareOp      = CompareOp::NEVER;

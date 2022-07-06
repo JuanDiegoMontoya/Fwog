@@ -500,7 +500,7 @@ namespace Fwog
 
       FWOG_ASSERT((cb.attachments.empty()
         || (isRenderingToSwapchain && !cb.attachments.empty()))
-        || sLastRenderInfo->colorAttachments.size() > cb.attachments.size()
+        || sLastRenderInfo->colorAttachments.size() >= cb.attachments.size()
         && "There must be at least a color blend attachment for each render target, or none");
 
       if (!sLastGraphicsPipeline || cb.attachments.empty() != sLastGraphicsPipeline->colorBlendState.attachments.empty())

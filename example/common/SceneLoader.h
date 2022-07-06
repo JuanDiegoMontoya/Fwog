@@ -20,6 +20,12 @@ namespace Utility
 
   using index_t = uint32_t;
 
+  struct Box3D
+  {
+    glm::vec3 offset;
+    glm::vec3 halfExtent;
+  };
+
   struct CombinedTextureSampler
   {
     Fwog::Texture texture;
@@ -78,6 +84,7 @@ namespace Utility
     uint32_t indexCount{};
     uint32_t materialIdx{};
     glm::mat4 transform{};
+    Box3D boundingBox{};
   };
 
   struct SceneBindless
