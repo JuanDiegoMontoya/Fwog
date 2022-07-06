@@ -1,34 +1,11 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
-layout(binding = 0, std140) uniform GlobalUniforms
-{
-  mat4 viewProj;
-  mat4 invViewProj;
-  vec4 cameraPos;
-}globalUniforms;
+#include "Common.h"
 
-struct ObjectUniforms
-{
-  mat4 model;
-  uint materialIdx;
-};
+layout(location = 0) out uint v_drawID;
 
-layout(binding = 0, std430) readonly buffer ObjectUniformsBuffer
-{
-  ObjectUniforms objects[];
-};
-
-struct BoundingBox
-{
-  vec3 offset;
-  vec3 halfExtent;
-};
-
-layout(binding = 2, std430) readonly buffer BoundingBoxesBuffer
-{
-  BoundingBox boundingBoxes[];
-};
-
+// 24-vertex CCW triangle strip
 vec3 CreateCube(in uint vertexID)
 {
   uint b = 1 << vertexID;
@@ -37,7 +14,8 @@ vec3 CreateCube(in uint vertexID)
 
 void main()
 {
-  uint i = gl_BaseInstance + gl_InstanceID;
+  uint i = objectIndices.array[gl_BaseInstance + gl_InstanceID];
+  v_drawID = gl_BaseInstance + gl_InstanceID;
   vec3 a_pos = CreateCube(gl_VertexID) - .5; // gl_VertexIndex for Vulkan
   ObjectUniforms obj = objects[i];
   a_pos *= boundingBoxes[i].halfExtent * 2.0;

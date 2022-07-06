@@ -1,4 +1,7 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
+
+#include "Common.h"
 
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_normal;
@@ -8,24 +11,6 @@ layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec2 v_uv;
 layout(location = 3) out uint v_materialIdx;
-
-layout(binding = 0, std140) uniform GlobalUniforms
-{
-  mat4 viewProj;
-  mat4 invViewProj;
-  vec4 cameraPos;
-}globalUniforms;
-
-struct ObjectUniforms
-{
-  mat4 model;
-  uint materialIdx;
-};
-
-layout(binding = 0, std430) readonly buffer ObjectUniformsBuffer
-{
-  ObjectUniforms objects[];
-};
 
 vec2 signNotZero(vec2 v)
 {
@@ -41,7 +26,7 @@ vec3 oct_to_float32x3(vec2 e)
 
 void main()
 {
-  uint i = gl_DrawID;
+  uint i = objectIndices.array[gl_DrawID];
   v_materialIdx = objects[i].materialIdx;
   v_position = (objects[i].model * vec4(a_pos, 1.0)).xyz;
   v_normal = normalize(inverse(transpose(mat3(objects[i].model))) * oct_to_float32x3(a_normal));

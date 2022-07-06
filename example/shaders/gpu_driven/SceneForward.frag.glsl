@@ -1,32 +1,13 @@
 #version 460 core
 #extension GL_ARB_bindless_texture : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#include "Common.h"
 
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec2 v_uv;
 layout(location = 3) in flat uint v_materialIdx;
-
-layout(binding = 0, std140) uniform GlobalUniforms
-{
-  mat4 viewProj;
-  mat4 invViewProj;
-  vec4 cameraPos;
-}globalUniforms;
-
-#define HAS_BASE_COLOR_TEXTURE (1 << 0)
-
-struct Material
-{
-  uint flags;
-  float alphaCutoff;
-  uvec2 baseColorTextureHandle;
-  vec4 baseColorFactor;
-};
-
-layout(binding = 1, std430) readonly buffer MaterialUniforms
-{
-  Material materials[];
-};
 
 layout(location = 0) out vec4 o_color;
 

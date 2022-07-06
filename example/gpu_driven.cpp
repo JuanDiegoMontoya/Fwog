@@ -35,6 +35,10 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 
+#define STB_INCLUDE_IMPLEMENTATION
+#define STB_INCLUDE_LINE_GLSL
+#include <stb_include.h>
+
 ////////////////////////////////////// Types
 struct View
 {
@@ -108,14 +112,22 @@ float gSensitivity = 0.005f;
 
 struct
 {
-  Fwog::Extent3D shadowmapResolution = { 2048, 2048 };
-
   float viewNearPlane = 0.3f;
-
-  float lightFarPlane = 50.0f;
-  float lightProjWidth = 24.0f;
-  float lightDistance = 25.0f;
 }config;
+
+std::string LoadFileWithInclude(std::string_view path, std::string_view includeDir)
+{
+  char error[256] = {};
+  char* included = stb_include_string(
+    Utility::LoadFile(path).data(),
+    nullptr,
+    includeDir.data(),
+    "",
+    error);
+  std::string includedStr = included;
+  free(included);
+  return includedStr;
+}
 
 std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
 {
@@ -148,10 +160,10 @@ Fwog::GraphicsPipeline CreateScenePipeline()
 {
   auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
-    Utility::LoadFile("shaders/gpu_driven/SceneForward.vert.glsl"));
+    LoadFileWithInclude("shaders/gpu_driven/SceneForward.vert.glsl", "shaders/gpu_driven"));
   auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
-    Utility::LoadFile("shaders/gpu_driven/SceneForward.frag.glsl"));
+    LoadFileWithInclude("shaders/gpu_driven/SceneForward.frag.glsl", "shaders/gpu_driven"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
@@ -168,29 +180,39 @@ Fwog::GraphicsPipeline CreateBoundingBoxDebugPipeline()
 {
   auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
-    Utility::LoadFile("shaders/gpu_driven/BoundingBox.vert.glsl"));
+    LoadFileWithInclude("shaders/gpu_driven/BoundingBox.vert.glsl", "shaders/gpu_driven"));
   auto fragmentShader = Fwog::Shader(
     Fwog::PipelineStage::FRAGMENT_SHADER,
-    Utility::LoadFile("shaders/gpu_driven/SolidColor.frag.glsl"));
-
-  Fwog::ColorBlendAttachmentState blend
-  {
-    .blendEnable = true,
-    .srcColorBlendFactor = Fwog::BlendFactor::SRC_ALPHA,
-    .dstColorBlendFactor = Fwog::BlendFactor::ONE_MINUS_SRC_ALPHA,
-    .srcAlphaBlendFactor = Fwog::BlendFactor::SRC_ALPHA,
-    .dstAlphaBlendFactor = Fwog::BlendFactor::ONE_MINUS_SRC_ALPHA
-  };
+    LoadFileWithInclude("shaders/gpu_driven/SolidColor.frag.glsl", "shaders/gpu_driven"));
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .inputAssemblyState = { .topology = Fwog::PrimitiveTopology::TRIANGLE_STRIP },
-      //.rasterizationState = { .polygonMode = Fwog::PolygonMode::LINE, .cullMode = Fwog::CullMode::NONE },
-      .rasterizationState = { .polygonMode = Fwog::PolygonMode::FILL, .cullMode = Fwog::CullMode::NONE },
+      .rasterizationState = { .polygonMode = Fwog::PolygonMode::LINE, .cullMode = Fwog::CullMode::NONE },
       .depthState = {.depthTestEnable = true, .depthWriteEnable = false, .depthCompareOp = Fwog::CompareOp::LESS },
-      .colorBlendState = {.attachments = { &blend, 1 }}
+    });
+
+  return pipeline;
+}
+
+Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
+{
+  auto vertexShader = Fwog::Shader(
+    Fwog::PipelineStage::VERTEX_SHADER,
+    LoadFileWithInclude("shaders/gpu_driven/BoundingBox.vert.glsl", "shaders/gpu_driven"));
+  auto fragmentShader = Fwog::Shader(
+    Fwog::PipelineStage::FRAGMENT_SHADER,
+    LoadFileWithInclude("shaders/gpu_driven/SolidColor.frag.glsl", "shaders/gpu_driven"));
+
+  auto pipeline = Fwog::CompileGraphicsPipeline(
+    {
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .inputAssemblyState = {.topology = Fwog::PrimitiveTopology::TRIANGLE_STRIP },
+      .rasterizationState = {.polygonMode = Fwog::PolygonMode::LINE, .cullMode = Fwog::CullMode::NONE },
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = false, .depthCompareOp = Fwog::CompareOp::LESS },
     });
 
   return pipeline;
@@ -260,14 +282,12 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   Fwog::Viewport mainViewport{ .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
 
-  Fwog::Viewport shadowViewport{ .drawRect {.extent = config.shadowmapResolution } };
-
   // create gbuffer textures and render info
   auto gBufferColorTexture = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_SRGB);
   auto gBufferDepthTexture = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::D32_FLOAT);
 
-  // create shadow depth texture and render info
-  auto shadowDepthTexture = Fwog::CreateTexture2D(config.shadowmapResolution, Fwog::Format::D16_UNORM);
+  Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
+  Fwog::GraphicsPipeline boundingBoxDebugPipeline = CreateBoundingBoxDebugPipeline();
 
   Utility::SceneBindless scene;
   bool success = false;
@@ -291,7 +311,9 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   std::vector<ObjectUniforms> meshUniforms;
   std::vector<BoundingBox> boundingBoxes;
   std::vector<Fwog::DrawIndexedIndirectCommand> drawCommands;
+  std::vector<uint32_t> objectIndices = { static_cast<uint32_t>(scene.meshes.size()) };
 
+  int curObjectIndex = 0;
   for (const auto& mesh : scene.meshes)
   {
     meshUniforms.push_back(ObjectUniforms
@@ -312,6 +334,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
         .vertexOffset = mesh.startVertex,
         .firstInstance = 0
       });
+    objectIndices.push_back(curObjectIndex++);
   }
 
   auto vertexBuffer = Fwog::TypedBuffer<Utility::Vertex>(scene.vertices);
@@ -320,17 +343,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferFlag::DYNAMIC_STORAGE | Fwog::BufferFlag::MAP_WRITE);
   auto meshUniformBuffer = Fwog::TypedBuffer<ObjectUniforms>(meshUniforms);
   auto boundingBoxesBuffer = Fwog::TypedBuffer<BoundingBox>(boundingBoxes);
+  auto objectIndicesBuffer = Fwog::Buffer(std::span(objectIndices));
   auto materialsBuffer = Fwog::TypedBuffer<Utility::GpuMaterialBindless>(scene.materials);
-
-  Fwog::SamplerState ss;
-  ss.minFilter = Fwog::Filter::NEAREST;
-  ss.magFilter = Fwog::Filter::NEAREST;
-  ss.addressModeU = Fwog::AddressMode::REPEAT;
-  ss.addressModeV = Fwog::AddressMode::REPEAT;
-  auto nearestSampler = Fwog::Sampler(ss);
-
-  Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
-  Fwog::GraphicsPipeline boundingBoxDebugPipeline = CreateBoundingBoxDebugPipeline();
 
   View camera;
   camera.position = { 0, 1.5, 2 };
@@ -423,9 +437,10 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::BeginRendering(sceneRenderInfo);
 
       Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-      Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer, 0, meshUniformBuffer.Size());
-      Fwog::Cmd::BindStorageBuffer(1, materialsBuffer, 0, materialsBuffer.Size());
-      Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer, 0, boundingBoxesBuffer.Size());
+      Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer,    0, meshUniformBuffer.Size());
+      Fwog::Cmd::BindStorageBuffer(1, materialsBuffer,      0, materialsBuffer.Size());
+      Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer,  0, boundingBoxesBuffer.Size());
+      Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer,  0, objectIndicesBuffer.Size());
 
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
       Fwog::Cmd::BindVertexBuffer(0, vertexBuffer, 0, sizeof(Utility::Vertex));
