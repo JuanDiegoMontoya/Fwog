@@ -1,3 +1,5 @@
+set(CMAKE_CXX_STANDARD 20)
+
 add_subdirectory(external)
 
 add_custom_target(copy_shaders ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
