@@ -3,6 +3,7 @@
 #include <Fwog/Exception.h>
 #include <string_view>
 #include <string>
+#include <utility>
 
 namespace Fwog
 {

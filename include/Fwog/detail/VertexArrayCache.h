@@ -1,5 +1,7 @@
 #pragma once
 #include <unordered_map>
+#include <cstdint>
+#include <cstddef>
 
 namespace Fwog::detail
 {
