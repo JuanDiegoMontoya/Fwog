@@ -30,7 +30,6 @@ set(fwog_header_files
 	include/Fwog/Buffer.h
 	include/Fwog/DebugMarker.h
 	include/Fwog/Fence.h
-	include/Fwog/Indirect.h
 	include/Fwog/Shader.h
 	include/Fwog/Texture.h
 	include/Fwog/Rendering.h
