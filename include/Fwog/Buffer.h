@@ -11,7 +11,7 @@ namespace Fwog
   {
   public:
     template<typename T> requires std::is_trivially_copyable_v<T>
-    TriviallyCopyableByteSpan(const T& t) : std::span<const std::byte>(std::as_bytes(std::span{ &t, 1 })) {}
+    TriviallyCopyableByteSpan(const T& t) : std::span<const std::byte>(std::as_bytes(std::span{ &t, (size_t)1 })) {}
 
     template<typename T> requires std::is_trivially_copyable_v<T>
     TriviallyCopyableByteSpan(std::span<const T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
