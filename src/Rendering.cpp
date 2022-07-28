@@ -10,6 +10,8 @@
 #include <vector>
 #include <memory>
 #include <array>
+#include <utility>
+#include <cstring>
 
 // helper function
 static void GLEnableOrDisable(GLenum state, GLboolean value)
