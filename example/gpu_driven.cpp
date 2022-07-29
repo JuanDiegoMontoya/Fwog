@@ -342,15 +342,14 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     objectIndices.push_back(curObjectIndex++);
   }
 
-
-  auto drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
-  auto vertexBuffer = Fwog::TypedBuffer<Utility::Vertex>(scene.vertices);
-  auto indexBuffer = Fwog::TypedBuffer<Utility::index_t>(scene.indices);
+  auto drawCommandsBuffer   = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
+  auto vertexBuffer         = Fwog::TypedBuffer<Utility::Vertex>(scene.vertices);
+  auto indexBuffer          = Fwog::TypedBuffer<Utility::index_t>(scene.indices);
   auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferFlag::DYNAMIC_STORAGE | Fwog::BufferFlag::MAP_WRITE);
-  auto meshUniformBuffer = Fwog::TypedBuffer<ObjectUniforms>(meshUniforms);
-  auto boundingBoxesBuffer = Fwog::TypedBuffer<BoundingBox>(boundingBoxes);
-  auto objectIndicesBuffer = Fwog::Buffer(std::span(objectIndices));
-  auto materialsBuffer = Fwog::TypedBuffer<Utility::GpuMaterialBindless>(scene.materials);
+  auto meshUniformBuffer    = Fwog::TypedBuffer<ObjectUniforms>(meshUniforms);
+  auto boundingBoxesBuffer  = Fwog::TypedBuffer<BoundingBox>(boundingBoxes);
+  auto objectIndicesBuffer  = Fwog::Buffer(std::span(objectIndices));
+  auto materialsBuffer      = Fwog::TypedBuffer<Utility::GpuMaterialBindless>(scene.materials);
 
   View camera;
   camera.position = { 0, 1.5, 2 };
@@ -453,20 +452,20 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
       Fwog::Cmd::BindVertexBuffer(0, vertexBuffer, 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-      Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer, 0, scene.meshes.size(), 0);
+      Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer, 0, static_cast<uint32_t>(scene.meshes.size()), 0);
 
       if (config.viewBoundingBoxes)
       {
         Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
-        Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0);
+        Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
       }
 
       Fwog::EndRendering();
     }
-
+    
     if (!config.freezeCulling)
     {
-      Fwog::ScopedDebugMarker marker("Culling");
+      Fwog::ScopedDebugMarker marker("Occlusion Culling");
       gDepthAttachment.clearOnLoad = false;
       Fwog::BeginRendering({ .viewport = &mainViewport, .depthAttachment = &gDepthAttachment });
 
@@ -477,7 +476,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       // Draw visible bounding boxes.
       Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
-      Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0); // TODO: upgrade to indirect draw after frustum culling is added
+      Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0); // TODO: upgrade to indirect draw after frustum culling is added
 
       Fwog::EndRendering();
     }

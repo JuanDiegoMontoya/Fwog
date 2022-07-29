@@ -28,7 +28,7 @@ vec3 linear_to_srgb(vec3 linearColor)
 vec3 apply_dither(vec3 color, vec2 uv)
 {
   vec2 uvNoise = uv * (vec2(textureSize(s_sceneColor, 0)) / vec2(textureSize(s_noise, 0)));
-  vec3 noiseSample = texture(s_noise, uvNoise).rgb;
+  vec3 noiseSample = textureLod(s_noise, uvNoise, 0).rgb;
   return color + vec3((noiseSample - 0.5) / 255.0);
 }
 

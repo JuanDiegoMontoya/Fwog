@@ -18,7 +18,7 @@ void main()
   v_drawID = gl_BaseInstance + gl_InstanceID;
   vec3 a_pos = CreateCube(gl_VertexID) - .5; // gl_VertexIndex for Vulkan
   ObjectUniforms obj = objects[i];
-  a_pos *= boundingBoxes[i].halfExtent * 2.0 + 1e-2;
+  a_pos *= boundingBoxes[i].halfExtent * 2.0 + 1e-1;
   a_pos += boundingBoxes[i].offset;
   vec3 position = (obj.model * vec4(a_pos, 1.0)).xyz;
   gl_Position = globalUniforms.viewProj * vec4(position, 1.0);
