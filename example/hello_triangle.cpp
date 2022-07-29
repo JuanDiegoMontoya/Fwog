@@ -73,7 +73,7 @@ Fwog::GraphicsPipeline CreatePipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = inputDescs,
+      .vertexInputState = { inputDescs },
       .depthState = { .depthTestEnable = false, .depthWriteEnable = false }
     });
 
