@@ -14,7 +14,7 @@ namespace Fwog
     {
     }
 
-    const char* what() const override
+    const char* what() const noexcept override
     {
       return message_.c_str();
     }

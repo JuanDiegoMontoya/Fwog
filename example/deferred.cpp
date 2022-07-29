@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <tuple>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
@@ -205,7 +206,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
@@ -225,7 +226,7 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .rasterizationState =
       {
         .depthBiasEnable = true,
@@ -692,7 +693,7 @@ int main()
   {
     RenderScene();
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     printf("Error: %s", e.what());
     throw;

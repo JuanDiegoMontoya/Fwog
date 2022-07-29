@@ -5,7 +5,7 @@
 namespace Fwog
 {
   Buffer::Buffer(const void* data, size_t size, BufferFlags flags)
-    : size_(std::max(size, 1ull))
+    : size_(std::max(size, static_cast<size_t>(1)))
   {
     GLbitfield glflags = detail::BufferFlagsToGL(flags);
     glCreateBuffers(1, &id_);
