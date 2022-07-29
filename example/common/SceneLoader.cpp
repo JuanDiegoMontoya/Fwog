@@ -5,6 +5,7 @@
 #include <execution>
 #include <stack>
 #include <tuple>
+#include <optional>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <Fwog/Common.h>
