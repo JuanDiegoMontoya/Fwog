@@ -27,6 +27,9 @@ jobs:
         CC:   gcc-10
         CXX:  g++-10
 
+    - name: Build with GCC-10
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
     - name: Install GCC-11
       run: sudo apt-get install gcc-11 g++-11
 
@@ -36,6 +39,6 @@ jobs:
         CC:   gcc-11
         CXX:  g++-11
 
-    - name: Build
+    - name: Build with GCC-11
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
       
