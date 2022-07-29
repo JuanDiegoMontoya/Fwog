@@ -1,4 +1,4 @@
-name: CMake
+name: Build
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build:
+  prerequisites:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,27 +18,19 @@ jobs:
     - name: Install Dependencies
       run: sudo apt-get install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 
-    - name: Install GCC-10
-      run: sudo apt-get install gcc-10 g++-10
+  build:
+    strategy:
+      matrix:
+        gccversion: [10, 11]
 
-    - name: Configure CMake with GCC-10
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=g++-10
+    - name: Install gcc-${{ matrix.gccversion }}
+      run: sudo apt-get install gcc-${{ matrix.gccversion }} g++-${{ matrix.gccversion }}
+
+    - name: Configure CMake with GCC-${{ matrix.gccversion }}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=g++-${{ matrix.gccversion }}
       env:
-        CC:   gcc-10
-        CXX:  g++-10
+        CC:   gcc-${{ matrix.gccversion }}
+        CXX:  g++-${{ matrix.gccversion }}
 
-    - name: Build with GCC-10
+    - name: Build with GCC-${{ matrix.gccversion }}
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Install GCC-11
-      run: sudo apt-get install gcc-11 g++-11
-
-    - name: Configure CMake with GCC-11
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=g++-11
-      env:
-        CC:   gcc-11
-        CXX:  g++-11
-
-    - name: Build with GCC-11
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-      
