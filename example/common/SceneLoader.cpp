@@ -441,7 +441,7 @@ namespace Utility
   // compute the object-space bounding box
   Box3D GetBoundingBox(std::span<const Vertex> vertices)
   {
-    glm::vec3 min{1e20};
+    glm::vec3 min{ 1e20f };
     glm::vec3 max{};
     for (const auto& vertex : vertices)
     {

@@ -45,7 +45,7 @@ namespace Fwog
     float minDepth = 0.0f; // glDepthRangef
     float maxDepth = 1.0f; // glDepthRangef
 
-    bool operator==(const Viewport&) const noexcept;
+    bool operator==(const Viewport&) const noexcept = default;
   };
 
   // I don't know how to get the default framebuffer's textures so I have this awful struct instead

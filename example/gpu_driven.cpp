@@ -453,12 +453,12 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
       Fwog::Cmd::BindVertexBuffer(0, vertexBuffer, 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-      Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer, 0, scene.meshes.size(), 0);
+      Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer, 0, static_cast<uint32_t>(scene.meshes.size()), 0);
 
       if (config.viewBoundingBoxes)
       {
         Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
-        Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0);
+        Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
       }
 
       Fwog::EndRendering();
@@ -477,7 +477,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       // Draw visible bounding boxes.
       Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
-      Fwog::Cmd::Draw(24, scene.meshes.size(), 0, 0); // TODO: upgrade to indirect draw after frustum culling is added
+      Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0); // TODO: upgrade to indirect draw after frustum culling is added
 
       Fwog::EndRendering();
     }
