@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <tuple>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
@@ -692,7 +693,7 @@ int main()
   {
     RenderScene();
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     printf("Error: %s", e.what());
     throw;

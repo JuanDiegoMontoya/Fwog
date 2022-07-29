@@ -18,6 +18,8 @@
 #include <array>
 #include <charconv>
 #include <exception>
+#include <stdexcept>
+#include <cstring>
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Rendering.h>
@@ -721,7 +723,7 @@ int main(int argc, const char* const* argv)
       auto [ptr, ec] = std::from_chars(argv[2], argv[2] + strlen(argv[2]), scale);
       if (ec != std::errc{})
       {
-        throw std::exception("Scale should be a real number");
+        throw std::runtime_error("Scale should be a real number");
       }
     }
     if (argc > 3)
@@ -731,11 +733,11 @@ int main(int argc, const char* const* argv)
       binary = static_cast<bool>(val);
       if (ec != std::errc{})
       {
-        throw std::exception("Binary should be 0 or 1");
+        throw std::runtime_error("Binary should be 0 or 1");
       }
     }
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     printf("Argument parsing error: %s\n", e.what());
     return -1;
