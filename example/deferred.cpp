@@ -206,7 +206,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
@@ -226,7 +226,7 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .rasterizationState =
       {
         .depthBiasEnable = true,

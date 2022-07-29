@@ -188,7 +188,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .depthState = { .depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER }
     });
 
@@ -204,7 +204,7 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
       .vertexShader = &vertexShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .rasterizationState =
       {
         .depthBiasEnable = true,
@@ -399,20 +399,22 @@ public:
       data.push_back({ red, green, blue });
     }
 
-    scatteringTexture = Fwog::Texture({
-        .imageType = Fwog::ImageType::TEX_1D,
-        .format = Fwog::Format::R16G16B16_FLOAT,
-        .extent = static_cast<uint32_t>(data.size()),
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .sampleCount = Fwog::SampleCount::SAMPLES_1 });
+    scatteringTexture = Fwog::Texture(Fwog::TextureCreateInfo{
+      .imageType = Fwog::ImageType::TEX_1D,
+      .format = Fwog::Format::R16G16B16_FLOAT,
+      .extent = { static_cast<uint32_t>(data.size()) },
+      .mipLevels = 1,
+      .arrayLayers = 1,
+      .sampleCount = Fwog::SampleCount::SAMPLES_1
+    });
 
     scatteringTexture->SubImage({
       .dimension = Fwog::UploadDimension::ONE,
       .size = { static_cast<uint32_t>(data.size()) },
       .format = Fwog::UploadFormat::RGB,
       .type = Fwog::UploadType::FLOAT,
-      .pixels = data.data() });
+      .pixels = data.data()
+    });
   }
 
   void UpdateUniforms(const View& view, 
@@ -1082,11 +1084,7 @@ int main(int argc, const char* const* argv)
     }
     if (argc > 2)
     {
-      auto [ptr, ec] = std::from_chars(argv[2], argv[2] + strlen(argv[2]), scale);
-      if (ec != std::errc{})
-      {
-        throw std::runtime_error("Scale should be a real number");
-      }
+      scale = std::stof(argv[2]);
     }
     if (argc > 3)
     {

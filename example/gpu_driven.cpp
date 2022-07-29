@@ -173,7 +173,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::LESS }
     });
 
@@ -311,7 +311,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   // oof
   if (!success)
   {
-    throw std::exception("Failed to load");
+    throw std::runtime_error("Failed to load");
   }
 
   std::vector<ObjectUniforms> meshUniforms;
@@ -522,11 +522,7 @@ int main(int argc, const char* const* argv)
     }
     if (argc > 2)
     {
-      auto [ptr, ec] = std::from_chars(argv[2], argv[2] + strlen(argv[2]), scale);
-      if (ec != std::errc{})
-      {
-        throw std::runtime_error("Scale should be a real number");
-      }
+      scale = std::stof(argv[2]);
     }
     if (argc > 3)
     {

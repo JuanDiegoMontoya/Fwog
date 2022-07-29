@@ -44,12 +44,6 @@ std::array<uint8_t, 9> gTriColors = { 255, 0, 0, 0, 255, 0, 0, 0, 255 };
 
 Fwog::GraphicsPipeline CreatePipeline()
 {
-  Fwog::InputAssemblyState inputAssembly
-  {
-    .topology = Fwog::PrimitiveTopology::TRIANGLE_LIST,
-    .primitiveRestartEnable = false,
-  };
-
   Fwog::VertexInputBindingDescription descPos
   {
     .location = 0,
@@ -69,11 +63,11 @@ Fwog::GraphicsPipeline CreatePipeline()
   auto vertexShader = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource);
   auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
 
-  auto pipeline = Fwog::CompileGraphicsPipeline(
+  auto pipeline = Fwog::CompileGraphicsPipeline(Fwog::GraphicsPipelineInfo
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = inputDescs,
+      .vertexInputState = { inputDescs },
       .depthState = { .depthTestEnable = false, .depthWriteEnable = false }
     });
 
