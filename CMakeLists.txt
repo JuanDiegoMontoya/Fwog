@@ -77,7 +77,7 @@ target_compile_options(lib_fwog
 	-pedantic-errors
 	-Wno-missing-field-initializers
 	-Wno-unused-result
-	-Werror
+	#-Werror
 	#-Wconversion
 	#-Wsign-conversion
 	>
