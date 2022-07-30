@@ -415,7 +415,6 @@ void RenderScene()
 
   auto indirectLightingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
   
-  auto view = glm::mat4(1);
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
   std::vector<ObjectUniforms> objectUniforms;
@@ -468,20 +467,6 @@ void RenderScene()
   ss.addressModeU = Fwog::AddressMode::REPEAT;
   ss.addressModeV = Fwog::AddressMode::REPEAT;
   auto nearestSampler = Fwog::Sampler(ss);
-
-  ss.minFilter = Fwog::Filter::LINEAR;
-  ss.magFilter = Fwog::Filter::LINEAR;
-  ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
-  ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
-  ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
-  auto rsmColorSampler = Fwog::Sampler(ss);
-
-  ss.minFilter = Fwog::Filter::NEAREST;
-  ss.magFilter = Fwog::Filter::NEAREST;
-  ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
-  ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
-  ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
-  auto rsmDepthSampler = Fwog::Sampler(ss);
 
   ss.compareEnable = true;
   ss.compareOp = Fwog::CompareOp::LESS;

@@ -392,9 +392,9 @@ char *stb_include_file(const char *filename, const char *inject, const char *pat
    char *result;
    char *text = stb_include_load_file(filename, &len);
    if (text == NULL) {
-      strcpy_s(error, sizeof(error), "Error: couldn't load '");
-      strcat_s(error, sizeof(error), filename);
-      strcat_s(error, sizeof(error), "'");
+      strcpy_s(error, 256, "Error: couldn't load '");
+      strcat_s(error, 256, filename);
+      strcat_s(error, 256, "'");
       return 0;
    }
    result = stb_include_string(text, inject, path_to_includes, filename, error);

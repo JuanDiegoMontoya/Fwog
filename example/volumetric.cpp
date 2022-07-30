@@ -534,8 +534,6 @@ public:
 
     auto sampler = Fwog::Sampler({ .minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR });
 
-    Fwog::Extent3D targetDim = targetColor.Extent();
-
     Fwog::BeginCompute();
     Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(applyDeferredPipeline);

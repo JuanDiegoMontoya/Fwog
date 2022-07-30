@@ -14,14 +14,14 @@ FetchContent_Declare(
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
-    GIT_TAG        0.9.9.8
+    GIT_TAG        cc98465e3508535ba8c7f6208df934c156a018dc
 )
 
 set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
 FetchContent_Declare(
     tinygltf
     GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
-    GIT_TAG        v2.5.0
+    GIT_TAG        544969b7324cd6bba29f6203c7d78c7ea92dbab0
 )
 
 FetchContent_Declare(
