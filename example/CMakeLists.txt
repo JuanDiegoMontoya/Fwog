@@ -25,3 +25,7 @@ add_executable(gpu_driven gpu_driven.cpp common/common.cpp common/common.h commo
 target_include_directories(gpu_driven PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(gpu_driven PRIVATE glfw lib_glad lib_fwog glm lib_imgui)
 add_dependencies(gpu_driven copy_shaders copy_models)
+
+target_compile_definitions(gltf_viewer PUBLIC STBI_MSC_SECURE_CRT)
+target_compile_definitions(volumetric PUBLIC STBI_MSC_SECURE_CRT)
+target_compile_definitions(gpu_driven PUBLIC STBI_MSC_SECURE_CRT)

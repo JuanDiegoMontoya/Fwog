@@ -221,7 +221,7 @@ Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
   return pipeline;
 }
 
-void CursorPosCallback(GLFWwindow* window, double currentCursorX, double currentCursorY)
+void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
   static bool firstFrame = true;
   if (firstFrame)
@@ -277,7 +277,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init();
   ImGui::StyleColorsDark();
-  auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
+  ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);

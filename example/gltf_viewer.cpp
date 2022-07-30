@@ -245,7 +245,7 @@ Fwog::ComputePipeline CreateRSMIndirectPipeline()
   return pipeline;
 }
 
-void CursorPosCallback(GLFWwindow* window, double currentCursorX, double currentCursorY)
+void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
   static bool firstFrame = true;
   if (firstFrame)
@@ -381,11 +381,11 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   if (!fileName)
   {
-    bool success = Utility::LoadModelFromFile(scene, "models/hierarchyTest.glb", glm::mat4{ .5 }, true);
+    Utility::LoadModelFromFile(scene, "models/hierarchyTest.glb", glm::mat4{ .5 }, true);
   }
   else
   {
-    bool success = Utility::LoadModelFromFile(scene, *fileName, glm::scale(glm::vec3{ scale }), binary);
+    Utility::LoadModelFromFile(scene, *fileName, glm::scale(glm::vec3{ scale }), binary);
   }
 
   std::vector<ObjectUniforms> meshUniforms;

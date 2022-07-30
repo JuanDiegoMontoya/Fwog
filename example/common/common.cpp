@@ -88,7 +88,6 @@ namespace Utility
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
-    const GLFWvidmode* videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
     GLFWwindow* window = glfwCreateWindow(createInfo.width, createInfo.height, createInfo.name.data(), nullptr, nullptr);
 
     if (!window)

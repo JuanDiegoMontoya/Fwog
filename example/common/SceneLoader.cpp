@@ -121,12 +121,12 @@ namespace Utility
       int size;
     };
 
-    bool LoadImageData(tinygltf::Image* image, const int image_idx, std::string* err,
+    bool LoadImageData([[maybe_unused]] tinygltf::Image* image, const int image_idx, std::string* err,
       std::string* warn, int req_width, int req_height,
       const unsigned char* bytes, int size, void* user_data)
     {
       int x, y, comp;
-      auto ret = stbi_info_from_memory(bytes, size, &x, &y, &comp);
+      stbi_info_from_memory(bytes, size, &x, &y, &comp);
       auto* data = reinterpret_cast<std::vector<RawImageData>*>(user_data);
       auto* bytes2 = new unsigned char[size];
       memcpy(bytes2, bytes, size);
@@ -408,7 +408,7 @@ namespace Utility
     return textureSamplers;
   }
 
-  std::vector<Material> LoadMaterials(const tinygltf::Model& model, const std::vector<CombinedTextureSampler>& textureSamplers, int baseTextureSamplerIndex)
+  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex)
   {
     std::vector<Material> materials;
 
@@ -441,7 +441,7 @@ namespace Utility
   // compute the object-space bounding box
   Box3D GetBoundingBox(std::span<const Vertex> vertices)
   {
-    glm::vec3 min{1e20};
+    glm::vec3 min{ 1e20f };
     glm::vec3 max{};
     for (const auto& vertex : vertices)
     {
@@ -534,7 +534,7 @@ namespace Utility
       scene.textureSamplers.emplace_back(std::move(textureSampler));
     }
 
-    auto materials = LoadMaterials(model, scene.textureSamplers, baseTextureSamplerIndex);
+    auto materials = LoadMaterials(model, baseTextureSamplerIndex);
     for (auto&& material : materials)
     {
       scene.materials.emplace_back(material);

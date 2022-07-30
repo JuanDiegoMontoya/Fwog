@@ -289,7 +289,7 @@ Fwog::ComputePipeline CreatePostprocessingPipeline()
   return pipeline;
 }
 
-void CursorPosCallback(GLFWwindow* window, double currentCursorX, double currentCursorY)
+void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
   static bool firstFrame = true;
   if (firstFrame)
@@ -570,9 +570,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init();
   ImGui::StyleColorsDark();
-  auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
-  
-  //ImGui::GetIO().Fonts->GetTexDataAsRGBA32()
+  ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);
@@ -596,11 +594,11 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   if (!fileName)
   {
-    bool success = Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{ .5 }, true);
+    Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{ .5 }, true);
   }
   else
   {
-    bool success = Utility::LoadModelFromFile(scene, *fileName, glm::scale(glm::vec3{ scale }), binary);
+    Utility::LoadModelFromFile(scene, *fileName, glm::scale(glm::vec3{ scale }), binary);
   }
 
   std::vector<ObjectUniforms> meshUniforms;
@@ -876,13 +874,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
           Fwog::ScopedDebugMarker marker("Copy to ESM");
           esmUniformBuffer.SubData(config.esmExponent, 0);
 
-          auto nearestSampler = Fwog::Sampler({ 
+          auto nearestMirrorSampler = Fwog::Sampler({ 
             .minFilter = Fwog::Filter::NEAREST, 
             .magFilter = Fwog::Filter::NEAREST, 
             .addressModeU = Fwog::AddressMode::MIRRORED_REPEAT,
             .addressModeV = Fwog::AddressMode::MIRRORED_REPEAT });
           Fwog::Cmd::BindComputePipeline(copyToEsmPipeline);
-          Fwog::Cmd::BindSampledImage(0, shadowDepthTexture, nearestSampler);
+          Fwog::Cmd::BindSampledImage(0, shadowDepthTexture, nearestMirrorSampler);
           Fwog::Cmd::BindImage(0, exponentialShadowMap, 0);
           Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer, 0, esmUniformBuffer.Size());
           auto dispatchDim = (exponentialShadowMap.Extent() + 7) / 8;

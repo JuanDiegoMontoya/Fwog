@@ -287,7 +287,7 @@ Fwog::ComputePipeline CreateRSMIndirectPipeline()
   return pipeline;
 }
 
-void CursorPosCallback(GLFWwindow* window, double currentCursorX, double currentCursorY)
+void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
   static bool firstFrame = true;
   if (firstFrame)

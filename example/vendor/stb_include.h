@@ -237,6 +237,7 @@ char *stb_include_string(const char *str, const char *inject, const char *path_t
       stb_include_itoa(temp+6, inc_list[i].next_line_after);
       strcat_s(temp, sizeof(temp), " ");
       #ifdef STB_INCLUDE_LINE_GLSL
+      (void)filename; // suppress unused variable warning
       stb_include_itoa(temp+15, 0);
       #else
       strcat(temp, filename != 0 ? filename : "source-file");
