@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build_gcc:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        gccversion: [10, 11]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Dependencies
+      run: sudo apt-get install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+
+    - name: Install gcc-${{ matrix.gccversion }}
+      run: sudo apt-get install gcc-${{ matrix.gccversion }} g++-${{ matrix.gccversion }}
+
+    - name: Configure CMake with GCC-${{ matrix.gccversion }}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=g++-${{ matrix.gccversion }}
+      env:
+        CC:   gcc-${{ matrix.gccversion }}
+        CXX:  g++-${{ matrix.gccversion }}
+
+    - name: Build with gcc-${{ matrix.gccversion }}
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}

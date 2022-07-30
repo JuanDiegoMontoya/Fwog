@@ -2,6 +2,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <string_view>
+#include <string>
 
 namespace Utility
 {

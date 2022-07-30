@@ -56,6 +56,121 @@ char *stb_include_file(const char *filename, const char *inject, const char *pat
 #include <stdlib.h>
 #include <string.h>
 
+// glibc users like to live dangerously
+#ifndef _WIN32
+#include <stdarg.h>
+
+static int validate_string_params(char* destination, size_t size, const char* source)
+{
+    int result = 0;
+
+    if (destination == nullptr)
+    {
+        result = EINVAL;
+    }
+    else if (source == nullptr)
+    {
+        destination[0] = '\0';
+        result = EINVAL;
+    }
+    else if (size == 0)
+    {
+        result = ERANGE;
+
+    }
+    else if (strlen(source) > size)
+    {
+        destination[0] = '\0';
+        result = ERANGE;
+    }
+
+    return result;
+}
+
+int fopen_s(FILE** file, const char* filename, const char* mode)
+{
+    if (file == 0 || filename == 0 || mode == 0)
+    {
+        return EINVAL;
+    }
+
+    *file = fopen(filename, mode);
+
+    if (*file)
+    {
+        return errno;
+    }
+
+    return 0;
+}
+
+int sprintf_s(char* buffer, size_t size_of_buffer, const char* format, ...)
+{
+    int     ret_val;
+    va_list arg_ptr;
+
+    va_start(arg_ptr, format);
+    ret_val = vsnprintf(buffer, size_of_buffer, format, arg_ptr);
+    va_end(arg_ptr);
+    return ret_val;
+}
+
+int fprintf_s(FILE* stream, const char* format, ...)
+{
+    int     ret_val;
+    va_list arg_ptr;
+
+    va_start(arg_ptr, format);
+    ret_val = vfprintf(stream, format, arg_ptr);
+    va_end(arg_ptr);
+    return ret_val;
+}
+
+size_t fread_s(void* buffer, size_t buffer_size, size_t element_size, size_t count, FILE* stream)
+{
+    if ((element_size * count) > buffer_size)
+    {
+        return 0;
+    }
+
+    return fread(buffer, element_size, buffer_size, stream);
+}
+
+int strcpy_s(char* destination, size_t size, const char* source)
+{
+    int result = validate_string_params(destination, size, source);
+
+    if (result == 0)
+    {
+        if (strncpy(destination, source, size) == nullptr)
+        {
+            result = ERANGE;
+        }
+    }
+
+    assert(result == 0);
+
+    return result;
+}
+
+int strcat_s(char* destination, size_t size, const char* source)
+{
+    int result = validate_string_params(destination, size, source);
+
+    if (result == 0)
+    {
+        if (strncat(destination, source, size) == nullptr)
+        {
+            result = ERANGE;
+        }
+    }
+
+    assert(result == 0);
+
+    return result;
+}
+#endif
+
 static char *stb_include_load_file(const char *filename, size_t *plen)
 {
    char *text;

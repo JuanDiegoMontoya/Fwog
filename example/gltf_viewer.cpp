@@ -18,6 +18,9 @@
 #include <array>
 #include <charconv>
 #include <exception>
+#include <stdexcept>
+#include <cstring>
+#include <string>
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Rendering.h>
@@ -163,7 +166,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
     });
 
@@ -183,7 +186,7 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
     {
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
-      .vertexInputState = GetSceneInputBindingDescs(),
+      .vertexInputState = { GetSceneInputBindingDescs() },
       .rasterizationState =
       {
         .depthBiasEnable = true,
@@ -718,11 +721,7 @@ int main(int argc, const char* const* argv)
     }
     if (argc > 2)
     {
-      auto [ptr, ec] = std::from_chars(argv[2], argv[2] + strlen(argv[2]), scale);
-      if (ec != std::errc{})
-      {
-        throw std::exception("Scale should be a real number");
-      }
+      scale = std::stof(argv[2]);
     }
     if (argc > 3)
     {
@@ -731,11 +730,11 @@ int main(int argc, const char* const* argv)
       binary = static_cast<bool>(val);
       if (ec != std::errc{})
       {
-        throw std::exception("Binary should be 0 or 1");
+        throw std::runtime_error("Binary should be 0 or 1");
       }
     }
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     printf("Argument parsing error: %s\n", e.what());
     return -1;

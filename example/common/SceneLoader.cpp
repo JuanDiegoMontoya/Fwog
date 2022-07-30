@@ -5,6 +5,8 @@
 #include <execution>
 #include <stack>
 #include <tuple>
+#include <optional>
+#include <chrono>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <Fwog/Common.h>
@@ -239,12 +241,12 @@ namespace Utility
 
           switch (accessor.componentType)
           {
-          case GL_BYTE:           AddElements.operator()<Bvec>(); break;
-          case GL_UNSIGNED_BYTE:  AddElements.operator()<UBvec>(); break;
-          case GL_SHORT:          AddElements.operator()<Svec>(); break;
-          case GL_UNSIGNED_SHORT: AddElements.operator()<USvec>(); break;
-          case GL_UNSIGNED_INT:   AddElements.operator()<UIvec>(); break;
-          case GL_FLOAT:          AddElements.operator()<Fvec>(); break;
+          case GL_BYTE:           AddElements.template operator()<Bvec>(); break;
+          case GL_UNSIGNED_BYTE:  AddElements.template operator()<UBvec>(); break;
+          case GL_SHORT:          AddElements.template operator()<Svec>(); break;
+          case GL_UNSIGNED_SHORT: AddElements.template operator()<USvec>(); break;
+          case GL_UNSIGNED_INT:   AddElements.template operator()<UIvec>(); break;
+          case GL_FLOAT:          AddElements.template operator()<Fvec>(); break;
           default: FWOG_UNREACHABLE;
           }
           
@@ -256,18 +258,18 @@ namespace Utility
             for (size_t i = 0; i < accessor.count; i++)
             {
               // this doesn't actually work exactly for signed types
-              attributeBuffer[i] = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride)) / Fvec(static_cast<float>(std::numeric_limits<Vec::value_type>::max()));
+              attributeBuffer[i] = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride)) / Fvec(static_cast<float>(std::numeric_limits<typename Vec::value_type>::max()));
             }
           };
 
           switch (accessor.componentType)
           {
-          //case GL_BYTE:           AddElementsNorm.operator()<Bvec>(); break;
-          case GL_UNSIGNED_BYTE:  AddElementsNorm.operator()<UBvec>(); break;
-          //case GL_SHORT:          AddElementsNorm.operator()<Svec>(); break;
-          case GL_UNSIGNED_SHORT: AddElementsNorm.operator()<USvec>(); break;
-          case GL_UNSIGNED_INT:   AddElementsNorm.operator()<UIvec>(); break;
-          //case GL_FLOAT:          AddElementsNorm.operator()<Fvec>(); break;
+          //case GL_BYTE:           AddElementsNorm.template operator()<Bvec>(); break;
+          case GL_UNSIGNED_BYTE:  AddElementsNorm.template operator()<UBvec>(); break;
+          //case GL_SHORT:          AddElementsNorm.template operator()<Svec>(); break;
+          case GL_UNSIGNED_SHORT: AddElementsNorm.template operator()<USvec>(); break;
+          case GL_UNSIGNED_INT:   AddElementsNorm.template operator()<UIvec>(); break;
+          //case GL_FLOAT:          AddElementsNorm.template operator()<Fvec>(); break;
           default: FWOG_UNREACHABLE;
           }
         }
@@ -280,17 +282,17 @@ namespace Utility
       if (name == "POSITION")
       {
         FWOG_ASSERT(accessor.type == 3);
-        InsertData(positions);
+        InsertData.template operator()<3>(positions);
       }
       else if (name == "NORMAL")
       {
         FWOG_ASSERT(accessor.type == 3);
-        InsertData(normals);
+        InsertData.template operator()<3>(normals);
       }
       else if (name == "TEXCOORD_0")
       {
         FWOG_ASSERT(accessor.type == 2);
-        InsertData(texcoords);
+        InsertData.template operator()<2>(texcoords);
       }
       else
       {
