@@ -56,4 +56,5 @@ endif()
 
 FetchContent_MakeAvailable(glfw)
 
+target_compile_definitions(glm INTERFACE GLM_FORCE_SILENT_WARNINGS)
 # add_subdirectory(glad)
