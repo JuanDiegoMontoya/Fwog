@@ -132,7 +132,7 @@ namespace Utility
       auto* data = reinterpret_cast<std::vector<RawImageData>*>(user_data);
       auto* bytes2 = new unsigned char[size];
       memcpy(bytes2, bytes, size);
-      data->emplace_back(image_idx, err, warn, req_width, req_height, bytes2, size);
+      data->emplace_back(RawImageData{image_idx, err, warn, req_width, req_height, bytes2, size});
 
       // TODO: this should return false if the image is unloadable (but how?)
       return true;
@@ -403,8 +403,7 @@ namespace Utility
       textureData.SubImage(updateInfo);
       //textureData->GenMipmaps();
 
-      //textureSamplers.emplace_back(CombinedTextureSampler({ std::move(textureData), std::move(sampler) }));
-      textureSamplers.emplace_back(std::move(textureData), std::move(sampler));
+      textureSamplers.emplace_back(CombinedTextureSampler({ std::move(textureData), std::move(sampler) }));
     }
 
     return textureSamplers;
