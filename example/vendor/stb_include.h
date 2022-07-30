@@ -175,7 +175,7 @@ static char *stb_include_load_file(const char *filename, size_t *plen)
 {
    char *text;
    size_t len;
-   FILE *f;
+   FILE *f = NULL;
    fopen_s(&f, filename, "rb");
    if (f == 0) return 0;
    fseek(f, 0, SEEK_END);
