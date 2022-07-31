@@ -115,12 +115,13 @@ namespace Fwog
 
   struct GraphicsPipeline
   {
-    auto operator<=>(const GraphicsPipeline&) const = default;
+    bool operator==(const GraphicsPipeline&) const = default;
     uint64_t id;
   };
+
   struct ComputePipeline
   {
-    auto operator<=>(const ComputePipeline&) const = default;
+    bool operator==(const ComputePipeline&) const = default;
     uint64_t id;
   };
 
