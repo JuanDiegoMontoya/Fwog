@@ -3,8 +3,14 @@
 #include <Fwog/detail/Hash.h>
 #include <Fwog/Shader.h>
 #include <Fwog/Exception.h>
+#include <Fwog/Rendering.h>
+#include <Fwog/Buffer.h>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+
+// whether to perform optimization of binding the pipeline and submitting a dummy draw/dispatch when compiling
+#define DUMMY 1
 
 namespace Fwog::detail
 {
@@ -74,7 +80,51 @@ namespace Fwog::detail
 
     auto owning = MakePipelineInfoOwning(info);
     gGraphicsPipelines.insert({ program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning)) });
-    return GraphicsPipeline{ program };
+    auto pipeline = GraphicsPipeline{ program };
+
+#if DUMMY
+    static auto dummyIndirectBuffer = Buffer(DrawIndirectCommand{});
+    Viewport viewport{};
+    if (info.renderInfo)
+    {
+      RenderInfo renderInfo = *info.renderInfo;
+      std::vector<RenderAttachment> cs(info.renderInfo->colorAttachments.size(), RenderAttachment{});
+      RenderAttachment d{};
+      RenderAttachment s{};
+      for (size_t i = 0; i < cs.size(); i++)
+      {
+        cs[i] = renderInfo.colorAttachments[i];
+        cs[i].clearOnLoad = false;
+      }
+      renderInfo.colorAttachments = cs;
+      if (renderInfo.depthAttachment)
+      {
+        d = *renderInfo.depthAttachment;
+        d.clearOnLoad = false;
+        renderInfo.depthAttachment = &d;
+      }
+      if (renderInfo.stencilAttachment)
+      {
+        s = *renderInfo.stencilAttachment;
+        s.clearOnLoad = false;
+        renderInfo.stencilAttachment = &s;
+      }
+      BeginRendering(*info.renderInfo);
+    }
+    else
+    {
+      BeginSwapchainRendering({ .viewport = &viewport });
+    }
+    Cmd::BindGraphicsPipeline(pipeline);
+    for (const auto& vertexDesc : info.vertexInputState.vertexBindingDescriptions)
+    {
+      Cmd::BindVertexBuffer(vertexDesc.binding, dummyIndirectBuffer, 0, 0);
+    }
+    Cmd::DrawIndirect(dummyIndirectBuffer, 0, 1, 0);
+    EndRendering();
+#endif
+
+    return pipeline;
   }
 
   std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
@@ -118,7 +168,17 @@ namespace Fwog::detail
     }
 
     gComputePipelines.insert({ program });
-    return ComputePipeline{ program };
+    auto pipeline = ComputePipeline{ program };
+
+#if DUMMY
+    static auto dummyIndirectBuffer = Buffer(DispatchIndirectCommand{});
+    BeginCompute();
+    Cmd::BindComputePipeline(pipeline);
+    Cmd::DispatchIndirect(dummyIndirectBuffer, 0);
+    EndCompute();
+#endif
+
+    return pipeline;
   }
 
   bool DestroyComputePipelineInternal(ComputePipeline pipeline)

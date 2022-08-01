@@ -175,7 +175,7 @@ std::array<Fwog::VertexInputBindingDescription, 3> GetSceneInputBindingDescs()
   return { descPos, descNormal, descUV };
 }
 
-Fwog::GraphicsPipeline CreateScenePipeline()
+Fwog::GraphicsPipeline CreateScenePipeline(const Fwog::RenderInfo* renderInfo)
 {
   auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
@@ -189,13 +189,14 @@ Fwog::GraphicsPipeline CreateScenePipeline()
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .vertexInputState = { GetSceneInputBindingDescs() },
-      .depthState = { .depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER }
+      .depthState = { .depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER },
+      .renderInfo = renderInfo
     });
 
   return pipeline;
 }
 
-Fwog::GraphicsPipeline CreateShadowPipeline()
+Fwog::GraphicsPipeline CreateShadowPipeline(const Fwog::RenderInfo* renderInfo)
 {
   auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
@@ -211,13 +212,14 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
         .depthBiasConstantFactor = 3.0f,
         .depthBiasSlopeFactor = 5.0f,
       },
-      .depthState = {.depthTestEnable = true, .depthWriteEnable = true }
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true },
+      .renderInfo = renderInfo
     });
 
   return pipeline;
 }
 
-Fwog::GraphicsPipeline CreateShadingPipeline()
+Fwog::GraphicsPipeline CreateShadingPipeline(const Fwog::RenderInfo* renderInfo)
 {
   auto vertexShader = Fwog::Shader(
     Fwog::PipelineStage::VERTEX_SHADER,
@@ -231,7 +233,8 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE },
-      .depthState = {.depthTestEnable = false, .depthWriteEnable = false }
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false },
+      .renderInfo = renderInfo
     });
 
   return pipeline;
@@ -643,9 +646,62 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ss.magFilter = Fwog::Filter::LINEAR;
   auto shadowSampler = Fwog::Sampler(ss);
 
-  Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline();
-  Fwog::GraphicsPipeline shadowPipeline = CreateShadowPipeline();
-  Fwog::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
+  Fwog::RenderAttachment gcolorAttachment
+  {
+    .texture = &gBufferColorTexture,
+    .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
+    .clearOnLoad = true
+  };
+  Fwog::RenderAttachment gnormalAttachment
+  {
+    .texture = &gBufferNormalTexture,
+    .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
+    .clearOnLoad = false
+  };
+  Fwog::RenderAttachment gdepthAttachment
+  {
+    .texture = &gBufferDepthTexture,
+    .clearValue = Fwog::ClearValue{.depthStencil{.depth = 0.0f } },
+    .clearOnLoad = true
+  };
+  Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
+  Fwog::RenderInfo gbufferRenderInfo
+  {
+    .viewport = &mainViewport,
+    .colorAttachments = cgAttachments,
+    .depthAttachment = &gdepthAttachment,
+    .stencilAttachment = nullptr
+  };
+
+  Fwog::RenderAttachment depthAttachment
+  {
+    .texture = &shadowDepthTexture,
+    .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
+    .clearOnLoad = true
+  };
+
+  Fwog::RenderInfo shadowRenderInfo
+  {
+    .viewport = &shadowViewport,
+    .depthAttachment = &depthAttachment,
+    .stencilAttachment = nullptr
+  };
+
+  Fwog::RenderAttachment shadingAttachment
+  {
+    .texture = &shadingTex,
+    .clearOnLoad = false
+  };
+
+  Fwog::RenderInfo shadingRenderInfo
+  {
+    .viewport = &mainViewport,
+    .colorAttachments = { &shadingAttachment, 1 }
+  };
+
+  Fwog::GraphicsPipeline scenePipeline = CreateScenePipeline(&gbufferRenderInfo);
+  Fwog::GraphicsPipeline shadowPipeline = CreateShadowPipeline(&shadowRenderInfo);
+  Fwog::GraphicsPipeline shadingPipeline = CreateShadingPipeline(&shadingRenderInfo);
   Fwog::GraphicsPipeline debugTexturePipeline = CreateDebugTexturePipeline();
   Fwog::ComputePipeline copyToEsmPipeline = CreateCopyToEsmPipeline();
   Fwog::ComputePipeline gaussianBlurPipeline = CreateGaussianBlurPipeline();
@@ -699,13 +755,22 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   bool cursorIsActive = false;
 
+  glFinish();
+
   float prevFrame = static_cast<float>(glfwGetTime());
+  uint64_t frameIndex = 0;
   while (!glfwWindowShouldClose(window))
   {
     // calculate dt
     float curFrame = static_cast<float>(glfwGetTime());
     float dt = curFrame - prevFrame;
     prevFrame = curFrame;
+
+    if (frameIndex > 0 && frameIndex < 6)
+    {
+      printf("%.6f\n", dt * 1000.0f);
+    }
+    frameIndex++;
 
     // process input
     gCursorOffsetX = 0;
@@ -782,32 +847,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
     // geometry buffer pass
     {
-      Fwog::RenderAttachment gcolorAttachment
-      {
-        .texture = &gBufferColorTexture,
-        .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
-        .clearOnLoad = true
-      };
-      Fwog::RenderAttachment gnormalAttachment
-      {
-        .texture = &gBufferNormalTexture,
-        .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-        .clearOnLoad = false
-      };
-      Fwog::RenderAttachment gdepthAttachment
-      {
-        .texture = &gBufferDepthTexture,
-        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 0.0f } },
-        .clearOnLoad = true
-      };
-      Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
-      Fwog::RenderInfo gbufferRenderInfo
-      {
-        .viewport = &mainViewport,
-        .colorAttachments = cgAttachments,
-        .depthAttachment = &gdepthAttachment,
-        .stencilAttachment = nullptr
-      };
       Fwog::BeginRendering(gbufferRenderInfo);
       Fwog::ScopedDebugMarker marker("Geometry");
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
@@ -838,19 +877,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
     // shadow map scene pass
     {
-      Fwog::RenderAttachment depthAttachment
-      {
-        .texture = &shadowDepthTexture,
-        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
-        .clearOnLoad = true
-      };
-
-      Fwog::RenderInfo shadowRenderInfo
-      {
-        .viewport = &shadowViewport,
-        .depthAttachment = &depthAttachment,
-        .stencilAttachment = nullptr
-      };
       Fwog::BeginRendering(shadowRenderInfo);
       Fwog::ScopedDebugMarker marker("Shadow Scene");
       Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);
@@ -940,18 +966,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
     // shading pass (full screen tri)
     {
-      Fwog::RenderAttachment shadingAttachment
-      {
-        .texture = &shadingTex,
-        .clearOnLoad = false
-      };
-
-      Fwog::RenderInfo shadingRenderingInfo
-      {
-        .viewport = &mainViewport,
-        .colorAttachments = { &shadingAttachment, 1 }
-      };
-      Fwog::BeginRendering(shadingRenderingInfo);
+      Fwog::BeginRendering(shadingRenderInfo);
       Fwog::ScopedDebugMarker marker("Shading");
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
       Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);

@@ -650,7 +650,6 @@ namespace Fwog
     void DrawIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, uint32_t drawCount, uint32_t stride)
     {
       FWOG_ASSERT(isRendering);
-      FWOG_ASSERT(isIndexBufferBound);
 
       glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
       glMultiDrawArraysIndirect(
@@ -663,7 +662,6 @@ namespace Fwog
     void DrawIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, const Buffer& countBuffer, uint64_t countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
     {
       FWOG_ASSERT(isRendering);
-      FWOG_ASSERT(isIndexBufferBound);
 
       glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.Handle());
       glBindBuffer(GL_PARAMETER_BUFFER, countBuffer.Handle());
