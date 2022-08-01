@@ -6,6 +6,7 @@
 namespace Fwog
 {
   class Shader;
+  struct RenderInfo;
 
   struct InputAssemblyState
   {
@@ -104,6 +105,7 @@ namespace Fwog
     DepthState depthState                 = {};
     StencilState stencilState             = {};
     ColorBlendState colorBlendState       = {};
+    const RenderInfo* renderInfo          = {};
     // Multisample state omitted (stretch goal)
     // Tessellation state omitted (stretch goal)
   };
