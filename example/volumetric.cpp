@@ -66,15 +66,6 @@ struct View
   {
     return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
   }
-
-  void SetForwardDir(glm::vec3 dir)
-  {
-    assert(glm::abs(1.0f - glm::length(dir)) < 0.0001f);
-    pitch = glm::asin(dir.y);
-    yaw = glm::acos(dir.x / glm::cos(pitch));
-    if (dir.x >= 0 && dir.z < 0)
-      yaw *= -1;
-  }
 };
 
 glm::mat4 InfReverseZPerspectiveRH(float fovY_radians, float aspectWbyH, float zNear)
@@ -474,7 +465,7 @@ public:
 
     if (!uniformBuffer)
     {
-      uniformBuffer = Fwog::Buffer(sizeof(uniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+      uniformBuffer = Fwog::Buffer(sizeof(uniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
     }
     uniformBuffer->SubData(uniforms, 0);
   }
@@ -621,14 +612,14 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   lights.push_back(Light{ .position = { 3, 3, 2, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
   lights.push_back(Light{ .position = { .9, 5.5, -1.65, 0 }, .intensity = { 5.2f, 4.8f, 12.5f }, .invRadius = 1.0f / 9.0f });
 
-  //auto globalUniformsBuffer = Fwog::Buffer(sizeof(GlobalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferFlag::DYNAMIC_STORAGE | Fwog::BufferFlag::MAP_WRITE);
-  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto materialUniformsBuffer = Fwog::Buffer(sizeof(Utility::GpuMaterial), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  //auto globalUniformsBuffer = Fwog::Buffer(sizeof(GlobalUniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferStorageFlag::DYNAMIC_STORAGE, Fwog::BufferMapFlag::MAP_WRITE);
+  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto materialUniformsBuffer = Fwog::Buffer(sizeof(Utility::GpuMaterial), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
-  auto meshUniformBuffer = Fwog::Buffer(std::span(meshUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto meshUniformBuffer = Fwog::Buffer(std::span(meshUniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
-  auto lightBuffer = Fwog::Buffer(std::span(lights), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto lightBuffer = Fwog::Buffer(std::span(lights), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
   Fwog::SamplerState ss;
   ss.minFilter = Fwog::Filter::NEAREST;
@@ -692,8 +683,8 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   auto exponentialShadowMap = Fwog::CreateTexture2D(config.esmResolution, Fwog::Format::R32_FLOAT);
   auto exponentialShadowMapIntermediate = Fwog::CreateTexture2D(config.esmResolution, Fwog::Format::R32_FLOAT);
-  auto esmUniformBuffer = Fwog::Buffer(sizeof(float), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto esmBlurUniformBuffer = Fwog::Buffer(sizeof(glm::ivec2) * 2, Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto esmUniformBuffer = Fwog::Buffer(sizeof(float), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto esmBlurUniformBuffer = Fwog::Buffer(sizeof(glm::ivec2) * 2, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
   auto ldrSceneColorTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
 
@@ -832,9 +823,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::EndRendering();
     }
 
-    auto* ptr = globalUniformsBuffer.MapTyped();
-    ptr->viewProj = shadingUniforms.sunViewProj;
-    globalUniformsBuffer.Unmap();
+    globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, offsetof(GlobalUniforms, viewProj));
 
     // shadow map scene pass
     {

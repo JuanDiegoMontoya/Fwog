@@ -11,7 +11,8 @@ namespace Fwog::detail
   GLbitfield AspectMaskToGL(AspectMask bits);
 
   ////////////////////////////////////////////////////////// buffer
-  GLbitfield BufferFlagsToGL(BufferFlags flags);
+  GLbitfield BufferStorageFlagsToGL(BufferStorageFlags flags);
+  GLbitfield BufferMapFlagsToGL(BufferMapFlags flags);
 
   ////////////////////////////////////////////////////////// texture
   GLint ImageTypeToGL(ImageType imageType);

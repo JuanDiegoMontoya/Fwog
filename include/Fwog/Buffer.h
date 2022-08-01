@@ -20,24 +20,35 @@ namespace Fwog
     TriviallyCopyableByteSpan(std::span<T> t) : std::span<const std::byte>(std::as_bytes(t)) {}
   };
 
-  enum class BufferFlag : uint32_t
+  enum class BufferStorageFlag : uint32_t
   {
-    NONE =            0,
+    NONE            = 0,
     DYNAMIC_STORAGE = 1 << 0,
-    CLIENT_STORAGE =  1 << 1,
-
-    MAP_READ =        1 << 2,
-    MAP_WRITE =       1 << 3,
-    MAP_PERSISTENT =  1 << 4,
-    MAP_COHERENT =    1 << 5,
+    CLIENT_STORAGE  = 1 << 1,
   };
-  FWOG_DECLARE_FLAG_TYPE(BufferFlags, BufferFlag, uint32_t)
+  FWOG_DECLARE_FLAG_TYPE(BufferStorageFlags, BufferStorageFlag, uint32_t)
+
+  enum class BufferMapFlag : uint32_t
+  {
+    NONE           = 0,
+    MAP_READ       = 1 << 0,
+    MAP_WRITE      = 1 << 1,
+    MAP_PERSISTENT = 1 << 2,
+    MAP_COHERENT   = 1 << 3,
+  };
+  FWOG_DECLARE_FLAG_TYPE(BufferMapFlags, BufferMapFlag, uint32_t)
 
   class Buffer
   {
   public:
-    explicit Buffer(size_t size, BufferFlags flags = BufferFlag::NONE);
-    explicit Buffer(TriviallyCopyableByteSpan data, BufferFlags flags = BufferFlag::NONE);
+    explicit Buffer(
+      size_t size, 
+      BufferStorageFlags storageFlags = BufferStorageFlag::NONE, 
+      BufferMapFlags mapFlags = BufferMapFlag::NONE);
+    explicit Buffer(
+      TriviallyCopyableByteSpan data, 
+      BufferStorageFlags storageFlags = BufferStorageFlag::NONE, 
+      BufferMapFlags mapFlags = BufferMapFlag::NONE);
     Buffer(Buffer&& other) noexcept;
     Buffer& operator=(Buffer&& other) noexcept;
     Buffer(const Buffer& other) = delete;
@@ -53,7 +64,7 @@ namespace Fwog
       const void* data) const;
 
     // TODO: add range and read/write flags
-    [[nodiscard]] void* Map() const;
+    [[nodiscard]] void* Map(BufferMapFlags flags) const;
     void Unmap() const;
 
     [[nodiscard]] auto Handle() const { return id_; }
@@ -62,12 +73,15 @@ namespace Fwog
 
   protected:
     Buffer() {}
-    Buffer(const void* data, size_t size, BufferFlags flags);
+    Buffer(const void* data,
+      size_t size,
+      BufferStorageFlags storageFlags,
+      BufferMapFlags mapFlags);
 
     void SubData(const void* data, size_t size, size_t offset = 0) const;
 
-    uint32_t id_{};
     size_t size_{};
+    uint32_t id_{};
     mutable bool isMapped_{ false };
   };
 
@@ -75,12 +89,20 @@ namespace Fwog
   class TypedBuffer : public Buffer
   {
   public:
-    explicit TypedBuffer(BufferFlags flags = BufferFlag::NONE)
-      : Buffer(sizeof(T), flags) {}
-    explicit TypedBuffer(size_t count, BufferFlags flags = BufferFlag::NONE)
-      : Buffer(sizeof(T)* count, flags) {}
-    explicit TypedBuffer(std::span<const T> data, BufferFlags flags = BufferFlag::NONE)
-      : Buffer(data, flags) {}
+    explicit TypedBuffer(
+      BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+      BufferMapFlags mapFlags = BufferMapFlag::NONE)
+      : Buffer(sizeof(T), storageFlags, mapFlags) {}
+    explicit TypedBuffer(
+      size_t count,
+      BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+      BufferMapFlags mapFlags = BufferMapFlag::NONE)
+      : Buffer(sizeof(T)* count, storageFlags, mapFlags) {}
+    explicit TypedBuffer(
+      std::span<const T> data,
+      BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+      BufferMapFlags mapFlags = BufferMapFlag::NONE)
+      : Buffer(data, storageFlags, mapFlags) {}
     TypedBuffer(TypedBuffer&& other) noexcept = default;
     TypedBuffer& operator=(TypedBuffer&& other) noexcept = default;
     TypedBuffer(const TypedBuffer& other) = delete;
@@ -96,9 +118,9 @@ namespace Fwog
       Buffer::SubData(data, sizeof(T) * startIndex);
     }
 
-    [[nodiscard]] T* MapTyped() const
+    [[nodiscard]] T* MapTyped(BufferMapFlags flags) const
     {
-      return reinterpret_cast<T*>(Buffer::Map());
+      return reinterpret_cast<T*>(Buffer::Map(flags));
     }
 
   private:

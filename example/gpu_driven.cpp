@@ -62,15 +62,6 @@ struct View
   {
     return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
   }
-
-  void SetForwardDir(glm::vec3 dir)
-  {
-    assert(glm::abs(1.0f - glm::length(dir)) < 0.0001f);
-    pitch = glm::asin(dir.y);
-    yaw = glm::acos(dir.x / glm::cos(pitch));
-    if (dir.x >= 0 && dir.z < 0)
-      yaw *= -1;
-  }
 };
 
 struct alignas(16) ObjectUniforms
@@ -346,7 +337,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto drawCommandsBuffer   = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
   auto vertexBuffer         = Fwog::TypedBuffer<Utility::Vertex>(scene.vertices);
   auto indexBuffer          = Fwog::TypedBuffer<Utility::index_t>(scene.indices);
-  auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferFlag::DYNAMIC_STORAGE | Fwog::BufferFlag::MAP_WRITE);
+  auto globalUniformsBuffer = Fwog::TypedBuffer<GlobalUniforms>(Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
   auto meshUniformBuffer    = Fwog::TypedBuffer<ObjectUniforms>(meshUniforms);
   auto boundingBoxesBuffer  = Fwog::TypedBuffer<BoundingBox>(boundingBoxes);
   auto objectIndicesBuffer  = Fwog::Buffer(std::span(objectIndices));

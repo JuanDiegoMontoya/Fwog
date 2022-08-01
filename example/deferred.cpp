@@ -40,15 +40,6 @@ struct View
   {
     return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
   }
-
-  void SetForwardDir(glm::vec3 dir)
-  {
-    assert(glm::abs(1.0f - glm::length(dir)) < 0.0001f);
-    pitch = glm::asin(dir.y);
-    yaw = glm::acos(dir.x / glm::cos(pitch));
-    if (dir.x >= 0 && dir.z < 0)
-      yaw *= -1;
-  }
 };
 
 struct ObjectUniforms
@@ -456,10 +447,10 @@ void RenderScene()
 
   auto vertexBuffer = Fwog::Buffer(gCubeVertices);
   auto indexBuffer = Fwog::Buffer(gCubeIndices);
-  auto objectBuffer = Fwog::Buffer(std::span(objectUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto globalUniformsBuffer = Fwog::Buffer(sizeof(globalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto rsmUniformBuffer = Fwog::Buffer(rsmUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto objectBuffer = Fwog::Buffer(std::span(objectUniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto globalUniformsBuffer = Fwog::Buffer(sizeof(globalUniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto rsmUniformBuffer = Fwog::Buffer(rsmUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
   Fwog::SamplerState ss;
   ss.minFilter = Fwog::Filter::NEAREST;

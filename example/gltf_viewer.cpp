@@ -60,15 +60,6 @@ struct View
   {
     return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
   }
-
-  void SetForwardDir(glm::vec3 dir)
-  {
-    assert(glm::abs(1.0f - glm::length(dir)) < 0.0001f);
-    pitch = glm::asin(dir.y);
-    yaw = glm::acos(dir.x / glm::cos(pitch));
-    if (dir.x >= 0 && dir.z < 0)
-      yaw *= -1;
-  }
 };
 
 struct ObjectUniforms
@@ -432,14 +423,14 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   const uint32_t zero = 0; // what it says on the tin
   clusterIndicesBuffer.ClearSubData(0, clusterIndicesBuffer.Size(), Fwog::Format::R32_UINT, Fwog::UploadFormat::R, Fwog::UploadType::UINT, &zero);
   
-  auto globalUniformsBuffer = Fwog::Buffer(sizeof(GlobalUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto rsmUniformBuffer = Fwog::Buffer(rsmUniforms, Fwog::BufferFlag::DYNAMIC_STORAGE);
-  auto materialUniformsBuffer = Fwog::Buffer(sizeof(Utility::GpuMaterial), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto globalUniformsBuffer = Fwog::Buffer(sizeof(GlobalUniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto shadingUniformsBuffer = Fwog::Buffer(shadingUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto rsmUniformBuffer = Fwog::Buffer(rsmUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  auto materialUniformsBuffer = Fwog::Buffer(sizeof(Utility::GpuMaterial), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
-  auto meshUniformBuffer = Fwog::Buffer(std::span(meshUniforms), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto meshUniformBuffer = Fwog::Buffer(std::span(meshUniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
-  auto lightBuffer = Fwog::Buffer(std::span(lights), Fwog::BufferFlag::DYNAMIC_STORAGE);
+  auto lightBuffer = Fwog::Buffer(std::span(lights), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
   Fwog::SamplerState ss;
   ss.minFilter = Fwog::Filter::NEAREST;

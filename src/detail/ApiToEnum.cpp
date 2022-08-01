@@ -22,15 +22,21 @@ namespace Fwog::detail
     return ret;
   }
 
-  GLbitfield BufferFlagsToGL(BufferFlags flags)
+  GLbitfield BufferStorageFlagsToGL(BufferStorageFlags flags)
   {
     GLbitfield ret = 0;
-    ret |= flags & BufferFlag::DYNAMIC_STORAGE ? GL_DYNAMIC_STORAGE_BIT : 0;
-    ret |= flags & BufferFlag::CLIENT_STORAGE ?  GL_CLIENT_STORAGE_BIT : 0;
-    ret |= flags & BufferFlag::MAP_READ ?        GL_MAP_READ_BIT : 0;
-    ret |= flags & BufferFlag::MAP_WRITE ?       GL_MAP_WRITE_BIT : 0;
-    ret |= flags & BufferFlag::MAP_PERSISTENT ?  GL_MAP_PERSISTENT_BIT : 0;
-    ret |= flags & BufferFlag::MAP_COHERENT ?    GL_MAP_COHERENT_BIT : 0;
+    ret |= flags & BufferStorageFlag::DYNAMIC_STORAGE ? GL_DYNAMIC_STORAGE_BIT : 0;
+    ret |= flags & BufferStorageFlag::CLIENT_STORAGE ?  GL_CLIENT_STORAGE_BIT : 0;
+    return ret;
+  }
+
+  GLbitfield BufferMapFlagsToGL(BufferMapFlags flags)
+  {
+    GLbitfield ret = 0;
+    ret |= flags & BufferMapFlag::MAP_READ ? GL_MAP_READ_BIT : 0;
+    ret |= flags & BufferMapFlag::MAP_WRITE ? GL_MAP_WRITE_BIT : 0;
+    ret |= flags & BufferMapFlag::MAP_PERSISTENT ? GL_MAP_PERSISTENT_BIT : 0;
+    ret |= flags & BufferMapFlag::MAP_COHERENT ? GL_MAP_COHERENT_BIT : 0;
     return ret;
   }
 

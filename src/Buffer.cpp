@@ -4,21 +4,31 @@
 
 namespace Fwog
 {
-  Buffer::Buffer(const void* data, size_t size, BufferFlags flags)
+  Buffer::Buffer(const void* data, 
+    size_t size, 
+    BufferStorageFlags storageFlags, 
+    BufferMapFlags mapFlags)
     : size_(std::max(size, static_cast<size_t>(1)))
   {
-    GLbitfield glflags = detail::BufferFlagsToGL(flags);
+    GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
+    glflags |= detail::BufferMapFlagsToGL(mapFlags);
     glCreateBuffers(1, &id_);
     glNamedBufferStorage(id_, size, data, glflags);
   }
 
-  Buffer::Buffer(size_t size, BufferFlags flags)
-    : Buffer(nullptr, size, flags)
+  Buffer::Buffer(
+    size_t size,
+    BufferStorageFlags storageFlags,
+    BufferMapFlags mapFlags)
+    : Buffer(nullptr, size, storageFlags, mapFlags)
   {
   }
 
-  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferFlags flags)
-    : Buffer(data.data(), data.size_bytes(), flags)
+  Buffer::Buffer(
+    TriviallyCopyableByteSpan data,
+    BufferStorageFlags storageFlags,
+    BufferMapFlags mapFlags)
+    : Buffer(data.data(), data.size_bytes(), storageFlags, mapFlags)
   {
   }
 
@@ -57,11 +67,11 @@ namespace Fwog
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
   }
 
-  void* Buffer::Map() const
+  void* Buffer::Map(BufferMapFlags flags) const
   {
     FWOG_ASSERT(!IsMapped() && "Buffers cannot be mapped more than once at a time");
     isMapped_ = true;
-    return glMapNamedBuffer(id_, GL_WRITE_ONLY);
+    return glMapNamedBufferRange(id_, 0, Size(), detail::BufferMapFlagsToGL(flags));
   }
 
   void Buffer::Unmap() const
