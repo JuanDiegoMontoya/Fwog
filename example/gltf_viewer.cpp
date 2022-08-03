@@ -271,31 +271,18 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   glfwSetCursorPosCallback(window, CursorPosCallback);
   glEnable(GL_FRAMEBUFFER_SRGB);
 
-  Fwog::Viewport mainViewport
-  {
-    .drawRect
-    {
-      .offset = { 0, 0 },
-      .extent = { gWindowWidth, gWindowHeight }
-    },
-    .minDepth = 0.0f,
-    .maxDepth = 1.0f,
-  };
-
-  Fwog::Viewport rsmViewport
-  {
-    .drawRect
-    {
-      .offset = { 0, 0 },
-      .extent = { gShadowmapWidth, gShadowmapHeight }
-    },
-    .minDepth = 0.0f,
-    .maxDepth = 1.0f,
-  };
-
   Fwog::SwapchainRenderInfo swapchainRenderingInfo
   {
-    .viewport = &mainViewport,
+    .viewport = Fwog::Viewport
+    {
+      .drawRect
+      {
+        .offset = { 0, 0 },
+        .extent = { gWindowWidth, gWindowHeight }
+      },
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f,
+    },
     .clearColorOnLoad = false,
     .clearColorValue = Fwog::ClearColorValue {.f = { .0, .0, .0, 1.0 }},
     .clearDepthOnLoad = false,
@@ -307,64 +294,10 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   auto gnormalTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16_SNORM);
   auto gdepthTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::D32_UNORM);
 
-  Fwog::RenderAttachment gcolorAttachment
-  {
-    .texture = &gcolorTex,
-    .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
-    .clearOnLoad = true
-  };
-  Fwog::RenderAttachment gnormalAttachment
-  {
-    .texture = &gnormalTex,
-    .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = false
-  };
-  Fwog::RenderAttachment gdepthAttachment
-  {
-    .texture = &gdepthTex,
-    .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
-    .clearOnLoad = true
-  };
-  Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
-  Fwog::RenderInfo gbufferRenderInfo
-  {
-    .viewport = &mainViewport,
-    .colorAttachments = cgAttachments,
-    .depthAttachment = &gdepthAttachment,
-    .stencilAttachment = nullptr
-  };
-
   // create RSM textures and render info
   auto rfluxTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::R11G11B10_FLOAT);
   auto rnormalTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::R16G16B16_SNORM);
   auto rdepthTex = Fwog::CreateTexture2D({ gShadowmapWidth, gShadowmapHeight }, Fwog::Format::D16_UNORM);
-
-  Fwog::RenderAttachment rcolorAttachment
-  {
-    .texture = &rfluxTex,
-    .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = false
-  };
-  Fwog::RenderAttachment rnormalAttachment
-  {
-    .texture = &rnormalTex,
-    .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
-    .clearOnLoad = false
-  };
-  Fwog::RenderAttachment rdepthAttachment
-  {
-    .texture = &rdepthTex,
-    .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
-    .clearOnLoad = true
-  };
-  Fwog::RenderAttachment crAttachments[] = { rcolorAttachment, rnormalAttachment };
-  Fwog::RenderInfo rsmRenderInfo
-  {
-    .viewport = &rsmViewport,
-    .colorAttachments = crAttachments,
-    .depthAttachment = &rdepthAttachment,
-    .stencilAttachment = nullptr
-  };
 
   auto indirectLightingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
 
@@ -525,8 +458,33 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     shadingUniformsBuffer.SubData(shadingUniforms, 0);
 
     // geometry buffer pass
-    Fwog::BeginRendering(gbufferRenderInfo);
     {
+      Fwog::RenderAttachment gcolorAttachment
+      {
+        .texture = &gcolorTex,
+        .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
+        .clearOnLoad = true
+      };
+      Fwog::RenderAttachment gnormalAttachment
+      {
+        .texture = &gnormalTex,
+        .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
+        .clearOnLoad = false
+      };
+      Fwog::RenderAttachment gdepthAttachment
+      {
+        .texture = &gdepthTex,
+        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
+        .clearOnLoad = true
+      };
+      Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
+      Fwog::RenderInfo gbufferRenderInfo
+      {
+        .colorAttachments = cgAttachments,
+        .depthAttachment = &gdepthAttachment,
+        .stencilAttachment = nullptr
+      };
+      Fwog::BeginRendering(gbufferRenderInfo);
       Fwog::ScopedDebugMarker marker("Geometry");
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
       Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
@@ -553,8 +511,33 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
 
     // shadow map (RSM) scene pass
-    Fwog::BeginRendering(rsmRenderInfo);
     {
+      Fwog::RenderAttachment rcolorAttachment
+      {
+        .texture = &rfluxTex,
+        .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
+        .clearOnLoad = false
+      };
+      Fwog::RenderAttachment rnormalAttachment
+      {
+        .texture = &rnormalTex,
+        .clearValue = Fwog::ClearValue{.color{.f{ 0, 0, 0, 0 } } },
+        .clearOnLoad = false
+      };
+      Fwog::RenderAttachment rdepthAttachment
+      {
+        .texture = &rdepthTex,
+        .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
+        .clearOnLoad = true
+      };
+      Fwog::RenderAttachment crAttachments[] = { rcolorAttachment, rnormalAttachment };
+      Fwog::RenderInfo rsmRenderInfo
+      {
+        .colorAttachments = crAttachments,
+        .depthAttachment = &rdepthAttachment,
+        .stencilAttachment = nullptr
+      };
+      Fwog::BeginRendering(rsmRenderInfo);
       Fwog::ScopedDebugMarker marker("RSM Scene");
       Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
       Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());

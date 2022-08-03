@@ -309,31 +309,18 @@ void RenderScene()
   glfwSetCursorPosCallback(window, CursorPosCallback);
   glEnable(GL_FRAMEBUFFER_SRGB);
 
-  Fwog::Viewport mainViewport
-  {
-    .drawRect
-    {
-      .offset = { 0, 0 },
-      .extent = { gWindowWidth, gWindowHeight }
-    },
-    .minDepth = 0.0f,
-    .maxDepth = 1.0f,
-  };
-
-  Fwog::Viewport rsmViewport
-  {
-    .drawRect
-    {
-      .offset = { 0, 0 },
-      .extent = { gShadowmapWidth, gShadowmapHeight }
-    },
-    .minDepth = 0.0f,
-    .maxDepth = 1.0f,
-  };
-
   Fwog::SwapchainRenderInfo swapchainRenderingInfo
   {
-    .viewport = &mainViewport,
+    .viewport = Fwog::Viewport
+    {
+      .drawRect
+      {
+        .offset = { 0, 0 },
+        .extent = { gWindowWidth, gWindowHeight }
+      },
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f,
+    },
     .clearColorOnLoad = false,
     .clearColorValue = Fwog::ClearColorValue {.f = { .0f, .0f, .0f, 1.0f }},
     .clearDepthOnLoad = false,
@@ -366,7 +353,6 @@ void RenderScene()
   Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
   Fwog::RenderInfo gbufferRenderInfo
   {
-    .viewport = &mainViewport,
     .colorAttachments = cgAttachments,
     .depthAttachment = &gdepthAttachment,
     .stencilAttachment = nullptr
@@ -398,7 +384,6 @@ void RenderScene()
   Fwog::RenderAttachment crAttachments[] = { rcolorAttachment, rnormalAttachment };
   Fwog::RenderInfo rsmRenderInfo
   {
-    .viewport = &rsmViewport,
     .colorAttachments = crAttachments,
     .depthAttachment = &rdepthAttachment,
     .stencilAttachment = nullptr

@@ -568,9 +568,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   glfwSetCursorPosCallback(window, CursorPosCallback);
   glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
-  Fwog::Viewport mainViewport { .drawRect {.extent = { gWindowWidth, gWindowHeight } } };
-
-  Fwog::Viewport shadowViewport { .drawRect { .extent = config.shadowmapResolution } };
   
   // create gbuffer textures and render info
   auto gBufferColorTexture = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R8G8B8A8_UNORM);
@@ -794,7 +791,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
       Fwog::RenderAttachment cgAttachments[] = { gcolorAttachment, gnormalAttachment };
       Fwog::RenderInfo gbufferRenderInfo
       {
-        .viewport = &mainViewport,
         .colorAttachments = cgAttachments,
         .depthAttachment = &gdepthAttachment,
         .stencilAttachment = nullptr
@@ -836,7 +832,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       Fwog::RenderInfo shadowRenderInfo
       {
-        .viewport = &shadowViewport,
         .depthAttachment = &depthAttachment,
         .stencilAttachment = nullptr
       };
@@ -937,7 +932,6 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
       Fwog::RenderInfo shadingRenderingInfo
       {
-        .viewport = &mainViewport,
         .colorAttachments = { &shadingAttachment, 1 }
       };
       Fwog::BeginRendering(shadingRenderingInfo);
@@ -1014,7 +1008,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     {
       Fwog::SwapchainRenderInfo swapchainRenderingInfo
       {
-        .viewport = &mainViewport,
+        .viewport = {.drawRect {.extent = { gWindowWidth, gWindowHeight } } },
       };
       Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
       Fwog::ScopedDebugMarker marker("Copy to Swapchain");

@@ -94,7 +94,7 @@ int main()
 
   Fwog::SwapchainRenderInfo swapchainRenderingInfo
   {
-    .viewport = &viewport,
+    .viewport = viewport,
     .clearColorOnLoad = true,
     .clearColorValue = Fwog::ClearColorValue {.f = { .2f, .0f, .2f, 1.0f }},
     .clearDepthOnLoad = false,

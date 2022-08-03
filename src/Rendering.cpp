@@ -12,6 +12,8 @@
 #include <array>
 #include <utility>
 #include <cstring>
+#include <numeric>
+#include <algorithm>
 
 // helper function
 static void GLEnableOrDisable(GLenum state, GLboolean value)
@@ -108,17 +110,17 @@ namespace Fwog
       }
       glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
     }
-    if (sInitViewport || ri.viewport->drawRect != sLastViewport.drawRect)
+    if (sInitViewport || ri.viewport.drawRect != sLastViewport.drawRect)
     {
-      glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
-        ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
+      glViewport(ri.viewport.drawRect.offset.x, ri.viewport.drawRect.offset.y,
+        ri.viewport.drawRect.extent.width, ri.viewport.drawRect.extent.height);
     }
-    if (sInitViewport || ri.viewport->minDepth != sLastViewport.minDepth || ri.viewport->maxDepth != sLastViewport.maxDepth)
+    if (sInitViewport || ri.viewport.minDepth != sLastViewport.minDepth || ri.viewport.maxDepth != sLastViewport.maxDepth)
     {
-      glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+      glDepthRangef(ri.viewport.minDepth, ri.viewport.maxDepth);
     }
 
-    sLastViewport = *renderInfo.viewport;
+    sLastViewport = renderInfo.viewport;
     sInitViewport = false;
   }
 
@@ -221,17 +223,47 @@ namespace Fwog
       glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.depthStencil.stencil);
     }
 
-    if (sInitViewport || ri.viewport->drawRect != sLastViewport.drawRect)
+    Viewport viewport;
+    if (ri.viewport)
     {
-      glViewport(ri.viewport->drawRect.offset.x, ri.viewport->drawRect.offset.y,
-        ri.viewport->drawRect.extent.width, ri.viewport->drawRect.extent.height);
+      viewport = *ri.viewport;
     }
-    if (sInitViewport || ri.viewport->minDepth != sLastViewport.minDepth || ri.viewport->maxDepth != sLastViewport.maxDepth)
+    else
     {
-      glDepthRangef(ri.viewport->minDepth, ri.viewport->maxDepth);
+      viewport.minDepth = 0.0f;
+      viewport.maxDepth = 1.0f;
+
+      // determine intersection of all render targets
+      Rect2D drawRect{ .offset = {}, .extent = { std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max() } };
+      for (const auto& attachment : ri.colorAttachments)
+      {
+        drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture->CreateInfo().extent.width);
+        drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture->CreateInfo().extent.height);
+      }
+      if (ri.depthAttachment)
+      {
+        drawRect.extent.width = std::min(drawRect.extent.width, ri.depthAttachment->texture->CreateInfo().extent.width);
+        drawRect.extent.height = std::min(drawRect.extent.height, ri.depthAttachment->texture->CreateInfo().extent.height);
+      }
+      if (ri.stencilAttachment)
+      {
+        drawRect.extent.width = std::min(drawRect.extent.width, ri.stencilAttachment->texture->CreateInfo().extent.width);
+        drawRect.extent.height = std::min(drawRect.extent.height, ri.stencilAttachment->texture->CreateInfo().extent.height);
+      }
+      viewport.drawRect = drawRect;
     }
 
-    sLastViewport = *renderInfo.viewport;
+    if (sInitViewport || viewport.drawRect != sLastViewport.drawRect)
+    {
+      glViewport(viewport.drawRect.offset.x, viewport.drawRect.offset.y,
+        viewport.drawRect.extent.width, viewport.drawRect.extent.height);
+    }
+    if (sInitViewport || viewport.minDepth != sLastViewport.minDepth || viewport.maxDepth != sLastViewport.maxDepth)
+    {
+      glDepthRangef(viewport.minDepth, viewport.maxDepth);
+    }
+
+    sLastViewport = viewport;
     sInitViewport = false;
   }
 

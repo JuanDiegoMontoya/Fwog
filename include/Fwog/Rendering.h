@@ -51,7 +51,7 @@ namespace Fwog
   // I don't know how to get the default framebuffer's textures so I have this awful struct instead
   struct SwapchainRenderInfo
   {
-    const Viewport* viewport = nullptr;
+    Viewport viewport = {};
     bool clearColorOnLoad = false;
     ClearColorValue clearColorValue;
     bool clearDepthOnLoad = false;
@@ -63,6 +63,7 @@ namespace Fwog
   // describes the render targets that may be used in a draw
   struct RenderInfo
   {
+    // if null, the viewport size will be automatically deduced based on the render targets
     const Viewport* viewport = nullptr;
     std::span<const RenderAttachment> colorAttachments;
     const RenderAttachment* depthAttachment = nullptr;
