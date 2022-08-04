@@ -4,19 +4,19 @@
 #include <Fwog/Shader.h>
 #include <Fwog/Exception.h>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace Fwog::detail
 {
   namespace
   {
     std::unordered_map<GLuint, std::shared_ptr<const GraphicsPipelineInfoOwning>> gGraphicsPipelines;
-    std::unordered_set<GLuint> gComputePipelines;
+    std::unordered_map<GLuint, std::shared_ptr<const ComputePipelineInfoOwning>> gComputePipelines;
 
     GraphicsPipelineInfoOwning MakePipelineInfoOwning(const GraphicsPipelineInfo& info)
     {
       return GraphicsPipelineInfoOwning
       {
+        .name = std::string(info.name),
         .inputAssemblyState = info.inputAssemblyState,
         .vertexInputState = { { info.vertexInputState.vertexBindingDescriptions.begin(), info.vertexInputState.vertexBindingDescriptions.end() } },
         .rasterizationState = info.rasterizationState,
@@ -31,6 +31,7 @@ namespace Fwog::detail
         }
       };
     }
+
 
     bool LinkProgram(GLuint program, std::string& outInfoLog)
     {
@@ -49,6 +50,7 @@ namespace Fwog::detail
       return true;
     }
   }
+
 
   GraphicsPipeline CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
@@ -77,6 +79,7 @@ namespace Fwog::detail
     return GraphicsPipeline{ program };
   }
 
+
   std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
     if (auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline.id)); it != gGraphicsPipelines.end())
@@ -85,6 +88,7 @@ namespace Fwog::detail
     }
     return nullptr;
   }
+
 
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
@@ -98,6 +102,7 @@ namespace Fwog::detail
     gGraphicsPipelines.erase(it);
     return true;
   }
+
 
   ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info)
   {
@@ -114,12 +119,24 @@ namespace Fwog::detail
 
     if (auto it = gComputePipelines.find(program); it != gComputePipelines.end())
     {
-      return ComputePipeline{ *it };
+      return ComputePipeline{ it->first };
     }
 
-    gComputePipelines.insert({ program });
+    auto owning = ComputePipelineInfoOwning{ .name = std::string(info.name) };
+    gComputePipelines.insert({ program, std::make_shared<const ComputePipelineInfoOwning>()});
     return ComputePipeline{ program };
   }
+
+
+  std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(ComputePipeline pipeline)
+  {
+    if (auto it = gComputePipelines.find(static_cast<GLuint>(pipeline.id)); it != gComputePipelines.end())
+    {
+      return it->second;
+    }
+    return nullptr;
+  }
+
 
   bool DestroyComputePipelineInternal(ComputePipeline pipeline)
   {

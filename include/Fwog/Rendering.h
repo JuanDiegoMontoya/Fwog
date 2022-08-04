@@ -1,6 +1,7 @@
 #pragma once
-#include <span>
 #include <Fwog/BasicTypes.h>
+#include <span>
+#include <string_view>
 
 namespace Fwog
 {
@@ -51,6 +52,7 @@ namespace Fwog
   // I don't know how to get the default framebuffer's textures so I have this awful struct instead
   struct SwapchainRenderInfo
   {
+    std::string_view name;
     Viewport viewport = {};
     bool clearColorOnLoad = false;
     ClearColorValue clearColorValue;
@@ -63,6 +65,7 @@ namespace Fwog
   // describes the render targets that may be used in a draw
   struct RenderInfo
   {
+    std::string_view name;
     // if null, the viewport size will be automatically deduced based on the render targets
     const Viewport* viewport = nullptr;
     std::span<const RenderAttachment> colorAttachments;
@@ -76,7 +79,7 @@ namespace Fwog
   void EndRendering();
 
   // begin a compute scope
-  void BeginCompute();
+  void BeginCompute(std::string_view name = {});
   void EndCompute();
 
   void BlitTexture(

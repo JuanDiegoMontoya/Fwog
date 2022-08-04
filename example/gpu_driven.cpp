@@ -162,6 +162,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
+      .name = "Generic material",
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .vertexInputState = { GetSceneInputBindingDescs() },
@@ -182,6 +183,7 @@ Fwog::GraphicsPipeline CreateBoundingBoxDebugPipeline()
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
+      .name = "Wireframe bounding boxes",
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .inputAssemblyState = { .topology = Fwog::PrimitiveTopology::TRIANGLE_STRIP },
@@ -203,6 +205,7 @@ Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
 
   auto pipeline = Fwog::CompileGraphicsPipeline(
     {
+      .name = "Culling bounding boxes",
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .inputAssemblyState = {.topology = Fwog::PrimitiveTopology::TRIANGLE_STRIP },
@@ -404,31 +407,27 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     mainCameraUniforms.cameraPos = glm::vec4(camera.position, 0.0);
     globalUniformsBuffer.SubDataTyped(mainCameraUniforms);
 
-    Fwog::RenderAttachment gColorAttachment
-    {
-      .texture = &gBufferColorTexture,
-      .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
-      .clearOnLoad = true
-    };
     Fwog::RenderAttachment gDepthAttachment
     {
       .texture = &gBufferDepthTexture,
       .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f } },
       .clearOnLoad = true
     };
-    auto sceneRenderTargets = { gColorAttachment };
-    Fwog::RenderInfo sceneRenderInfo
-    {
-      .viewport = &mainViewport,
-      .colorAttachments = sceneRenderTargets,
-      .depthAttachment = &gDepthAttachment,
-      .stencilAttachment = nullptr
-    };
 
     // scene pass
     {
-      Fwog::ScopedDebugMarker marker("Scene");
-      Fwog::BeginRendering(sceneRenderInfo);
+      Fwog::RenderAttachment gColorAttachment
+      {
+        .texture = &gBufferColorTexture,
+        .clearValue = Fwog::ClearValue{.color{.f{ .1f, .3f, .5f, 0.0f } } },
+        .clearOnLoad = true
+      };
+      Fwog::BeginRendering({
+          .name = "Scene",
+          .viewport = &mainViewport,
+          .colorAttachments = std::span(&gColorAttachment, 1),
+          .depthAttachment = &gDepthAttachment,
+          .stencilAttachment = nullptr });
 
       Fwog::Cmd::MemoryBarrier(
         Fwog::MemoryBarrierAccessBit::COMMAND_BUFFER_BIT |
@@ -457,9 +456,11 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     
     if (!config.freezeCulling)
     {
-      Fwog::ScopedDebugMarker marker("Occlusion Culling");
       gDepthAttachment.clearOnLoad = false;
-      Fwog::BeginRendering({ .viewport = &mainViewport, .depthAttachment = &gDepthAttachment });
+      Fwog::BeginRendering({ 
+        .name = "Occlusion culling", 
+        .viewport = &mainViewport, 
+        .depthAttachment = &gDepthAttachment});
 
       // Re-upload the draw commands buffer to reset the instance counts to 0 for culling
       drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);

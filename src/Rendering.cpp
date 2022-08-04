@@ -46,6 +46,8 @@ namespace Fwog
     bool isRendering = false;
     bool isIndexBufferBound = false;
     bool isRenderingToSwapchain = false;
+    bool isScopedDebugGroupPushed = false;
+    bool isPipelineDebugGroupPushed = false;
 
     // TODO: way to reset this pointer in case the user wants to do their own OpenGL operations (invalidate the cache)
     std::shared_ptr<const detail::GraphicsPipelineInfoOwning> sLastGraphicsPipeline{}; // shared_ptr is needed as the user can delete pipelines at any time
@@ -77,10 +79,20 @@ namespace Fwog
     isRenderingToSwapchain = true;
     sLastRenderInfo = nullptr;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     const auto& ri = renderInfo;
     GLbitfield clearBuffers = 0;
+
+    if (!ri.name.empty())
+    {
+      glPushDebugGroup(
+        GL_DEBUG_SOURCE_APPLICATION,
+        0,
+        static_cast<GLsizei>(ri.name.size()),
+        ri.name.data());
+      isScopedDebugGroupPushed = true;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     if (ri.clearColorOnLoad)
     {
@@ -138,6 +150,16 @@ namespace Fwog
     sLastRenderInfo = &renderInfo;
 
     const auto& ri = renderInfo;
+
+    if (!ri.name.empty())
+    {
+      glPushDebugGroup(
+        GL_DEBUG_SOURCE_APPLICATION,
+        0,
+        static_cast<GLsizei>(ri.name.size()),
+        ri.name.data());
+      isScopedDebugGroupPushed = true;
+    }
 
     std::vector<const Texture*> colorAttachments;
     colorAttachments.reserve(ri.colorAttachments.size());
@@ -274,6 +296,18 @@ namespace Fwog
     isIndexBufferBound = false;
     isRenderingToSwapchain = false;
 
+    if (isScopedDebugGroupPushed)
+    {
+      isScopedDebugGroupPushed = false;
+      glPopDebugGroup();
+    }
+
+    if (isPipelineDebugGroupPushed)
+    {
+      isPipelineDebugGroupPushed = false;
+      glPopDebugGroup();
+    }
+
     if (sScissorEnabled)
     {
       glDisable(GL_SCISSOR_TEST);
@@ -281,17 +315,39 @@ namespace Fwog
     }
   }
 
-  void BeginCompute()
+  void BeginCompute(std::string_view name)
   {
     FWOG_ASSERT(!isComputeActive);
     FWOG_ASSERT(!isRendering && "Cannot nest compute and rendering");
     isComputeActive = true;
+
+    if (!name.empty())
+    {
+      glPushDebugGroup(
+        GL_DEBUG_SOURCE_APPLICATION,
+        0,
+        static_cast<GLsizei>(name.size()),
+        name.data());
+      isScopedDebugGroupPushed = true;
+    }
   }
 
   void EndCompute()
   {
     FWOG_ASSERT(isComputeActive);
     isComputeActive = false;
+
+    if (isScopedDebugGroupPushed)
+    {
+      isScopedDebugGroupPushed = false;
+      glPopDebugGroup();
+    }
+
+    if (isPipelineDebugGroupPushed)
+    {
+      isPipelineDebugGroupPushed = false;
+      glPopDebugGroup();
+    }
   }
 
   void BlitTexture(
@@ -391,6 +447,22 @@ namespace Fwog
       if (sLastGraphicsPipeline == pipelineState)
       {
         return;
+      }
+
+      if (isPipelineDebugGroupPushed)
+      {
+        isPipelineDebugGroupPushed = false;
+        glPopDebugGroup();
+      }
+
+      if (!pipelineState->name.empty())
+      {
+        glPushDebugGroup(
+          GL_DEBUG_SOURCE_APPLICATION,
+          0,
+          static_cast<GLsizei>(pipelineState->name.size()),
+          pipelineState->name.data());
+        isPipelineDebugGroupPushed = true;
       }
 
       //////////////////////////////////////////////////////////////// shader program
@@ -584,6 +656,24 @@ namespace Fwog
     {
       FWOG_ASSERT(isComputeActive);
       FWOG_ASSERT(pipeline.id != 0);
+
+      auto pipelineState = detail::GetComputePipelineInternal(pipeline);
+
+      if (isPipelineDebugGroupPushed)
+      {
+        isPipelineDebugGroupPushed = false;
+        glPopDebugGroup();
+      }
+
+      if (!pipelineState->name.empty())
+      {
+        glPushDebugGroup(
+          GL_DEBUG_SOURCE_APPLICATION,
+          0,
+          static_cast<GLsizei>(pipelineState->name.size()),
+          pipelineState->name.data());
+        isPipelineDebugGroupPushed = true;
+      }
 
       glUseProgram(static_cast<GLuint>(pipeline.id));
     }

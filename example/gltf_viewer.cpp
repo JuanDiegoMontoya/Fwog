@@ -234,7 +234,7 @@ Fwog::ComputePipeline CreateRSMIndirectPipeline()
     Fwog::PipelineStage::COMPUTE_SHADER,
     Utility::LoadFile("shaders/RSMIndirect.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({ &shader });
+  auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader });
 
   return pipeline;
 }

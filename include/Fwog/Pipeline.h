@@ -2,6 +2,7 @@
 #include <Fwog/BasicTypes.h>
 #include <Fwog/detail/Flags.h>
 #include <span>
+#include <string_view>
 
 namespace Fwog
 {
@@ -49,7 +50,6 @@ namespace Fwog
     //bool depthBoundsTestEnable; // no equivalent core OpenGL function
     //float minDepthBounds;       // ???
     //float maxDepthBounds;       // ???
-
   };
 
   struct StencilOpState
@@ -96,6 +96,7 @@ namespace Fwog
 
   struct GraphicsPipelineInfo
   {
+    std::string_view name;
     const Shader* vertexShader            = nullptr;
     const Shader* fragmentShader          = nullptr;
     InputAssemblyState inputAssemblyState = {};
@@ -110,6 +111,7 @@ namespace Fwog
 
   struct ComputePipelineInfo
   {
+    std::string_view name;
     const Shader* shader;
   };
 

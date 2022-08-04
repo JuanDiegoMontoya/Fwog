@@ -2,6 +2,7 @@
 #include <Fwog/Pipeline.h>
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace Fwog::detail
 {
@@ -21,6 +22,7 @@ namespace Fwog::detail
 
   struct GraphicsPipelineInfoOwning
   {
+    std::string name;
     InputAssemblyState inputAssemblyState;
     VertexInputStateOwning vertexInputState;
     RasterizationState rasterizationState;
@@ -29,10 +31,16 @@ namespace Fwog::detail
     ColorBlendStateOwning colorBlendState;
   };
 
+  struct ComputePipelineInfoOwning
+  {
+    std::string name;
+  };
+
   GraphicsPipeline CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info);
   std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline);
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline);
 
   ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info);
+  std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(ComputePipeline pipeline);
   bool DestroyComputePipelineInternal(ComputePipeline pipeline);
 }
