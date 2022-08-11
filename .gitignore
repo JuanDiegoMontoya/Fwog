@@ -37,3 +37,4 @@ CMakeFiles/
 
 # Build artifacts
 build/
+/example/models
