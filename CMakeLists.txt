@@ -89,7 +89,7 @@ target_compile_options(fwog
 	>
 )
 
-option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
+option (FWOG_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
        add_compile_options (-fdiagnostics-color=always)
@@ -98,8 +98,10 @@ if (${FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-option (BUILD_EXAMPLES "Build the example projects for Fwog." TRUE)
 
 target_link_libraries(fwog lib_glad)
 
-add_subdirectory(example)
+option (FWOG_BUILD_EXAMPLES "Build the example projects for Fwog." TRUE)
+if (${BUILD_EXAMPLES})
+	add_subdirectory(example)
+endif ()
