@@ -6,15 +6,6 @@ project(Fwog)
 
 set(CMAKE_CXX_STANDARD 20)
 
-option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
-if (${FORCE_COLORED_OUTPUT})
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-       add_compile_options (-fdiagnostics-color=always)
-    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-       add_compile_options (-fcolor-diagnostics)
-    endif ()
-endif ()
-
 add_subdirectory(external)
 
 set(fwog_source_files
@@ -54,19 +45,19 @@ set(fwog_header_files
 	include/Fwog/detail/VertexArrayCache.h
 )
 
-add_library(lib_fwog ${fwog_source_files} ${fwog_header_files})
+add_library(fwog ${fwog_source_files} ${fwog_header_files})
 
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT lib_fwog)
-target_include_directories(lib_fwog PUBLIC include)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT fwog)
+target_include_directories(fwog PUBLIC include)
 
 find_package(OpenGL REQUIRED)
 
 # enable asan for debug builds
 if (DEBUG)
     if (WIN32)
-        target_compile_options(lib_fwog PUBLIC /fsanitize=address)
+        target_compile_options(fwog PUBLIC /fsanitize=address)
     else()
-        target_compile_options(lib_fwog PUBLIC -fsanitize=address)
+        target_compile_options(fwog PUBLIC -fsanitize=address)
     endif()
 endif()
 
@@ -78,7 +69,7 @@ else()
     set(COMPILER_CLANGPP 0)
 endif()
 
-target_compile_options(lib_fwog
+target_compile_options(fwog
 	INTERFACE
 	$<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,${COMPILER_CLANGPP}>:
 	-Wall
@@ -98,6 +89,17 @@ target_compile_options(lib_fwog
 	>
 )
 
-target_link_libraries(lib_fwog lib_glad)
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+       add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+       add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
+
+option (BUILD_EXAMPLES "Build the example projects for Fwog." TRUE)
+
+target_link_libraries(fwog lib_glad)
 
 add_subdirectory(example)

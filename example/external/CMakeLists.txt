@@ -17,7 +17,7 @@ FetchContent_Declare(
     GIT_TAG        cc98465e3508535ba8c7f6208df934c156a018dc
 )
 
-set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
+option(TINYGLTF_BUILD_LOADER_EXAMPLE "" OFF)
 FetchContent_Declare(
     tinygltf
     GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
