@@ -24,7 +24,6 @@ namespace Fwog
     [[nodiscard]] uint32_t Handle() const { return id_; }
 
   private:
-    Shader();
     uint32_t id_{};
   };
 }

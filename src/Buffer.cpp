@@ -1,13 +1,14 @@
 #include <Fwog/Common.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <Fwog/Buffer.h>
+#include <utility>
 
 namespace Fwog
 {
   Buffer::Buffer(const void* data, 
-    size_t size, 
-    BufferStorageFlags storageFlags, 
-    BufferMapFlags mapFlags)
+                 size_t size, 
+                 BufferStorageFlags storageFlags, 
+                 BufferMapFlags mapFlags)
     : size_(std::max(size, static_cast<size_t>(1)))
   {
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
@@ -16,18 +17,16 @@ namespace Fwog
     glNamedBufferStorage(id_, size, data, glflags);
   }
 
-  Buffer::Buffer(
-    size_t size,
-    BufferStorageFlags storageFlags,
-    BufferMapFlags mapFlags)
+  Buffer::Buffer(size_t size,
+                 BufferStorageFlags storageFlags,
+                 BufferMapFlags mapFlags)
     : Buffer(nullptr, size, storageFlags, mapFlags)
   {
   }
 
-  Buffer::Buffer(
-    TriviallyCopyableByteSpan data,
-    BufferStorageFlags storageFlags,
-    BufferMapFlags mapFlags)
+  Buffer::Buffer(TriviallyCopyableByteSpan data,
+                 BufferStorageFlags storageFlags,
+                 BufferMapFlags mapFlags)
     : Buffer(data.data(), data.size_bytes(), storageFlags, mapFlags)
   {
   }
@@ -37,7 +36,6 @@ namespace Fwog
       id_(std::exchange(old.id_, 0)),
       isMapped_(std::exchange(old.isMapped_, false))
   {
-    *this = std::move(old);
   }
 
   Buffer& Buffer::operator=(Buffer&& old) noexcept
@@ -88,13 +86,12 @@ namespace Fwog
     UploadType uploadType, 
     const void* data) const
   {
-    glClearNamedBufferSubData(
-      id_,
-      detail::FormatToGL(internalFormat),
-      offset,
-      size,
-      detail::UploadFormatToGL(uploadFormat),
-      detail::UploadTypeToGL(uploadType),
-      data);
+    glClearNamedBufferSubData(id_,
+                              detail::FormatToGL(internalFormat),
+                              offset,
+                              size,
+                              detail::UploadFormatToGL(uploadFormat),
+                              detail::UploadTypeToGL(uploadType),
+                              data);
   }
 }

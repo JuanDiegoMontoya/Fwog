@@ -41,14 +41,13 @@ namespace Fwog
   class Buffer
   {
   public:
-    explicit Buffer(
-      size_t size, 
-      BufferStorageFlags storageFlags = BufferStorageFlag::NONE, 
-      BufferMapFlags mapFlags = BufferMapFlag::NONE);
-    explicit Buffer(
-      TriviallyCopyableByteSpan data, 
-      BufferStorageFlags storageFlags = BufferStorageFlag::NONE, 
-      BufferMapFlags mapFlags = BufferMapFlag::NONE);
+    explicit Buffer(size_t size, 
+                    BufferStorageFlags storageFlags = BufferStorageFlag::NONE, 
+                    BufferMapFlags mapFlags = BufferMapFlag::NONE);
+    explicit Buffer(TriviallyCopyableByteSpan data, 
+                    BufferStorageFlags storageFlags = BufferStorageFlag::NONE, 
+                    BufferMapFlags mapFlags = BufferMapFlag::NONE);
+
     Buffer(Buffer&& other) noexcept;
     Buffer& operator=(Buffer&& other) noexcept;
     Buffer(const Buffer& other) = delete;
@@ -57,11 +56,11 @@ namespace Fwog
 
     void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes) const;
     void ClearSubData(size_t offset, 
-      size_t size, 
-      Format internalFormat, 
-      UploadFormat uploadFormat, 
-      UploadType uploadType, 
-      const void* data) const;
+                      size_t size, 
+                      Format internalFormat, 
+                      UploadFormat uploadFormat, 
+                      UploadType uploadType, 
+                      const void* data) const;
 
     // TODO: add range and read/write flags
     [[nodiscard]] void* Map(BufferMapFlags flags) const;
@@ -89,20 +88,18 @@ namespace Fwog
   class TypedBuffer : public Buffer
   {
   public:
-    explicit TypedBuffer(
-      BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
-      BufferMapFlags mapFlags = BufferMapFlag::NONE)
+    explicit TypedBuffer(BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+                         BufferMapFlags mapFlags = BufferMapFlag::NONE)
       : Buffer(sizeof(T), storageFlags, mapFlags) {}
-    explicit TypedBuffer(
-      size_t count,
-      BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
-      BufferMapFlags mapFlags = BufferMapFlag::NONE)
+    explicit TypedBuffer(size_t count,
+                         BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+                         BufferMapFlags mapFlags = BufferMapFlag::NONE)
       : Buffer(sizeof(T)* count, storageFlags, mapFlags) {}
-    explicit TypedBuffer(
-      std::span<const T> data,
-      BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
-      BufferMapFlags mapFlags = BufferMapFlag::NONE)
+    explicit TypedBuffer(std::span<const T> data,
+                         BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+                         BufferMapFlags mapFlags = BufferMapFlag::NONE)
       : Buffer(data, storageFlags, mapFlags) {}
+
     TypedBuffer(TypedBuffer&& other) noexcept = default;
     TypedBuffer& operator=(TypedBuffer&& other) noexcept = default;
     TypedBuffer(const TypedBuffer& other) = delete;
