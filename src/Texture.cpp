@@ -127,7 +127,8 @@ namespace Fwog
 
   Texture::Texture(Texture&& old) noexcept
     : id_(std::exchange(old.id_, 0)),
-    createInfo_(old.createInfo_)
+    createInfo_(old.createInfo_),
+    bindlessHandle_(std::exchange(old.bindlessHandle_, 0))
   {
   }
 
@@ -135,7 +136,7 @@ namespace Fwog
   {
     if (&old == this) return *this;
     this->~Texture();
-    id_ = std::exchange(old.id_, 0);
+    return *new(this) Texture(std::move(old));
     createInfo_ = old.createInfo_;
     bindlessHandle_ = std::exchange(old.bindlessHandle_, 0);
     return *this;
@@ -260,8 +261,7 @@ namespace Fwog
   {
     if (&old == this) return *this;
     this->~TextureView();
-    viewInfo_ = old.viewInfo_;
-    return static_cast<TextureView&>(Texture::operator=(std::move(old)));
+    return *new(this) TextureView(std::move(old));
   }
 
   TextureView::~TextureView()

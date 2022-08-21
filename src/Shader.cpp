@@ -21,10 +21,6 @@ namespace Fwog
     }
   }
 
-  Shader::Shader()
-  {
-  }
-
   Shader::Shader(PipelineStage stage, std::string_view source)
   {
     const GLchar* strings = source.data();
@@ -48,16 +44,15 @@ namespace Fwog
   }
 
   Shader::Shader(Shader&& old) noexcept
+    : id_(std::exchange(old.id_, 0))
   {
-    id_ = std::exchange(old.id_, 0);
   }
 
   Shader& Shader::operator=(Shader&& old) noexcept
   {
     if (&old == this) return *this;
     this->~Shader();
-    id_ = std::exchange(old.id_, 0);
-    return *this;
+    return *new(this) Shader(std::move(old));
   }
 
   Shader::~Shader()

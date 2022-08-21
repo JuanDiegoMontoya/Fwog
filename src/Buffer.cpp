@@ -33,6 +33,9 @@ namespace Fwog
   }
 
   Buffer::Buffer(Buffer&& old) noexcept
+    : size_(std::exchange(old.size_, 0)),
+      id_(std::exchange(old.id_, 0)),
+      isMapped_(std::exchange(old.isMapped_, false))
   {
     *this = std::move(old);
   }
@@ -41,10 +44,7 @@ namespace Fwog
   {
     if (&old == this) return *this;
     this->~Buffer();
-    id_ = std::exchange(old.id_, 0);
-    size_ = std::exchange(old.size_, 0);
-    isMapped_ = std::exchange(old.isMapped_, false);
-    return *this;
+    return *new(this) Buffer(std::move(old));
   }
 
   Buffer::~Buffer()
