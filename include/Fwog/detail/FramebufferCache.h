@@ -35,7 +35,7 @@ namespace Fwog::detail
   {
   public:
     uint32_t CreateOrGetCachedFramebuffer(const RenderAttachments& attachments);
-    size_t Size() const { return framebufferCache_.size(); }
+    std::size_t Size() const { return framebufferCache_.size(); }
     void Clear();
 
   private:
