@@ -32,7 +32,7 @@ void main()
   volumeUV.xy = volumeUV.xy * 0.5 + 0.5;
   
   // Linearize the window-space depth, then invert the transform applied in accumulateDensity.comp.glsl (volumeUV.z^2).
-  volumeUV.z *= sqrt(LinearizeDepthZO(volumeUV.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane));
+  volumeUV.z = sqrt(LinearizeDepthZO(volumeUV.z, uniforms.volumeNearPlane, uniforms.volumeFarPlane));
 
   // Random UV offset of up to half a froxel.
   vec3 offset = uniforms.noiseOffsetScale * (texelFetch(s_blueNoise, gid % textureSize(s_blueNoise, 0).xy, 0).xyz - 0.5);
