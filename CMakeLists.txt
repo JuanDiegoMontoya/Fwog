@@ -102,6 +102,6 @@ endif ()
 target_link_libraries(fwog lib_glad)
 
 option (FWOG_BUILD_EXAMPLES "Build the example projects for Fwog." TRUE)
-if (${BUILD_EXAMPLES})
+if (${FWOG_BUILD_EXAMPLES})
 	add_subdirectory(example)
 endif ()
