@@ -142,8 +142,15 @@ namespace Fwog::detail
     case UploadFormat::BGR:             return GL_BGR;
     case UploadFormat::RGBA:            return GL_RGBA;
     case UploadFormat::BGRA:            return GL_BGRA;
+    case UploadFormat::R_INTEGER:       return GL_RED_INTEGER;
+    case UploadFormat::RG_INTEGER:      return GL_RG_INTEGER;
+    case UploadFormat::RGB_INTEGER:     return GL_RGB_INTEGER;
+    case UploadFormat::BGR_INTEGER:     return GL_BGR_INTEGER;
+    case UploadFormat::RGBA_INTEGER:    return GL_RGBA_INTEGER;
+    case UploadFormat::BGRA_INTEGER:    return GL_BGRA_INTEGER;
     case UploadFormat::DEPTH_COMPONENT: return GL_DEPTH_COMPONENT;
     case UploadFormat::STENCIL_INDEX:   return GL_STENCIL_INDEX;
+    case UploadFormat::DEPTH_STENCIL:   return GL_DEPTH_STENCIL;
     default: FWOG_UNREACHABLE; return 0;
     }
   }

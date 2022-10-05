@@ -209,8 +209,15 @@ namespace Fwog
     BGR,
     RGBA,
     BGRA,
+    R_INTEGER,
+    RG_INTEGER,
+    RGB_INTEGER,
+    BGR_INTEGER,
+    RGBA_INTEGER,
+    BGRA_INTEGER,
     DEPTH_COMPONENT,
     STENCIL_INDEX,
+    DEPTH_STENCIL,
   };
 
   enum class UploadType : uint32_t
