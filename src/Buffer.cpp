@@ -14,7 +14,7 @@ namespace Fwog
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
     glflags |= detail::BufferMapFlagsToGL(mapFlags);
     glCreateBuffers(1, &id_);
-    glNamedBufferStorage(id_, size, data, glflags);
+    glNamedBufferStorage(id_, size_, data, glflags);
   }
 
   Buffer::Buffer(size_t size,
