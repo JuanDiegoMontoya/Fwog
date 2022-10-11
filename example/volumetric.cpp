@@ -115,6 +115,8 @@ float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
 
+namespace ImGui { extern ImGuiKeyData* GetKeyData(ImGuiKey key); }
+
 struct
 {
   Fwog::Extent3D shadowmapResolution = { 2048, 2048 };
@@ -703,7 +705,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     {
       glfwSetWindowShouldClose(window, true);
     }
-    if (ImGui::GetIO().KeysDownDuration[GLFW_KEY_GRAVE_ACCENT] == 0.0f)
+    if (ImGui::GetKeyData(static_cast<ImGuiKey>(GLFW_KEY_GRAVE_ACCENT))->DownDuration == 0.0f)
     {
       cursorIsActive = !cursorIsActive;
       glfwSetInputMode(window, GLFW_CURSOR, cursorIsActive ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);

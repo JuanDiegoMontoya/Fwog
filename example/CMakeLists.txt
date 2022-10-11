@@ -8,8 +8,9 @@ add_executable(hello_triangle hello_triangle.cpp common/common.cpp common/common
 target_link_libraries(hello_triangle PRIVATE glfw lib_glad fwog)
 
 add_executable(deferred deferred.cpp common/common.cpp common/common.h)
+target_include_directories(deferred PUBLIC ${tinygltf_SOURCE_DIR})
 target_link_libraries(deferred PRIVATE glfw lib_glad fwog glm)
-add_dependencies(deferred copy_shaders)
+add_dependencies(deferred copy_shaders copy_textures)
 
 add_executable(gltf_viewer gltf_viewer.cpp common/common.cpp common/common.h common/SceneLoader.cpp common/SceneLoader.h)
 target_include_directories(gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR})

@@ -9,6 +9,7 @@ layout(binding = 3) uniform sampler2D s_gDepth;
 layout(binding = 4) uniform sampler2D s_rsmFlux;
 layout(binding = 5) uniform sampler2D s_rsmNormal;
 layout(binding = 6) uniform sampler2D s_rsmDepth;
+layout(binding = 7) uniform sampler2D s_blueNoise;
 
 layout(binding = 0) uniform restrict writeonly image2D i_outIndirect;
 
@@ -16,6 +17,7 @@ layout(binding = 0, std140) uniform GlobalUniforms
 {
   mat4 viewProj;
   mat4 invViewProj;
+  mat4 proj;
 };
 
 layout(binding = 1, std140) uniform RSMUniforms
@@ -27,6 +29,15 @@ layout(binding = 1, std140) uniform RSMUniforms
   uint currentPass; // used to determine which pixels to shade
   uint samples;
 }rsm;
+
+float LinearizeDepth(float depth)
+{
+	return proj[3][2] / (proj[2][2] + (2.0 * depth - 1.0));
+	/*float n = 0.1;
+	float f = 100.0;
+	float z_ndc = 2.0 * depth - 1.0;
+	return 2.0 * n * f / (f + n - z_ndc * (f - n));*/
+}
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
@@ -54,7 +65,7 @@ vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, v
   return rsmFlux * geometry / (d * d * d * d);
 }
 
-vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surfaceWorldPos)
+vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surfaceWorldPos, vec3 noise)
 {
   vec3 sumC = { 0, 0, 0 };
 
@@ -65,6 +76,8 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
   {
     // xi can be randomly rotated based on screen position
     vec2 xi = Hammersley(i, rsm.samples);
+	// and we are absolutely going to rotate it with blue noise
+	xi = mod(xi+vec2(noise.xy), vec2(1.0));
     float r = xi.x * rsm.rMax;
     float theta = xi.y * TWO_PI;
     vec2 pixelLightUV = rsmUV + vec2(r * cos(theta), r * sin(theta));
@@ -81,19 +94,71 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
   return sumC * surfaceAlbedo / rsm.samples;
 }
 
+vec3 Tap(in sampler2D tex, ivec2 coord, ivec2 offset, vec3 src_normal, float src_depth, inout float sum_weight)
+{
+	vec3 result = vec3(0);
+	vec3 normal = texelFetchOffset(s_gNormal, coord, 0, offset).xyz;
+	float depth = LinearizeDepth(texelFetchOffset(s_gDepth, coord, 0, offset).x);
+	if(dot(normal, src_normal) >= 0.9 && abs(depth - src_depth) < 0.1)
+	{
+		result = texelFetchOffset(tex, coord, 0, offset).xyz;
+		sum_weight += 1.0;
+	}	
+	return result;
+}
+
+vec3 FilterSubsampled(in sampler2D tex, ivec2 coord, int pattern, int step_size)
+{
+	float sum_weight = 1.0;
+	vec3 sum = vec3(0);
+	sum += texelFetch(tex, coord, 0).xyz;
+	vec3 normal = texelFetch(s_gNormal, coord, 0).xyz;
+	float depth = LinearizeDepth(texelFetch(s_gDepth, coord, 0).x);
+	if(pattern == 0) {
+		sum += Tap(tex, coord, ivec2(-2,  0) * step_size, normal, depth, sum_weight).xyz;
+		sum += Tap(tex, coord, ivec2( 2,  0) * step_size, normal, depth, sum_weight).xyz;
+	}
+	else {
+		sum += Tap(tex, coord, ivec2( 0, -2) * step_size, normal, depth, sum_weight).xyz;
+		sum += Tap(tex, coord, ivec2( 0,  2) * step_size, normal, depth, sum_weight).xyz;
+	}
+	sum += Tap(tex, coord, ivec2(-1,  1) * step_size, normal, depth, sum_weight).xyz;
+	sum += Tap(tex, coord, ivec2( 1,  1) * step_size, normal, depth, sum_weight).xyz;
+	sum += Tap(tex, coord, ivec2(-1, -1) * step_size, normal, depth, sum_weight).xyz;
+	sum += Tap(tex, coord, ivec2( 1, -1) * step_size, normal, depth, sum_weight).xyz;	
+	return sum / sum_weight;
+}
+
+vec3 FilterBoxX(in sampler2D tex, ivec2 coord)
+{
+	float sum_weight = 1.0;
+    vec3 sum = texelFetch(tex, coord, 0).xyz;
+	vec3 normal = texelFetch(s_gNormal, coord, 0).xyz;
+	float depth = LinearizeDepth(texelFetch(s_gDepth, coord, 0).x);	
+	sum += Tap(tex, coord, ivec2(-2, 0), normal, depth, sum_weight).xyz
+         + Tap(tex, coord, ivec2(-1, 0), normal, depth, sum_weight).xyz
+         + Tap(tex, coord, ivec2( 1, 0), normal, depth, sum_weight).xyz
+         + Tap(tex, coord, ivec2( 2, 0), normal, depth, sum_weight).xyz;
+	return sum / sum_weight;
+}
+
+vec3 FilterBoxY(in sampler2D tex, ivec2 coord)
+{
+	float sum_weight = 1.0;
+    vec3 sum = texelFetch(tex, coord, 0).xyz;
+	vec3 normal = texelFetch(s_gNormal, coord, 0).xyz;
+	float depth = LinearizeDepth(texelFetch(s_gDepth, coord, 0).x);	
+	sum += Tap(tex, coord, ivec2(0, -2), normal, depth, sum_weight).xyz
+         + Tap(tex, coord, ivec2(0, -1), normal, depth, sum_weight).xyz
+         + Tap(tex, coord, ivec2(0,  1), normal, depth, sum_weight).xyz
+         + Tap(tex, coord, ivec2(0,  2), normal, depth, sum_weight).xyz;
+	return sum / sum_weight;
+}
+
 layout(local_size_x = 8, local_size_y = 8) in;
 void main()
 {
   ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
-
-  gid *= 2;
-
-  if (rsm.currentPass == 1)
-    gid++;
-  if (rsm.currentPass == 2)
-    gid.x++;
-  if (rsm.currentPass == 3)
-    gid.y++;
 
   if (any(greaterThanEqual(gid, rsm.targetDim)))
     return;
@@ -110,66 +175,33 @@ void main()
     imageStore(i_outIndirect, gid, vec4(0.0));
     return;
   }
+  
+  vec3 noise = texture(s_blueNoise, (vec2(gid) + 0.5)/textureSize(s_blueNoise, 0)).xyz;
 
   vec3 ambient = vec3(0);
 
   if (rsm.currentPass == 0)
   {
-    ambient = ComputeIndirectIrradiance(albedo, normal, worldPos);
+    ambient = ComputeIndirectIrradiance(albedo, normal, worldPos, noise);
   }
   else
   {
-    // look at corners and identify if any two opposing ones can be interpolated
-    ivec2 offsets[4];
-    if (rsm.currentPass == 1)
-    {
-      offsets = ivec2[4](
-        ivec2(-1, 1),
-        ivec2( 1, 1),
-        ivec2(-1,-1),
-        ivec2( 1,-1));
-    }
-    else if (rsm.currentPass > 1)
-    {
-      offsets = ivec2[4](
-        ivec2( 0, 1),
-        ivec2( 0,-1),
-        ivec2(-1, 0),
-        ivec2( 1, 0));
-    }
-
-    // compute weights for each 
-    float accum_weight = 0;
-    vec3 accum_color = vec3(0);
-    for (int i = 0; i < 4; i++)
-    {
-      ivec2 corner = gid + offsets[i];
-      if (any(greaterThanEqual(corner, rsm.targetDim)) || any(lessThan(corner, ivec2(0))))
-        continue;
-
-      vec3 c = texelFetch(s_inIndirect, corner, 0).rgb;
-      
-      vec3 n = texelFetch(s_gNormal, corner, 0).xyz;
-      vec3 dn = normal - n;
-      float n_weight = exp(-dot(dn, dn) / 1.0);
-
-      vec3 p = UnprojectUV(texelFetch(s_gDepth, corner, 0).x, uv + vec2(offsets[i]) * texel, invViewProj);
-      vec3 dp = worldPos - p;
-      float p_weight = exp(-dot(dp, dp) / 0.4);
-
-      float weight = n_weight * p_weight;
-      accum_color += c * weight;
-      accum_weight += weight;
-    }
-
-    ambient = accum_color / accum_weight;
-
-    // if quality of neighbors is too low, instead compute indirect irradiance
-    if (accum_weight <= 3.0)
-    {
-      ambient = ComputeIndirectIrradiance(albedo, normal, worldPos);
-      //ambient = vec3(1, 0, 0); // debug
-    }
+	if (rsm.currentPass == 1)
+	{
+		ambient = FilterSubsampled(s_inIndirect, gid, 0, 5);
+	}
+	else if (rsm.currentPass == 2)
+	{
+		ambient = FilterSubsampled(s_inIndirect, gid, 1, 5);
+	}
+	else if (rsm.currentPass == 3)
+	{
+		ambient = FilterBoxX(s_inIndirect, gid);
+	}
+	else if (rsm.currentPass == 4)
+	{
+		ambient = FilterBoxY(s_inIndirect, gid);
+	}
   }
   
   imageStore(i_outIndirect, gid, vec4(ambient, 1.0));

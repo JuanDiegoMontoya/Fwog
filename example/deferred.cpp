@@ -19,6 +19,9 @@
 #include <Fwog/Buffer.h>
 #include <Fwog/Shader.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 ////////////////////////////////////// Types
 struct View
 {
@@ -59,6 +62,7 @@ struct GlobalUniforms
 {
   glm::mat4 viewProj;
   glm::mat4 invViewProj;
+  glm::mat4 proj;
 };
 
 struct ShadingUniforms
@@ -90,8 +94,9 @@ float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
 
 // scene parameters
-uint32_t gRSMSamples = 400;
-float gRMax = 0.08f;
+uint32_t gRSMSamples = 5;
+//float gRMax = 0.08f;
+float gRMax = 0.2f;
 
 constexpr int gShadowmapWidth = 1024;
 constexpr int gShadowmapHeight = 1024;
@@ -305,6 +310,22 @@ void RenderScene()
     .height = gWindowHeight });
   Utility::InitOpenGL();
 
+  //load blue noise texture
+  int x = 0;
+  int y = 0;
+  auto noise = stbi_load("textures/bluenoise256.png", &x, &y, nullptr, 4);
+  assert(noise);
+  auto noiseTex = Fwog::CreateTexture2D({ static_cast<uint32_t>(x), static_cast<uint32_t>(y) }, Fwog::Format::R8G8B8A8_UNORM);
+  noiseTex.SubImage({
+      .dimension = Fwog::UploadDimension::TWO,
+      .level = 0,
+      .offset = {},
+      .size = { static_cast<uint32_t>(x), static_cast<uint32_t>(y) },
+      .format = Fwog::UploadFormat::RGBA,
+      .type = Fwog::UploadType::UBYTE,
+      .pixels = noise });
+  stbi_image_free(noise);
+
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, CursorPosCallback);
   glEnable(GL_FRAMEBUFFER_SRGB);
@@ -513,9 +534,18 @@ void RenderScene()
     {
       shadingUniforms.sunDir = glm::rotate(glm::quarter_pi<float>() * dt, glm::vec3{ -1, 0, 0 }) * shadingUniforms.sunDir;
     }
+    if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+    {
+        shadingUniforms.sunDir = glm::rotate(glm::quarter_pi<float>() * dt, glm::vec3{ 0, 1, 0 }) * shadingUniforms.sunDir;
+    }
+    if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+    {
+        shadingUniforms.sunDir = glm::rotate(-glm::quarter_pi<float>() * dt, glm::vec3{ 0, 1, 0 }) * shadingUniforms.sunDir;
+    }
 
     glm::mat4 viewProj = proj * camera.GetViewMatrix();
     globalUniformsBuffer.SubData(viewProj, 0);
+    globalUniformsBuffer.SubData(proj, sizeof(glm::mat4)*2);
 
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
     float eyeWidth = 2.5f;
@@ -580,30 +610,38 @@ void RenderScene()
       Fwog::Cmd::BindSampledImage(4, rfluxTex, nearestSampler);
       Fwog::Cmd::BindSampledImage(5, rnormalTex, nearestSampler);
       Fwog::Cmd::BindSampledImage(6, rdepthTex, nearestSampler);
+      Fwog::Cmd::BindSampledImage(7, noiseTex, nearestSampler);
       Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
       Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer, 0, rsmUniformBuffer.Size());
       Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
 
       const int localSize = 8;
-      const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
-      const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
+      const int numGroupsX = rsmUniforms.targetDim.x;// (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
+      const int numGroupsY = rsmUniforms.targetDim.y;// (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
 
       uint32_t currentPass = 0;
       rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
-      currentPass = 1;
-      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-      Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-
-      currentPass = 2;
-      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-      Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-
+      //filter subsampled
+      for(int i = 0; i < 3; ++i)
+      {
+          currentPass = 1;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          currentPass = 2;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      }
+      //filter box
       currentPass = 3;
+      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+      Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      currentPass = 4;
       rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
       Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
