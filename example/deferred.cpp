@@ -22,6 +22,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_glfw.h>
+
+////////////////////////////////////// Externals
+namespace ImGui { extern ImGuiKeyData* GetKeyData(ImGuiKey key); }
+
 ////////////////////////////////////// Types
 struct View
 {
@@ -94,9 +101,10 @@ float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
 
 // scene parameters
-uint32_t gRSMSamples = 5;
-//float gRMax = 0.08f;
-float gRMax = 0.2f;
+uint32_t gRSMSamples = 400;
+uint32_t gRSMFilteredSamples = 5;
+float gRMax = 0.08f;
+bool gRSMFiltered = false;
 
 constexpr int gShadowmapWidth = 1024;
 constexpr int gShadowmapHeight = 1024;
@@ -284,6 +292,17 @@ Fwog::ComputePipeline CreateRSMIndirectPipeline()
   return pipeline;
 }
 
+Fwog::ComputePipeline CreateRSMIndirectDitheredFilteredPipeline()
+{
+    auto shader = Fwog::Shader(
+        Fwog::PipelineStage::COMPUTE_SHADER,
+        Utility::LoadFile("shaders/RSMIndirectDitheredFiltered.comp.glsl"));
+
+    auto pipeline = Fwog::CompileComputePipeline({ .shader = &shader });
+
+    return pipeline;
+}
+
 void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
   static bool firstFrame = true;
@@ -310,10 +329,20 @@ void RenderScene()
     .height = gWindowHeight });
   Utility::InitOpenGL();
 
+  ImGui::CreateContext();
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init();
+  ImGui::StyleColorsDark();
+  ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
+
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, CursorPosCallback);
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
   //load blue noise texture
   int x = 0;
   int y = 0;
-  auto noise = stbi_load("textures/bluenoise256.png", &x, &y, nullptr, 4);
+  auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
   assert(noise);
   auto noiseTex = Fwog::CreateTexture2D({ static_cast<uint32_t>(x), static_cast<uint32_t>(y) }, Fwog::Format::R8G8B8A8_UNORM);
   noiseTex.SubImage({
@@ -325,10 +354,6 @@ void RenderScene()
       .type = Fwog::UploadType::UBYTE,
       .pixels = noise });
   stbi_image_free(noise);
-
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPosCallback(window, CursorPosCallback);
-  glEnable(GL_FRAMEBUFFER_SRGB);
 
   Fwog::SwapchainRenderInfo swapchainRenderingInfo
   {
@@ -475,6 +500,7 @@ void RenderScene()
   Fwog::GraphicsPipeline rsmScenePipeline = CreateShadowPipeline();
   Fwog::GraphicsPipeline shadingPipeline = CreateShadingPipeline();
   Fwog::ComputePipeline rsmIndirectPipeline = CreateRSMIndirectPipeline();
+  Fwog::ComputePipeline rsmIndirectDitheredFilteredPipeline = CreateRSMIndirectDitheredFilteredPipeline();
   Fwog::GraphicsPipeline debugTexturePipeline = CreateDebugTexturePipeline();
 
   View camera;
@@ -542,6 +568,15 @@ void RenderScene()
     {
         shadingUniforms.sunDir = glm::rotate(-glm::quarter_pi<float>() * dt, glm::vec3{ 0, 1, 0 }) * shadingUniforms.sunDir;
     }
+    if (ImGui::GetKeyData(static_cast<ImGuiKey>(GLFW_KEY_0))->DownDuration == 0.0f)
+    {
+        gRSMFiltered = !gRSMFiltered;
+        rsmUniforms.samples = gRSMFiltered?gRSMFilteredSamples:gRSMSamples;
+    }
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
     glm::mat4 viewProj = proj * camera.GetViewMatrix();
     globalUniformsBuffer.SubData(viewProj, 0);
@@ -602,49 +637,89 @@ void RenderScene()
       //}
       //Fwog::TimerScoped scopedTimer(timer);
       Fwog::ScopedDebugMarker marker("Indirect Illumination");
-      Fwog::Cmd::BindComputePipeline(rsmIndirectPipeline);
-      Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, gcolorTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, gnormalTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, gdepthTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, rfluxTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(5, rnormalTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(6, rdepthTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(7, noiseTex, nearestSampler);
-      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-      Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer, 0, rsmUniformBuffer.Size());
-      Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
-
-      const int localSize = 8;
-      const int numGroupsX = rsmUniforms.targetDim.x;// (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
-      const int numGroupsY = rsmUniforms.targetDim.y;// (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
-
-      uint32_t currentPass = 0;
-      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-      Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-
-      //filter subsampled
-      for(int i = 0; i < 3; ++i)
+      if(gRSMFiltered)
       {
-          currentPass = 1;
+          Fwog::Cmd::BindComputePipeline(rsmIndirectDitheredFilteredPipeline);
+          Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(1, gcolorTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(2, gnormalTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(3, gdepthTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(4, rfluxTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(5, rnormalTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(6, rdepthTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(7, noiseTex, nearestSampler);
+          Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
+          Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer, 0, rsmUniformBuffer.Size());
+          Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
+
+          const int numGroupsX = rsmUniforms.targetDim.x;
+          const int numGroupsY = rsmUniforms.targetDim.y;
+
+          uint32_t currentPass = 0;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-          currentPass = 2;
+
+          //filter subsampled
+          for(int i = 0; i < 3; ++i)
+          {
+              currentPass = 1;
+              rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+              Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+              Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              currentPass = 2;
+              rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+              Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+              Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          }
+          //filter box
+          currentPass = 3;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          currentPass = 4;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
       }
-      //filter box
-      currentPass = 3;
-      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-      Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-      currentPass = 4;
-      rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-      Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-      Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      else
+      {
+          Fwog::Cmd::BindComputePipeline(rsmIndirectPipeline);
+          Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(1, gcolorTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(2, gnormalTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(3, gdepthTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(4, rfluxTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(5, rnormalTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(6, rdepthTex, nearestSampler);
+          Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
+          Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer, 0, rsmUniformBuffer.Size());
+          Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
+
+          const int localSize = 8;
+          const int numGroupsX = (rsmUniforms.targetDim.x / 2 + localSize - 1) / localSize;
+          const int numGroupsY = (rsmUniforms.targetDim.y / 2 + localSize - 1) / localSize;
+
+          uint32_t currentPass = 0;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+          currentPass = 1;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+          currentPass = 2;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+          currentPass = 3;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      }
     }
     Fwog::EndCompute();
 
@@ -680,8 +755,19 @@ void RenderScene()
     }
     Fwog::EndRendering();
 
+    ImGui::Render();
+    {
+        auto marker = Fwog::ScopedDebugMarker("Draw GUI");
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+    ImGui::EndFrame();
+
     glfwSwapBuffers(window);
   }
+
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 
   glfwTerminate();
 }

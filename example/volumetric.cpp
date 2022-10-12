@@ -45,6 +45,10 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 
+////////////////////////////////////// Externals
+
+namespace ImGui { extern ImGuiKeyData* GetKeyData(ImGuiKey key); }
+
 ////////////////////////////////////// Types
 struct View
 {
@@ -114,8 +118,6 @@ float gPreviousCursorY = gWindowHeight / 2.0f;
 float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
 float gSensitivity = 0.005f;
-
-namespace ImGui { extern ImGuiKeyData* GetKeyData(ImGuiKey key); }
 
 struct
 {
