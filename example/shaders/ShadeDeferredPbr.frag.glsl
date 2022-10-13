@@ -14,6 +14,7 @@ layout(binding = 0, std140) uniform GlobalUniforms
 {
   mat4 viewProj;
   mat4 invViewProj;
+  mat4 proj;
   vec4 cameraPos;
 };
 
@@ -107,7 +108,7 @@ void main()
   vec3 specular = albedo * spec * shadingUniforms.sunStrength.rgb;
 
   //vec3 ambient = vec3(.03) * albedo;
-  vec3 ambient = vec3(.01) * albedo + textureLod(s_rsmIndirect, v_uv, 0).rgb;
+  vec3 ambient = /*vec3(.01) * albedo*/ + textureLod(s_rsmIndirect, v_uv, 0).rgb;
   vec3 finalColor = shadow * (diffuse + specular) + ambient;
   
   finalColor += LocalLightIntensity(fragWorldPos, normal, viewDir, albedo);

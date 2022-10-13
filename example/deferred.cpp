@@ -70,6 +70,7 @@ struct GlobalUniforms
   glm::mat4 viewProj;
   glm::mat4 invViewProj;
   glm::mat4 proj;
+  glm::vec4 cameraPos;
 };
 
 struct ShadingUniforms
@@ -436,6 +437,7 @@ void RenderScene()
   };
 
   auto indirectLightingTex = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
+  auto indirectLightingTex2 = Fwog::CreateTexture2D({ gWindowWidth, gWindowHeight }, Fwog::Format::R16G16B16A16_FLOAT);
   
   auto proj = glm::perspective(glm::radians(70.f), gWindowWidth / (float)gWindowHeight, 0.1f, 100.f);
 
@@ -580,7 +582,7 @@ void RenderScene()
 
     glm::mat4 viewProj = proj * camera.GetViewMatrix();
     globalUniformsBuffer.SubData(viewProj, 0);
-    globalUniformsBuffer.SubData(proj, sizeof(glm::mat4)*2);
+    globalUniformsBuffer.SubData(proj, offsetof(GlobalUniforms, proj));
 
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
     float eyeWidth = 2.5f;
@@ -657,30 +659,51 @@ void RenderScene()
 
           uint32_t currentPass = 0;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
 
           //filter subsampled
           for(int i = 0; i < 3; ++i)
           {
               currentPass = 1;
               rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-              Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+              Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
+              Fwog::Cmd::BindImage(0, indirectLightingTex2, 0);
               Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
               currentPass = 2;
               rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-              Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+              Fwog::Cmd::BindSampledImage(0, indirectLightingTex2, nearestSampler);
+              Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
               Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
           }
+
           //filter box
           currentPass = 3;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
+          Fwog::Cmd::BindImage(0, indirectLightingTex2, 0);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
           currentPass = 4;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::BindSampledImage(0, indirectLightingTex2, nearestSampler);
+          Fwog::Cmd::BindImage(0, indirectLightingTex, 0);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+          //modulate albedo
+          currentPass = 5;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::BindSampledImage(0, indirectLightingTex, nearestSampler);
+          Fwog::Cmd::BindImage(0, indirectLightingTex2, 0);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+
+          std::swap(indirectLightingTex, indirectLightingTex2);
       }
       else
       {

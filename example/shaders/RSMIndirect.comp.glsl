@@ -17,6 +17,7 @@ layout(binding = 0, std140) uniform GlobalUniforms
   mat4 viewProj;
   mat4 invViewProj;
   mat4 proj;
+  vec4 cameraPos;
 };
 
 layout(binding = 1, std140) uniform RSMUniforms
