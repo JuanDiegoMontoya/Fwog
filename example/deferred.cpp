@@ -103,7 +103,7 @@ float gSensitivity = 0.005f;
 
 // scene parameters
 uint32_t gRSMSamples = 400;
-uint32_t gRSMFilteredSamples = 5;
+uint32_t gRSMFilteredSamples = 15;
 float gRMax = 0.08f;
 bool gRSMFiltered = false;
 
@@ -343,7 +343,7 @@ void RenderScene()
   //load blue noise texture
   int x = 0;
   int y = 0;
-  auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
+  auto noise = stbi_load("textures/bluenoise16.png", &x, &y, nullptr, 4);
   assert(noise);
   auto noiseTex = Fwog::CreateTexture2D({ static_cast<uint32_t>(x), static_cast<uint32_t>(y) }, Fwog::Format::R8G8B8A8_UNORM);
   noiseTex.SubImage({
@@ -552,7 +552,7 @@ void RenderScene()
       rsmUniforms.rMax += .15f * dt;
       printf("rMax: %f\n", rsmUniforms.rMax);
     }
-    rsmUniforms.rMax = glm::clamp(rsmUniforms.rMax, 0.02f, 0.3f);
+    rsmUniforms.rMax = glm::clamp(rsmUniforms.rMax, 0.02f, 1.0f);
 
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
     {

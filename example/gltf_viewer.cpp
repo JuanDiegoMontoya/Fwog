@@ -122,7 +122,7 @@ float gSensitivity = 0.005f;
 
 // scene parameters
 uint32_t gRSMSamples = 400;
-uint32_t gRSMFilteredSamples = 5;
+uint32_t gRSMFilteredSamples = 10;
 float gRMax = 0.08f;
 bool gRSMFiltered = false;
 
@@ -303,7 +303,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   //load blue noise texture
   int x = 0;
   int y = 0;
-  auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
+  auto noise = stbi_load("textures/bluenoise16.png", &x, &y, nullptr, 4);
   assert(noise);
   auto noiseTex = Fwog::CreateTexture2D({ static_cast<uint32_t>(x), static_cast<uint32_t>(y) }, Fwog::Format::R8G8B8A8_UNORM);
   noiseTex.SubImage({
@@ -353,7 +353,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   if (!fileName)
   {
-    Utility::LoadModelFromFile(scene, "models/hierarchyTest.glb", glm::mat4{ .5 }, true);
+    Utility::LoadModelFromFile(scene, "models/sponza_textured_separated.glb", glm::mat4{ .5 }, true);
   }
   else
   {
@@ -369,7 +369,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ShadingUniforms shadingUniforms
   {
     .sunDir = glm::normalize(glm::vec4{ -.1, -.3, -.6, 0 }),
-    .sunStrength = glm::vec4{ 2, 2, 2, 0 },
+    .sunStrength = glm::vec4{ 5, 5, 5, 0 },
   };
 
   RSMUniforms rsmUniforms
@@ -381,9 +381,9 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   //////////////////////////////////////// Clustered rendering stuff
   std::vector<Light> lights;
-  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
-  lights.push_back(Light{ .position = { 3, -2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
-  lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
+  //lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
+  //lights.push_back(Light{ .position = { 3, -2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
+  //lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
 
   Fwog::TextureCreateInfo clusterTexInfo
   {
@@ -514,7 +514,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     globalUniformsBuffer.SubData(mainCameraUniforms, 0);
 
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
-    float eyeWidth = 5.5f;
+    float eyeWidth = 7.0f;
     //shadingUniforms.viewPos = glm::vec4(camera.position, 0);
     shadingUniforms.sunViewProj =
       glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f) *
@@ -667,7 +667,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
 
           //filter subsampled
-          for(int i = 0; i < 3; ++i)
+          for(int i = 0; i < 2; ++i)
           {
               currentPass = 1;
               rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));

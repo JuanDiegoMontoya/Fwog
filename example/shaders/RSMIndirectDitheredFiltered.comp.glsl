@@ -68,41 +68,37 @@ vec2 Hammersley(uint i, uint N)
   );
 }
 
-//takes [0; 1]^2 spherical, maps to cartesian unit sphere
-vec3 NormalizedSphericalToCartesian(in vec2 uv)
+vec2 UniformCircleMapping(vec2 uv, float rMax)
 {
-    float cos_theta = 2.0*uv.x-1.0;
-    float phi = 2.0*PI*uv.y;
-    float sin_theta = sqrt(1.0-cos_theta*cos_theta);
-    float sin_phi = sin(phi);
-    float cos_phi = cos(phi);
-    
-    return vec3(sin_theta*cos_phi, cos_theta, sin_theta*sin_phi);
+    float r = sqrt(uv.x) * rMax;
+    float theta = uv.y * TWO_PI;
+	return vec2(r * cos(theta), r * sin(theta));
 }
 
-//takes [0; 1]^2 vector, maps to cosine weighted hemisphere oriented along unit vector n
-vec3 CosineWeightedHemisphereMapping(in vec2 uv, in vec3 n)
+vec2 QuadraticCircleMapping(vec2 uv, float rMax)
 {
-    vec3 p = NormalizedSphericalToCartesian(uv);
-    return n+p;
+	float r = uv.x * rMax;
+    float theta = uv.y * TWO_PI;
+	return vec2(r * cos(theta), r * sin(theta));
 }
 
-//takes [0; 1]^2 vector, maps to hemisphere oriented along unit vector n
-vec3 HemisphereMapping(in vec2 uv, in vec3 n)
+float QuadraticCircleMappingWeight(float r, float worldRMax)
 {
-    vec3 p = NormalizedSphericalToCartesian(uv);
-    return p*sign(dot(p,n));
+	return PI*worldRMax*worldRMax*r;
+}
+
+float UniformCircleMappingWeight(float r, float worldRMax)
+{
+	return PI*worldRMax*worldRMax;
 }
 
 vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, vec3 rsmWorldPos, vec3 rsmNormal)
 {
   // move rsmPos in negative of normal by small constant amount(?)
-  //rsmWorldPos += -rsmNormal * .01;
-  vec3 sampleDir = rsmWorldPos - surfaceWorldPos;
-  float cosSrc = max(0.0, dot(surfaceNormal, sampleDir));
-  float cosDest = max(0.0, dot(rsmNormal, -sampleDir));
-  float geometry = cosSrc * cosSrc * cosDest;
-  //taking max to avoid fireflies and nans from division at the cost of more bias
+  //rsmWorldPos -= rsmNormal * .01;
+  float geometry = max(0.0, dot(rsmNormal, surfaceWorldPos - rsmWorldPos)) * 
+                   max(0.0, dot(surfaceNormal, rsmWorldPos - surfaceWorldPos));
+  //float d = distance(surfaceWorldPos, rsmWorldPos);
   float d = max(distance(surfaceWorldPos, rsmWorldPos), 0.05);
   return rsmFlux * geometry / (d * d * d * d);
 }
@@ -110,43 +106,30 @@ vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, v
 vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surfaceWorldPos, vec3 noise)
 {
   vec3 sumC = { 0, 0, 0 };
+
+  const vec4 rsmClip = rsm.sunViewProj * vec4(surfaceWorldPos, 1.0);
+  const vec2 rsmUV = (rsmClip.xy / rsmClip.w) * .5 + .5;
+  
+  float rMax_world = distance(UnprojectUV(0.0, rsmUV, rsm.invSunViewProj), UnprojectUV(0.0, vec2(rsmUV.x + rsm.rMax, rsmUV.y), rsm.invSunViewProj));
+
   for (int i = 0; i < rsm.samples; i++)
   {
     // xi can be randomly rotated based on screen position
     vec2 xi = Hammersley(i, rsm.samples);
 	// and we are absolutely going to rotate it with blue noise
 	xi = mod(xi+vec2(noise.xy), vec2(1.0));
-	float rand = mod(Random(float(i))+noise.z, 1.0);
-	vec3 sample_pos = surfaceWorldPos+normalize(CosineWeightedHemisphereMapping(xi, surfaceNormal))*rsm.rMax*5.0*rand;
-    vec2 sample_uv = ProjectUV(sample_pos, rsm.sunViewProj);
+    vec2 pixelLightUV = rsmUV + QuadraticCircleMapping(xi, rsm.rMax);
+	float weight = QuadraticCircleMappingWeight(xi.x, rMax_world);
 
-    vec3 rsmFlux = textureLod(s_rsmFlux, sample_uv, 0.0).rgb;
-    vec3 rsmNormal = textureLod(s_rsmNormal, sample_uv, 0.0).xyz;
-    float rsmDepth = textureLod(s_rsmDepth, sample_uv, 0.0).x;
-    vec3 rsmWorldPos = UnprojectUV(rsmDepth, sample_uv, rsm.invSunViewProj);
-	
-	//visibility query (bad)
-	/*bool visible = true;
-	float depth_begin = textureLod(s_rsmDepth, ProjectUV(surfaceWorldPos, rsm.sunViewProj), 0.0).x;
-	float depth_end = textureLod(s_rsmDepth, sample_uv, 0.0).x;
-	float thick = 0.1;
-	for(int j = 0; j < 5; ++j)
-	{
-		const float first_step = 1.0/3.0;
-		float step_factor = j/3.0 + first_step;
-		float min_depth = (depth_begin, depth_end, step_factor)-0.1;
-		vec3 sample_vis_pos = mix(surfaceWorldPos, sample_pos, vec3(step_factor));
-		float depth_vis = textureLod(s_rsmDepth, ProjectUV(sample_vis_pos, rsm.sunViewProj), 0.0).x;
-		if(depth_vis < min_depth && min_depth - depth_vis < thick)
-		{
-			visible = false;
-			break;
-		}
-	}
-	if(visible)*/
-		sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal);	
+    vec3 rsmFlux = textureLod(s_rsmFlux, pixelLightUV, 0.0).rgb;
+    vec3 rsmNormal = textureLod(s_rsmNormal, pixelLightUV, 0.0).xyz;
+    float rsmDepth = textureLod(s_rsmDepth, pixelLightUV, 0.0).x;
+    vec3 rsmWorldPos = UnprojectUV(rsmDepth, pixelLightUV, rsm.invSunViewProj);
+
+    sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;
   }
-  return sumC/* * surfaceAlbedo*/ / rsm.samples;
+  
+  return sumC / rsm.samples;
 }
 
 vec3 Tap(in sampler2D tex, ivec2 coord, ivec2 offset, vec3 src_normal, float src_depth, inout float sum_weight)

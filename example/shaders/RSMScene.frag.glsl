@@ -18,5 +18,5 @@ layout(binding = 1, std140) uniform ShadingUniforms
 void main()
 {
   o_normal = normalize(v_normal);
-  o_flux = v_color * shadingUniforms.sunStrength.rgb;
+  o_flux = v_color * shadingUniforms.sunStrength.rgb;// * max(dot(o_normal, -normalize(shadingUniforms.sunDir.xyz)), 0.0);
 }
