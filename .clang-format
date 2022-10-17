@@ -1,0 +1,34 @@
+﻿---
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: 'true'
+AlignEscapedNewlines: Left
+AlignOperands: 'true'
+AlignTrailingComments: 'true'
+AllowAllArgumentsOnNextLine: 'false'
+AllowShortCaseLabelsOnASingleLine: 'true'
+AlwaysBreakTemplateDeclarations: 'Yes'
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+BreakBeforeBraces: Allman
+BreakConstructorInitializers: BeforeColon
+ColumnLimit: '120'
+FixNamespaceComments: 'true'
+IndentCaseLabels: 'false'
+IndentPPDirectives: BeforeHash
+IndentWidth: '2'
+NamespaceIndentation: All
+PointerAlignment: Left
+SpaceAfterCStyleCast: 'false'
+SpaceAfterLogicalNot: 'false'
+SpaceAfterTemplateKeyword: 'false'
+SpaceBeforeAssignmentOperators: 'true'
+SpaceBeforeCpp11BracedList: 'false'
+SpaceBeforeCtorInitializerColon: 'true'
+SpaceBeforeInheritanceColon: 'true'
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: 'false'
+SpacesInCStyleCastParentheses: 'false'
+SpacesInSquareBrackets: 'false'
+UseTab: Never
+
+...
