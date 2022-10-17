@@ -37,4 +37,7 @@ CMakeFiles/
 
 # Build artifacts
 build/
+/.vs
+
+# Large/test assets
 /example/models
