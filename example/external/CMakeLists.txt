@@ -27,7 +27,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui
-    GIT_TAG        v1.84.2
+    GIT_TAG        v1.88
 )
 
 FetchContent_MakeAvailable(glm)
