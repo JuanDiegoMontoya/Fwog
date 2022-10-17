@@ -10,4 +10,4 @@ namespace Fwog
 
     ScopedDebugMarker(const ScopedDebugMarker&) = delete;
   };
-}
+} // namespace Fwog

@@ -1,8 +1,8 @@
 #include <Fwog/Common.h>
-#include <Fwog/detail/PipelineManager.h>
-#include <Fwog/detail/Hash.h>
-#include <Fwog/Shader.h>
 #include <Fwog/Exception.h>
+#include <Fwog/Shader.h>
+#include <Fwog/detail/Hash.h>
+#include <Fwog/detail/PipelineManager.h>
 #include <unordered_map>
 
 namespace Fwog::detail
@@ -14,24 +14,22 @@ namespace Fwog::detail
 
     GraphicsPipelineInfoOwning MakePipelineInfoOwning(const GraphicsPipelineInfo& info)
     {
-      return GraphicsPipelineInfoOwning
-      {
-        .name = std::string(info.name),
-        .inputAssemblyState = info.inputAssemblyState,
-        .vertexInputState = { { info.vertexInputState.vertexBindingDescriptions.begin(), info.vertexInputState.vertexBindingDescriptions.end() } },
-        .rasterizationState = info.rasterizationState,
-        .depthState = info.depthState,
-        .stencilState = info.stencilState,
-        .colorBlendState
-        {
-          .logicOpEnable = info.colorBlendState.logicOpEnable,
-          .logicOp = info.colorBlendState.logicOp,
-          .attachments = { info.colorBlendState.attachments.begin(), info.colorBlendState.attachments.end() },
-          .blendConstants = { info.colorBlendState.blendConstants[0], info.colorBlendState.blendConstants[1], info.colorBlendState.blendConstants[2], info.colorBlendState.blendConstants[3] }
-        }
-      };
+      return GraphicsPipelineInfoOwning{.name = std::string(info.name),
+                                        .inputAssemblyState = info.inputAssemblyState,
+                                        .vertexInputState = {{info.vertexInputState.vertexBindingDescriptions.begin(),
+                                                              info.vertexInputState.vertexBindingDescriptions.end()}},
+                                        .rasterizationState = info.rasterizationState,
+                                        .depthState = info.depthState,
+                                        .stencilState = info.stencilState,
+                                        .colorBlendState{.logicOpEnable = info.colorBlendState.logicOpEnable,
+                                                         .logicOp = info.colorBlendState.logicOp,
+                                                         .attachments = {info.colorBlendState.attachments.begin(),
+                                                                         info.colorBlendState.attachments.end()},
+                                                         .blendConstants = {info.colorBlendState.blendConstants[0],
+                                                                            info.colorBlendState.blendConstants[1],
+                                                                            info.colorBlendState.blendConstants[2],
+                                                                            info.colorBlendState.blendConstants[3]}}};
     }
-
 
     bool LinkProgram(GLuint program, std::string& outInfoLog)
     {
@@ -49,8 +47,7 @@ namespace Fwog::detail
 
       return true;
     }
-  }
-
+  } // namespace
 
   GraphicsPipeline CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
@@ -71,14 +68,13 @@ namespace Fwog::detail
 
     if (auto it = gGraphicsPipelines.find(program); it != gGraphicsPipelines.end())
     {
-      return GraphicsPipeline{ it->first };
+      return GraphicsPipeline{it->first};
     }
 
     auto owning = MakePipelineInfoOwning(info);
-    gGraphicsPipelines.insert({ program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning)) });
-    return GraphicsPipeline{ program };
+    gGraphicsPipelines.insert({program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning))});
+    return GraphicsPipeline{program};
   }
-
 
   std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
@@ -88,7 +84,6 @@ namespace Fwog::detail
     }
     return nullptr;
   }
-
 
   bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline)
   {
@@ -102,7 +97,6 @@ namespace Fwog::detail
     gGraphicsPipelines.erase(it);
     return true;
   }
-
 
   ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info)
   {
@@ -119,14 +113,13 @@ namespace Fwog::detail
 
     if (auto it = gComputePipelines.find(program); it != gComputePipelines.end())
     {
-      return ComputePipeline{ it->first };
+      return ComputePipeline{it->first};
     }
 
-    auto owning = ComputePipelineInfoOwning{ .name = std::string(info.name) };
-    gComputePipelines.insert({ program, std::make_shared<const ComputePipelineInfoOwning>()});
-    return ComputePipeline{ program };
+    auto owning = ComputePipelineInfoOwning{.name = std::string(info.name)};
+    gComputePipelines.insert({program, std::make_shared<const ComputePipelineInfoOwning>()});
+    return ComputePipeline{program};
   }
-
 
   std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(ComputePipeline pipeline)
   {
@@ -136,7 +129,6 @@ namespace Fwog::detail
     }
     return nullptr;
   }
-
 
   bool DestroyComputePipelineInternal(ComputePipeline pipeline)
   {
@@ -150,4 +142,4 @@ namespace Fwog::detail
     gComputePipelines.erase(it);
     return true;
   }
-}
+} // namespace Fwog::detail

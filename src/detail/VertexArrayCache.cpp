@@ -1,9 +1,9 @@
 #include "Fwog/detail/VertexArrayCache.h"
-#include "Fwog/detail/Hash.h"
-#include "Fwog/detail/ApiToEnum.h"
-#include "Fwog/detail/PipelineManager.h"
-#include "Fwog/Pipeline.h"
 #include "Fwog/Common.h"
+#include "Fwog/Pipeline.h"
+#include "Fwog/detail/ApiToEnum.h"
+#include "Fwog/detail/Hash.h"
+#include "Fwog/detail/PipelineManager.h"
 
 namespace Fwog::detail
 {
@@ -12,7 +12,7 @@ namespace Fwog::detail
     size_t VertexInputStateHash(const VertexInputStateOwning& k)
     {
       size_t hashVal{};
-      
+
       for (const auto& desc : k.vertexBindingDescriptions)
       {
         auto cctup = std::make_tuple(desc.location, desc.binding, desc.format, desc.offset);
@@ -22,7 +22,7 @@ namespace Fwog::detail
 
       return hashVal;
     }
-  }
+  } // namespace
 
   uint32_t VertexArrayCache::CreateOrGetCachedVertexArray(const VertexInputStateOwning& inputState)
   {
@@ -46,20 +46,14 @@ namespace Fwog::detail
       auto internalType = detail::FormatToFormatClass(desc.format);
       switch (internalType)
       {
-      case detail::GlFormatClass::FLOAT:
-        glVertexArrayAttribFormat(vao, i, size, type, normalized, desc.offset);
-        break;
-      case detail::GlFormatClass::INT:
-        glVertexArrayAttribIFormat(vao, i, size, type, desc.offset);
-        break;
-      case detail::GlFormatClass::LONG:
-        glVertexArrayAttribLFormat(vao, i, size, type, desc.offset);
-        break;
+      case detail::GlFormatClass::FLOAT: glVertexArrayAttribFormat(vao, i, size, type, normalized, desc.offset); break;
+      case detail::GlFormatClass::INT: glVertexArrayAttribIFormat(vao, i, size, type, desc.offset); break;
+      case detail::GlFormatClass::LONG: glVertexArrayAttribLFormat(vao, i, size, type, desc.offset); break;
       default: FWOG_UNREACHABLE;
       }
     }
 
-    return vertexArrayCache_.insert({ inputHash, vao }).first->second;
+    return vertexArrayCache_.insert({inputHash, vao}).first->second;
   }
 
   void VertexArrayCache::Clear()
@@ -71,5 +65,4 @@ namespace Fwog::detail
 
     vertexArrayCache_.clear();
   }
-}
-
+} // namespace Fwog::detail

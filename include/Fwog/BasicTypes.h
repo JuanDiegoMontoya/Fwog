@@ -1,9 +1,10 @@
 #pragma once
-#include <cstdint>
 #include <Fwog/detail/Flags.h>
+#include <cstdint>
 
 namespace Fwog
 {
+  // clang-format off
   struct Extent2D
   {
     uint32_t width{};
@@ -447,4 +448,5 @@ namespace Fwog
     uint32_t groupCountY;
     uint32_t groupCountZ;
   };
-}
+  // clang-format on
+} // namespace Fwog

@@ -6,9 +6,7 @@
 namespace Fwog
 {
 
-  Fence::Fence()
-  {
-  }
+  Fence::Fence() {}
 
   Fence::~Fence()
   {
@@ -23,7 +21,8 @@ namespace Fwog
 
   Fence& Fence::operator=(Fence&& old) noexcept
   {
-    if (this == &old) return *this;
+    if (this == &old)
+      return *this;
     this->~Fence();
     sync_ = std::exchange(old.sync_, nullptr);
     return *this;
@@ -40,7 +39,9 @@ namespace Fwog
     GLuint id;
     glGenQueries(1, &id);
     glBeginQuery(GL_TIME_ELAPSED, id);
-    GLenum result = glClientWaitSync(reinterpret_cast<GLsync>(sync_), GL_SYNC_FLUSH_COMMANDS_BIT, std::numeric_limits<GLuint64>::max());
+    GLenum result = glClientWaitSync(reinterpret_cast<GLsync>(sync_),
+                                     GL_SYNC_FLUSH_COMMANDS_BIT,
+                                     std::numeric_limits<GLuint64>::max());
     FWOG_ASSERT(result == GL_CONDITION_SATISFIED);
     glEndQuery(GL_TIME_ELAPSED);
     uint64_t elapsed;
@@ -49,4 +50,4 @@ namespace Fwog
     this->~Fence();
     return elapsed;
   }
-}
+} // namespace Fwog

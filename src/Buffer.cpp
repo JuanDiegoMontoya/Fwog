@@ -1,15 +1,12 @@
+#include <Fwog/Buffer.h>
 #include <Fwog/Common.h>
 #include <Fwog/detail/ApiToEnum.h>
-#include <Fwog/Buffer.h>
 #include <utility>
 
 namespace Fwog
 {
-  Buffer::Buffer(const void* data, 
-                 size_t size, 
-                 BufferStorageFlags storageFlags, 
-                 BufferMapFlags mapFlags)
-    : size_(std::max(size, static_cast<size_t>(1)))
+  Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags, BufferMapFlags mapFlags)
+      : size_(std::max(size, static_cast<size_t>(1)))
   {
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
     glflags |= detail::BufferMapFlagsToGL(mapFlags);
@@ -17,32 +14,28 @@ namespace Fwog
     glNamedBufferStorage(id_, size_, data, glflags);
   }
 
-  Buffer::Buffer(size_t size,
-                 BufferStorageFlags storageFlags,
-                 BufferMapFlags mapFlags)
-    : Buffer(nullptr, size, storageFlags, mapFlags)
+  Buffer::Buffer(size_t size, BufferStorageFlags storageFlags, BufferMapFlags mapFlags)
+      : Buffer(nullptr, size, storageFlags, mapFlags)
   {
   }
 
-  Buffer::Buffer(TriviallyCopyableByteSpan data,
-                 BufferStorageFlags storageFlags,
-                 BufferMapFlags mapFlags)
-    : Buffer(data.data(), data.size_bytes(), storageFlags, mapFlags)
+  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags, BufferMapFlags mapFlags)
+      : Buffer(data.data(), data.size_bytes(), storageFlags, mapFlags)
   {
   }
 
   Buffer::Buffer(Buffer&& old) noexcept
-    : size_(std::exchange(old.size_, 0)),
-      id_(std::exchange(old.id_, 0)),
-      isMapped_(std::exchange(old.isMapped_, false))
+      : size_(std::exchange(old.size_, 0)), id_(std::exchange(old.id_, 0)),
+        isMapped_(std::exchange(old.isMapped_, false))
   {
   }
 
   Buffer& Buffer::operator=(Buffer&& old) noexcept
   {
-    if (&old == this) return *this;
+    if (&old == this)
+      return *this;
     this->~Buffer();
-    return *new(this) Buffer(std::move(old));
+    return *new (this) Buffer(std::move(old));
   }
 
   Buffer::~Buffer()
@@ -79,12 +72,12 @@ namespace Fwog
     glUnmapNamedBuffer(id_);
   }
 
-  void Buffer::ClearSubData(size_t offset, 
-    size_t size, 
-    Format internalFormat, 
-    UploadFormat uploadFormat, 
-    UploadType uploadType, 
-    const void* data) const
+  void Buffer::ClearSubData(size_t offset,
+                            size_t size,
+                            Format internalFormat,
+                            UploadFormat uploadFormat,
+                            UploadType uploadType,
+                            const void* data) const
   {
     glClearNamedBufferSubData(id_,
                               detail::FormatToGL(internalFormat),
@@ -94,4 +87,4 @@ namespace Fwog
                               detail::UploadTypeToGL(uploadType),
                               data);
   }
-}
+} // namespace Fwog

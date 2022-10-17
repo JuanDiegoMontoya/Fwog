@@ -1,19 +1,20 @@
 #pragma once
-#include <tuple>
 #include <functional>
+#include <tuple>
 
 namespace Fwog::detail::hashing
 {
-  template<typename T> struct hash;
+  template<typename T>
+  struct hash;
 
-  template <class T>
+  template<class T>
   inline void hash_combine(std::size_t& seed, const T& v)
   {
     seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
   }
 
   // Recursive template code derived from Matthieu M.
-  template <class Tuple, size_t Index = std::tuple_size<Tuple>::value - 1>
+  template<class Tuple, size_t Index = std::tuple_size<Tuple>::value - 1>
   struct HashValueImpl
   {
     static void apply(size_t& seed, const Tuple& tuple)
@@ -23,7 +24,7 @@ namespace Fwog::detail::hashing
     }
   };
 
-  template <class Tuple>
+  template<class Tuple>
   struct HashValueImpl<Tuple, 0>
   {
     static void apply(size_t& seed, const Tuple& tuple)
@@ -32,14 +33,14 @@ namespace Fwog::detail::hashing
     }
   };
 
-  template <typename ... TT>
+  template<typename... TT>
   struct hash<std::tuple<TT...>>
   {
     size_t operator()(const std::tuple<TT...>& tt) const
     {
       size_t seed = 0;
-      HashValueImpl<std::tuple<TT...> >::apply(seed, tt);
+      HashValueImpl<std::tuple<TT...>>::apply(seed, tt);
       return seed;
     }
   };
-}
+} // namespace Fwog::detail::hashing

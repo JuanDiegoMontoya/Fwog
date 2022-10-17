@@ -6,6 +6,7 @@ AlignOperands: 'true'
 AlignTrailingComments: 'true'
 AllowAllArgumentsOnNextLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'true'
+AllowShortFunctionsOnASingleLine: 'Empty'
 AlwaysBreakTemplateDeclarations: 'Yes'
 BinPackArguments: 'false'
 BinPackParameters: 'false'
@@ -17,6 +18,7 @@ IndentCaseLabels: 'false'
 IndentPPDirectives: BeforeHash
 IndentWidth: '2'
 NamespaceIndentation: All
+PenaltyReturnTypeOnItsOwnLine: '10000'
 PointerAlignment: Left
 SpaceAfterCStyleCast: 'false'
 SpaceAfterLogicalNot: 'false'

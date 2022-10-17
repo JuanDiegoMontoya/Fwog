@@ -1,8 +1,8 @@
 #pragma once
 #include <Fwog/Pipeline.h>
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Fwog::detail
 {
@@ -43,4 +43,4 @@ namespace Fwog::detail
   ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info);
   std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(ComputePipeline pipeline);
   bool DestroyComputePipelineInternal(ComputePipeline pipeline);
-}
+} // namespace Fwog::detail

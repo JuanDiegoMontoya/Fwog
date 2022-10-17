@@ -6,6 +6,7 @@
 
 namespace Fwog
 {
+  // clang-format off
   class Shader;
 
   struct InputAssemblyState
@@ -132,4 +133,5 @@ namespace Fwog
 
   ComputePipeline CompileComputePipeline(const ComputePipelineInfo& info);
   bool DestroyComputePipeline(ComputePipeline pipeline);
-}
+  // clang-format on
+} // namespace Fwog

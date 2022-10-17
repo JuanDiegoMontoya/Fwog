@@ -1,6 +1,6 @@
 #include "Fwog/detail/FramebufferCache.h"
-#include "Fwog/detail/Hash.h"
 #include "Fwog/Texture.h"
+#include "Fwog/detail/Hash.h"
 #include "glad/gl.h"
 
 namespace Fwog::detail
@@ -23,7 +23,8 @@ namespace Fwog::detail
     }
     glNamedFramebufferDrawBuffers(fbo, static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
 
-    if (attachments.depthAttachment && attachments.stencilAttachment && attachments.depthAttachment == attachments.stencilAttachment)
+    if (attachments.depthAttachment && attachments.stencilAttachment &&
+        attachments.depthAttachment == attachments.stencilAttachment)
     {
       glNamedFramebufferTexture(fbo, GL_DEPTH_STENCIL_ATTACHMENT, attachments.depthAttachment->Handle(), 0);
     }
@@ -36,7 +37,7 @@ namespace Fwog::detail
       glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, attachments.stencilAttachment->Handle(), 0);
     }
 
-    return framebufferCache_.insert({ attachments, fbo }).first->second;
+    return framebufferCache_.insert({attachments, fbo}).first->second;
   }
 
   void FramebufferCache::Clear()
@@ -68,7 +69,7 @@ namespace Fwog::detail
 
     return true;
   }
-}
+} // namespace Fwog::detail
 
 std::size_t std::hash<Fwog::detail::RenderAttachments>::operator()(const Fwog::detail::RenderAttachments& k) const
 {

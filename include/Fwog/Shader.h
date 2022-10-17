@@ -21,9 +21,12 @@ namespace Fwog
     Shader& operator=(Shader&& old) noexcept;
     ~Shader();
 
-    [[nodiscard]] uint32_t Handle() const { return id_; }
+    [[nodiscard]] uint32_t Handle() const
+    {
+      return id_;
+    }
 
   private:
     uint32_t id_{};
   };
-}
+} // namespace Fwog

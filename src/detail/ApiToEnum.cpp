@@ -3,6 +3,7 @@
 
 namespace Fwog::detail
 {
+  // clang-format off
   GLenum FilterToGL(Filter filter)
   {
     switch (filter)
@@ -686,4 +687,5 @@ namespace Fwog::detail
     ret |= bits & MemoryBarrierAccessBit::QUERY_COUNTER_BIT ? GL_QUERY_BUFFER_BARRIER_BIT : 0;
     return ret;
   }
-}
+  // clang-format on
+} // namespace Fwog::detail

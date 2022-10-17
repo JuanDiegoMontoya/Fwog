@@ -1,7 +1,7 @@
 #pragma once
-#include <unordered_map>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <unordered_map>
 
 namespace Fwog::detail
 {
@@ -11,10 +11,13 @@ namespace Fwog::detail
   {
   public:
     uint32_t CreateOrGetCachedVertexArray(const VertexInputStateOwning& inputState);
-    size_t Size() const { return vertexArrayCache_.size(); }
+    size_t Size() const
+    {
+      return vertexArrayCache_.size();
+    }
     void Clear();
 
   private:
     std::unordered_map<size_t, uint32_t> vertexArrayCache_;
   };
-}
+} // namespace Fwog::detail

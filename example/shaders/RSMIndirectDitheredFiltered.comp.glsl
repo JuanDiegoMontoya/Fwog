@@ -56,7 +56,10 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
   return world.xyz / world.w;
 }
 
-float Random(float co) { return fract(sin(co * (91.3458)) * 47453.5453); }
+float Random(float co)
+{
+  return fract(sin(co * (91.3458)) * 47453.5453);
+}
 
 vec2 Hammersley(uint i, uint N)
 {
@@ -77,9 +80,15 @@ vec2 QuadraticCircleMapping(vec2 uv, float rMax)
   return vec2(r * cos(theta), r * sin(theta));
 }
 
-float QuadraticCircleMappingWeight(float r, float worldRMax) { return PI * worldRMax * worldRMax * r; }
+float QuadraticCircleMappingWeight(float r, float worldRMax)
+{
+  return PI * worldRMax * worldRMax * r;
+}
 
-float UniformCircleMappingWeight(float r, float worldRMax) { return PI * worldRMax * worldRMax; }
+float UniformCircleMappingWeight(float r, float worldRMax)
+{
+  return PI * worldRMax * worldRMax;
+}
 
 vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, vec3 rsmWorldPos, vec3 rsmNormal)
 {

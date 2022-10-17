@@ -9,10 +9,7 @@ namespace Fwog
   {
   public:
     Exception() {}
-    Exception(std::string message)
-      : message_(std::move(message))
-    {
-    }
+    Exception(std::string message) : message_(std::move(message)) {}
 
     const char* what() const noexcept override
     {
@@ -32,4 +29,4 @@ namespace Fwog
   {
     using Exception::Exception;
   };
-}
+} // namespace Fwog

@@ -10,7 +10,7 @@ namespace std
   {
     std::size_t operator()(const Fwog::SamplerState& k) const;
   };
-}
+} // namespace std
 
 namespace Fwog::detail
 {
@@ -24,4 +24,4 @@ namespace Fwog::detail
   private:
     std::unordered_map<SamplerState, Sampler> samplerCache_;
   };
-}
+} // namespace Fwog::detail

@@ -25,4 +25,4 @@ namespace Fwog
   private:
     void* sync_{};
   };
-}
+} // namespace Fwog

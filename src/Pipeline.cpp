@@ -22,4 +22,4 @@ namespace Fwog
   {
     return detail::DestroyComputePipelineInternal(pipeline);
   }
-}
+} // namespace Fwog

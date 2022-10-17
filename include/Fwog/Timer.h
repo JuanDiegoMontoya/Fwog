@@ -77,4 +77,4 @@ namespace Fwog
   private:
     T& zone_;
   };
-}
+} // namespace Fwog

@@ -1,8 +1,8 @@
 #include "Fwog/detail/SamplerCache.h"
+#include "Fwog/Common.h"
 #include "Fwog/detail/ApiToEnum.h"
 #include "Fwog/detail/Hash.h"
 #include "glad/gl.h"
-#include "Fwog/Common.h"
 
 namespace Fwog::detail
 {
@@ -16,7 +16,9 @@ namespace Fwog::detail
     uint32_t sampler{};
     glCreateSamplers(1, &sampler);
 
-    glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_MODE, samplerState.compareEnable ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+    glSamplerParameteri(sampler,
+                        GL_TEXTURE_COMPARE_MODE,
+                        samplerState.compareEnable ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
 
     glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_FUNC, detail::CompareOpToGL(samplerState.compareOp));
 
@@ -26,9 +28,7 @@ namespace Fwog::detail
     GLint minFilter{};
     switch (samplerState.mipmapFilter)
     {
-    case (Filter::NONE):
-      minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
-      break;
+    case (Filter::NONE): minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST; break;
     case (Filter::NEAREST):
       minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
       break;
@@ -48,48 +48,48 @@ namespace Fwog::detail
     {
     case BorderColor::FLOAT_TRANSPARENT_BLACK:
     {
-      constexpr GLfloat color[4]{ 0, 0, 0, 0 };
+      constexpr GLfloat color[4]{0, 0, 0, 0};
       glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
     case BorderColor::INT_TRANSPARENT_BLACK:
     {
-      constexpr GLint color[4]{ 0, 0, 0, 0 };
+      constexpr GLint color[4]{0, 0, 0, 0};
       glSamplerParameteriv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
     case BorderColor::FLOAT_OPAQUE_BLACK:
     {
-      constexpr GLfloat color[4]{ 0, 0, 0, 1 };
+      constexpr GLfloat color[4]{0, 0, 0, 1};
       glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
     case BorderColor::INT_OPAQUE_BLACK:
     {
-      //constexpr GLint color[4]{ 0, 0, 0, 255 };
-      constexpr GLint color[4]{ 0, 0, 0, 1 };
+      // constexpr GLint color[4]{ 0, 0, 0, 255 };
+      constexpr GLint color[4]{0, 0, 0, 1};
       glSamplerParameteriv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
     case BorderColor::FLOAT_OPAQUE_WHITE:
     {
-      constexpr GLfloat color[4]{ 1, 1, 1, 1 };
+      constexpr GLfloat color[4]{1, 1, 1, 1};
       glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
     case BorderColor::INT_OPAQUE_WHITE:
     {
-      //constexpr GLint color[4]{ 255, 255, 255, 255 };
-      constexpr GLint color[4]{ 1, 1, 1, 1 };
+      // constexpr GLint color[4]{ 255, 255, 255, 255 };
+      constexpr GLint color[4]{1, 1, 1, 1};
       glSamplerParameteriv(sampler, GL_TEXTURE_BORDER_COLOR, color);
       break;
     }
-    default:
-      FWOG_UNREACHABLE;
-      break;
+    default: FWOG_UNREACHABLE; break;
     }
 
-    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, static_cast<GLfloat>(detail::SampleCountToGL(samplerState.anisotropy)));
+    glSamplerParameterf(sampler,
+                        GL_TEXTURE_MAX_ANISOTROPY,
+                        static_cast<GLfloat>(detail::SampleCountToGL(samplerState.anisotropy)));
 
     glSamplerParameterf(sampler, GL_TEXTURE_LOD_BIAS, samplerState.lodBias);
 
@@ -97,7 +97,7 @@ namespace Fwog::detail
 
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_LOD, samplerState.maxLod);
 
-    return samplerCache_.insert({ samplerState, Sampler(sampler) }).first->second;
+    return samplerCache_.insert({samplerState, Sampler(sampler)}).first->second;
   }
 
   size_t SamplerCache::Size() const
@@ -114,23 +114,22 @@ namespace Fwog::detail
 
     samplerCache_.clear();
   }
-}
+} // namespace Fwog::detail
 
 std::size_t std::hash<Fwog::SamplerState>::operator()(const Fwog::SamplerState& k) const
 {
-  auto rtup = std::make_tuple(
-    k.minFilter, 
-    k.magFilter, 
-    k.mipmapFilter, 
-    k.addressModeU, 
-    k.addressModeV, 
-    k.addressModeW, 
-    k.borderColor, 
-    k.anisotropy, 
-    k.compareEnable, 
-    k.compareOp, 
-    k.lodBias, 
-    k.minLod, 
-    k.maxLod);
+  auto rtup = std::make_tuple(k.minFilter,
+                              k.magFilter,
+                              k.mipmapFilter,
+                              k.addressModeU,
+                              k.addressModeV,
+                              k.addressModeW,
+                              k.borderColor,
+                              k.anisotropy,
+                              k.compareEnable,
+                              k.compareOp,
+                              k.lodBias,
+                              k.minLod,
+                              k.maxLod);
   return Fwog::detail::hashing::hash<decltype(rtup)>{}(rtup);
 }

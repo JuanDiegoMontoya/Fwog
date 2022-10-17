@@ -19,7 +19,8 @@ namespace Fwog
   {
     int complete = 0;
     glQueryCounter(queries[1], GL_TIMESTAMP);
-    while (!complete) glGetQueryObjectiv(queries[1], GL_QUERY_RESULT_AVAILABLE, &complete);
+    while (!complete)
+      glGetQueryObjectiv(queries[1], GL_QUERY_RESULT_AVAILABLE, &complete);
     uint64_t startTime, endTime;
     glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &startTime);
     glGetQueryObjectui64v(queries[1], GL_QUERY_RESULT, &endTime);
@@ -27,8 +28,7 @@ namespace Fwog
     return endTime - startTime;
   }
 
-  TimerQueryAsync::TimerQueryAsync(uint32_t N)
-    : capacity_(N)
+  TimerQueryAsync::TimerQueryAsync(uint32_t N) : capacity_(N)
   {
     FWOG_ASSERT(capacity_ > 0);
     queries = new uint32_t[capacity_ * 2];
@@ -92,4 +92,4 @@ namespace Fwog
     glGetQueryObjectui64v(queries[index + capacity_], GL_QUERY_RESULT, &endTimestamp);
     return endTimestamp - startTimestamp;
   }
-}
+} // namespace Fwog

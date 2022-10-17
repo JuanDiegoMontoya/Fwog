@@ -1,7 +1,7 @@
 #pragma once
-#include <vector>
-#include <unordered_map>
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 namespace Fwog
 {
@@ -18,7 +18,7 @@ namespace Fwog::detail
 
     bool operator==(const RenderAttachments& rhs) const;
   };
-}
+} // namespace Fwog::detail
 
 namespace std
 {
@@ -27,7 +27,7 @@ namespace std
   {
     std::size_t operator()(const Fwog::detail::RenderAttachments& k) const;
   };
-}
+} // namespace std
 
 namespace Fwog::detail
 {
@@ -35,10 +35,13 @@ namespace Fwog::detail
   {
   public:
     uint32_t CreateOrGetCachedFramebuffer(const RenderAttachments& attachments);
-    std::size_t Size() const { return framebufferCache_.size(); }
+    std::size_t Size() const
+    {
+      return framebufferCache_.size();
+    }
     void Clear();
 
   private:
     std::unordered_map<RenderAttachments, uint32_t> framebufferCache_;
   };
-}
+} // namespace Fwog::detail

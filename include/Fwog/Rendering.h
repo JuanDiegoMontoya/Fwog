@@ -82,76 +82,90 @@ namespace Fwog
   void BeginCompute(std::string_view name = {});
   void EndCompute();
 
-  void BlitTexture(
-    const Texture& source,
-    const Texture& target,
-    Offset3D sourceOffset,
-    Offset3D targetOffset,
-    Extent3D sourceExtent,
-    Extent3D targetExtent,
-    Filter filter,
-    AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
+  void BlitTexture(const Texture& source,
+                   const Texture& target,
+                   Offset3D sourceOffset,
+                   Offset3D targetOffset,
+                   Extent3D sourceExtent,
+                   Extent3D targetExtent,
+                   Filter filter,
+                   AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
   // blit to 0
-  void BlitTextureToSwapchain(
-    const Texture& source,
-    Offset3D sourceOffset,
-    Offset3D targetOffset,
-    Extent3D sourceExtent,
-    Extent3D targetExtent,
-    Filter filter,
-    AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
+  void BlitTextureToSwapchain(const Texture& source,
+                              Offset3D sourceOffset,
+                              Offset3D targetOffset,
+                              Extent3D sourceExtent,
+                              Extent3D targetExtent,
+                              Filter filter,
+                              AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
-  void CopyTexture(
-    const Texture& source,
-    const Texture& target,
-    uint32_t sourceLevel,
-    uint32_t targetLevel,
-    Offset3D sourceOffset,
-    Offset3D targetOffset,
-    Extent3D extent);
+  void CopyTexture(const Texture& source,
+                   const Texture& target,
+                   uint32_t sourceLevel,
+                   uint32_t targetLevel,
+                   Offset3D sourceOffset,
+                   Offset3D targetOffset,
+                   Extent3D extent);
 
   // Cmd:: functions can only be called within a rendering scope
   namespace Cmd
   {
-    void BindGraphicsPipeline(GraphicsPipeline pipeline);         // sets pipeline state
+    void BindGraphicsPipeline(GraphicsPipeline pipeline); // sets pipeline state
     void BindComputePipeline(ComputePipeline pipeline);
 
     // dynamic state
-    //void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
-    void SetViewport(const Viewport& viewport);                  // glViewport
-    
-    void SetScissor(const Rect2D& scissor);                      // glScissor
+    // void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
+    void SetViewport(const Viewport& viewport); // glViewport
+
+    void SetScissor(const Rect2D& scissor); // glScissor
 
     // drawing operations
-    void Draw(uint32_t vertexCount, uint32_t instanceCount,       // glDrawArraysInstancedBaseInstance
-      uint32_t firstVertex, uint32_t firstInstance);
-    void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, // glDrawElementsInstancedBaseVertexBaseInstance
-      uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-    void DrawIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
-      uint32_t drawCount, uint32_t stride);
-    void DrawIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
-      const Buffer& countBuffer, uint64_t countBufferOffset, 
-      uint32_t maxDrawCount, uint32_t stride);
-    void DrawIndexedIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
-      uint32_t drawCount, uint32_t stride);
-    void DrawIndexedIndirectCount(const Buffer& commandBuffer, uint64_t commandBufferOffset, 
-      const Buffer& countBuffer, uint64_t countBufferOffset, 
-      uint32_t maxDrawCount, uint32_t stride);
+    void Draw(uint32_t vertexCount,
+              uint32_t instanceCount, // glDrawArraysInstancedBaseInstance
+              uint32_t firstVertex,
+              uint32_t firstInstance);
+    void DrawIndexed(uint32_t indexCount,
+                     uint32_t instanceCount, // glDrawElementsInstancedBaseVertexBaseInstance
+                     uint32_t firstIndex,
+                     int32_t vertexOffset,
+                     uint32_t firstInstance);
+    void DrawIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, uint32_t drawCount, uint32_t stride);
+    void DrawIndirectCount(const Buffer& commandBuffer,
+                           uint64_t commandBufferOffset,
+                           const Buffer& countBuffer,
+                           uint64_t countBufferOffset,
+                           uint32_t maxDrawCount,
+                           uint32_t stride);
+    void DrawIndexedIndirect(const Buffer& commandBuffer,
+                             uint64_t commandBufferOffset,
+                             uint32_t drawCount,
+                             uint32_t stride);
+    void DrawIndexedIndirectCount(const Buffer& commandBuffer,
+                                  uint64_t commandBufferOffset,
+                                  const Buffer& countBuffer,
+                                  uint64_t countBufferOffset,
+                                  uint32_t maxDrawCount,
+                                  uint32_t stride);
 
     // vertex setup
-    void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride); // glVertexArrayVertexBuffer
-    void BindIndexBuffer(const Buffer& buffer, IndexType indexType);                                      // glVertexArrayElementBuffer
+    void BindVertexBuffer(uint32_t bindingIndex,
+                          const Buffer& buffer,
+                          uint64_t offset,
+                          uint64_t stride);                          // glVertexArrayVertexBuffer
+    void BindIndexBuffer(const Buffer& buffer, IndexType indexType); // glVertexArrayElementBuffer
 
     // 'descriptors'
     // valid in render and compute scopes
-    void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
-    void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);         // glBindBufferRange
-    void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler); // glBindTextureUnit + glBindSampler
-    void BindImage(uint32_t index, const Texture& texture, uint32_t level);                       // glBindImageTexture{s}
+    void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size); // glBindBufferRange
+    void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size); // glBindBufferRange
+    void BindSampledImage(uint32_t index,
+                          const Texture& texture,
+                          const Sampler& sampler);                          // glBindTextureUnit + glBindSampler
+    void BindImage(uint32_t index, const Texture& texture, uint32_t level); // glBindImageTexture{s}
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset);
     void MemoryBarrier(MemoryBarrierAccessBits accessBits);
-  }
-}
+  } // namespace Cmd
+} // namespace Fwog

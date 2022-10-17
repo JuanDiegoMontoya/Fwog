@@ -1,7 +1,7 @@
 #pragma once
+#include <Fwog/BasicTypes.h>
 #include <cstdint>
 #include <string_view>
-#include <Fwog/BasicTypes.h>
 
 namespace Fwog
 {
@@ -58,20 +58,20 @@ namespace Fwog
   {
     bool operator==(const SamplerState& rhs) const noexcept = default;
 
-    float lodBias{ 0 };
-    float minLod{ -1000 };
-    float maxLod{ 1000 };
+    float lodBias{0};
+    float minLod{-1000};
+    float maxLod{1000};
 
-    Filter minFilter         = Filter::LINEAR;
-    Filter magFilter         = Filter::LINEAR;
-    Filter mipmapFilter      = Filter::NONE;
+    Filter minFilter = Filter::LINEAR;
+    Filter magFilter = Filter::LINEAR;
+    Filter mipmapFilter = Filter::NONE;
     AddressMode addressModeU = AddressMode::CLAMP_TO_EDGE;
     AddressMode addressModeV = AddressMode::CLAMP_TO_EDGE;
     AddressMode addressModeW = AddressMode::CLAMP_TO_EDGE;
-    BorderColor borderColor  = BorderColor::FLOAT_OPAQUE_WHITE;
-    SampleCount anisotropy   = SampleCount::SAMPLES_1;
-    bool compareEnable       = false;
-    CompareOp compareOp      = CompareOp::NEVER;
+    BorderColor borderColor = BorderColor::FLOAT_OPAQUE_WHITE;
+    SampleCount anisotropy = SampleCount::SAMPLES_1;
+    bool compareEnable = false;
+    CompareOp compareOp = CompareOp::NEVER;
   };
 
   class Texture
@@ -93,9 +93,18 @@ namespace Fwog
     [[nodiscard]] TextureView CreateLayerView(uint32_t layer) const;
     [[nodiscard]] uint64_t GetBindlessHandle(Sampler sampler);
 
-    [[nodiscard]] const TextureCreateInfo& CreateInfo() const { return createInfo_; }
-    [[nodiscard]] Extent3D Extent() const { return createInfo_.extent; }
-    [[nodiscard]] uint32_t Handle() const { return id_; }
+    [[nodiscard]] const TextureCreateInfo& CreateInfo() const
+    {
+      return createInfo_;
+    }
+    [[nodiscard]] Extent3D Extent() const
+    {
+      return createInfo_.extent;
+    }
+    [[nodiscard]] uint32_t Handle() const
+    {
+      return id_;
+    }
 
   protected:
     Texture();
@@ -109,7 +118,9 @@ namespace Fwog
   public:
     // make a texture view with explicit parameters
     explicit TextureView(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name = "");
-    explicit TextureView(const TextureViewCreateInfo& viewInfo, const TextureView& textureView, std::string_view name = "");
+    explicit TextureView(const TextureViewCreateInfo& viewInfo,
+                         const TextureView& textureView,
+                         std::string_view name = "");
 
     // make a texture view with automatic parameters (view of whole texture, same type)
     explicit TextureView(const Texture& texture, std::string_view name = "");
@@ -120,8 +131,11 @@ namespace Fwog
     TextureView& operator=(const TextureView& other) = delete;
     ~TextureView();
 
-    [[nodiscard]] TextureViewCreateInfo ViewInfo() const { return viewInfo_; }
-    
+    [[nodiscard]] TextureViewCreateInfo ViewInfo() const
+    {
+      return viewInfo_;
+    }
+
   private:
     TextureView();
     TextureViewCreateInfo viewInfo_{};
@@ -132,12 +146,15 @@ namespace Fwog
   public:
     explicit Sampler(const SamplerState& samplerState);
 
-    [[nodiscard]] uint32_t Handle() const { return id_; }
+    [[nodiscard]] uint32_t Handle() const
+    {
+      return id_;
+    }
 
   private:
     friend class detail::SamplerCache;
-    Sampler() {}; // you cannot create samplers out of thin air
-    explicit Sampler(uint32_t id) : id_(id) {};
+    Sampler(){}; // you cannot create samplers out of thin air
+    explicit Sampler(uint32_t id) : id_(id){};
 
     uint32_t id_{};
   };
@@ -145,4 +162,4 @@ namespace Fwog
   // convenience functions
   Texture CreateTexture2D(Extent2D size, Format format, std::string_view name = "");
   Texture CreateTexture2DMip(Extent2D size, Format format, uint32_t mipLevels, std::string_view name = "");
-}
+} // namespace Fwog
