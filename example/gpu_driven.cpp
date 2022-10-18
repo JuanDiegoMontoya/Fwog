@@ -96,7 +96,7 @@ float gPreviousCursorX = gWindowWidth / 2.0f;
 float gPreviousCursorY = gWindowHeight / 2.0f;
 float gCursorOffsetX = 0;
 float gCursorOffsetY = 0;
-float gSensitivity = 0.005f;
+float gSensitivity = 0.0025f;
 
 struct
 {
@@ -210,8 +210,8 @@ void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursor
     firstFrame = false;
   }
 
-  gCursorOffsetX = static_cast<float>(currentCursorX) - gPreviousCursorX;
-  gCursorOffsetY = gPreviousCursorY - static_cast<float>(currentCursorY);
+  gCursorOffsetX += static_cast<float>(currentCursorX) - gPreviousCursorX;
+  gCursorOffsetY += gPreviousCursorY - static_cast<float>(currentCursorY);
   gPreviousCursorX = static_cast<float>(currentCursorX);
   gPreviousCursorY = static_cast<float>(currentCursorY);
 }
