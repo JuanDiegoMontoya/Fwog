@@ -715,13 +715,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     // geometry buffer pass
     {
       Fwog::RenderAttachment gcolorAttachment{.texture = &gBufferColorTexture,
-                                              .clearValue = Fwog::ClearValue{.color{.f{.1f, .3f, .5f, 0.0f}}},
+                                              .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
                                               .clearOnLoad = true};
       Fwog::RenderAttachment gnormalAttachment{.texture = &gBufferNormalTexture,
-                                               .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                               .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                                .clearOnLoad = false};
       Fwog::RenderAttachment gdepthAttachment{.texture = &gBufferDepthTexture,
-                                              .clearValue = Fwog::ClearValue{.depthStencil{.depth = 0.0f}},
+                                              .clearValue = Fwog::ClearDepthStencilValue{.depth = 0.0f},
                                               .clearOnLoad = true};
       Fwog::RenderAttachment cgAttachments[] = {gcolorAttachment, gnormalAttachment};
       Fwog::RenderInfo gbufferRenderInfo{.colorAttachments = cgAttachments,
@@ -756,7 +756,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     // shadow map scene pass
     {
       Fwog::RenderAttachment depthAttachment{.texture = &shadowDepthTexture,
-                                             .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f}},
+                                             .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                              .clearOnLoad = true};
 
       Fwog::RenderInfo shadowRenderInfo{.depthAttachment = &depthAttachment, .stencilAttachment = nullptr};

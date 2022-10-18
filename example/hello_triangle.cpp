@@ -84,10 +84,12 @@ int main()
       .maxDepth = 0.0f,
   };
 
+  auto joe = Fwog::ClearColorValue(1, 2, 3);
+
   auto swapchainRenderingInfo = Fwog::SwapchainRenderInfo{
       .viewport = viewport,
       .clearColorOnLoad = true,
-      .clearColorValue = Fwog::ClearColorValue{.f = {.2f, .0f, .2f, 1.0f}},
+      .clearColorValue = {.2f, .0f, .2f, 1.0f},
       .clearDepthOnLoad = false,
       .clearStencilOnLoad = false,
   };

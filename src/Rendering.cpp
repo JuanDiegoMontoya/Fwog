@@ -94,12 +94,13 @@ namespace Fwog
 
     if (ri.clearColorOnLoad)
     {
+      FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ri.clearColorValue.data)));
       if (sLastColorMask[0] != ColorComponentFlag::RGBA_BITS)
       {
         glColorMaski(0, true, true, true, true);
         sLastColorMask[0] = ColorComponentFlag::RGBA_BITS;
       }
-      glClearNamedFramebufferfv(0, GL_COLOR, 0, ri.clearColorValue.f);
+      glClearNamedFramebufferfv(0, GL_COLOR, 0, std::get_if<std::array<float, 4>>(&ri.clearColorValue.data)->data());
     }
     if (ri.clearDepthOnLoad)
     {
@@ -178,23 +179,33 @@ namespace Fwog
       const auto& attachment = ri.colorAttachments[i];
       if (attachment.clearOnLoad)
       {
+        FWOG_ASSERT(std::holds_alternative<ClearColorValue>(attachment.clearValue));
+
         if (sLastColorMask[i] != ColorComponentFlag::RGBA_BITS)
         {
           glColorMaski(i, true, true, true, true);
           sLastColorMask[i] = ColorComponentFlag::RGBA_BITS;
         }
+
         auto format = attachment.texture->CreateInfo().format;
         auto baseTypeClass = detail::FormatToBaseTypeClass(format);
+
+        // avoid std::get because it can throw
+        auto& ccv = *std::get_if<ClearColorValue>(&attachment.clearValue);
+        
         switch (baseTypeClass)
         {
         case detail::GlBaseTypeClass::FLOAT:
-          glClearNamedFramebufferfv(sFbo, GL_COLOR, i, attachment.clearValue.color.f);
+          FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ccv.data)));
+          glClearNamedFramebufferfv(sFbo, GL_COLOR, i, std::get_if<std::array<float, 4>>(&ccv.data)->data());
           break;
         case detail::GlBaseTypeClass::SINT:
-          glClearNamedFramebufferiv(sFbo, GL_COLOR, i, attachment.clearValue.color.i);
+          FWOG_ASSERT((std::holds_alternative<std::array<int32_t, 4>>(ccv.data)));
+          glClearNamedFramebufferiv(sFbo, GL_COLOR, i, std::get_if<std::array<int32_t, 4>>(&ccv.data)->data());
           break;
         case detail::GlBaseTypeClass::UINT:
-          glClearNamedFramebufferuiv(sFbo, GL_COLOR, i, attachment.clearValue.color.ui);
+          FWOG_ASSERT((std::holds_alternative<std::array<uint32_t, 4>>(ccv.data)));
+          glClearNamedFramebufferuiv(sFbo, GL_COLOR, i, std::get_if<std::array<uint32_t, 4>>(&ccv.data)->data());
           break;
         default: FWOG_UNREACHABLE;
         }
@@ -205,6 +216,8 @@ namespace Fwog
         ri.stencilAttachment->clearOnLoad)
     {
       // clear depth and stencil simultaneously
+      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.depthAttachment->clearValue));
+      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.stencilAttachment->clearValue));
       if (sLastDepthMask == false)
       {
         glDepthMask(true);
@@ -216,34 +229,46 @@ namespace Fwog
         sLastStencilMask[0] = true;
         sLastStencilMask[1] = true;
       }
+
+      auto& clearDepth = *std::get_if<ClearDepthStencilValue>(&ri.depthAttachment->clearValue);
+      auto& clearStencil = *std::get_if<ClearDepthStencilValue>(&ri.stencilAttachment->clearValue);
+
       glClearNamedFramebufferfi(sFbo,
                                 GL_DEPTH_STENCIL,
                                 0,
-                                ri.depthAttachment->clearValue.depthStencil.depth,
-                                ri.depthAttachment->clearValue.depthStencil.stencil);
+                                clearDepth.depth,
+                                clearStencil.stencil);
     }
     else if ((ri.depthAttachment && ri.depthAttachment->clearOnLoad) &&
              (!ri.stencilAttachment || !ri.stencilAttachment->clearOnLoad))
     {
       // clear just depth
+      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.depthAttachment->clearValue));
       if (sLastDepthMask == false)
       {
         glDepthMask(true);
         sLastDepthMask = true;
       }
-      glClearNamedFramebufferfv(sFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depthStencil.depth);
+
+      auto& clearDepth = *std::get_if<ClearDepthStencilValue>(&ri.depthAttachment->clearValue);
+
+      glClearNamedFramebufferfv(sFbo, GL_DEPTH, 0, &clearDepth.depth);
     }
     else if ((ri.stencilAttachment && ri.stencilAttachment->clearOnLoad) &&
              (!ri.depthAttachment || !ri.depthAttachment->clearOnLoad))
     {
       // clear just stencil
+      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.stencilAttachment->clearValue));
       if (sLastStencilMask[0] == false || sLastStencilMask[1] == false)
       {
         glStencilMask(true);
         sLastStencilMask[0] = true;
         sLastStencilMask[1] = true;
       }
-      glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.depthStencil.stencil);
+
+      auto& clearStencil = *std::get_if<ClearDepthStencilValue>(&ri.stencilAttachment->clearValue);
+
+      glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &clearStencil.stencil);
     }
 
     Viewport viewport;

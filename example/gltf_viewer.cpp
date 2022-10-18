@@ -291,7 +291,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
               .maxDepth = 1.0f,
           },
       .clearColorOnLoad = false,
-      .clearColorValue = Fwog::ClearColorValue{.f = {.0, .0, .0, 1.0}},
+      .clearColorValue = Fwog::ClearColorValue{.0f, .0f, .0f, 1.0f},
       .clearDepthOnLoad = false,
       .clearStencilOnLoad = false,
   };
@@ -485,13 +485,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     // geometry buffer pass
     {
       Fwog::RenderAttachment gcolorAttachment{.texture = &gcolorTex,
-                                              .clearValue = Fwog::ClearValue{.color{.f{.1f, .3f, .5f, 0.0f}}},
+                                              .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
                                               .clearOnLoad = true};
       Fwog::RenderAttachment gnormalAttachment{.texture = &gnormalTex,
-                                               .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                               .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                                .clearOnLoad = false};
       Fwog::RenderAttachment gdepthAttachment{.texture = &gdepthTex,
-                                              .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f}},
+                                              .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                               .clearOnLoad = true};
       Fwog::RenderAttachment cgAttachments[] = {gcolorAttachment, gnormalAttachment};
       Fwog::RenderInfo gbufferRenderInfo{.colorAttachments = cgAttachments,
@@ -526,13 +526,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     // shadow map (RSM) scene pass
     {
       Fwog::RenderAttachment rcolorAttachment{.texture = &rfluxTex,
-                                              .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                              .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                               .clearOnLoad = false};
       Fwog::RenderAttachment rnormalAttachment{.texture = &rnormalTex,
-                                               .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                               .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                                .clearOnLoad = false};
       Fwog::RenderAttachment rdepthAttachment{.texture = &rdepthTex,
-                                              .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f}},
+                                              .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                               .clearOnLoad = true};
       Fwog::RenderAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
       Fwog::RenderInfo rsmRenderInfo{.colorAttachments = crAttachments,

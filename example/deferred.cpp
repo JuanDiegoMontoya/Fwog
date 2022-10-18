@@ -39,9 +39,15 @@ struct View
   float pitch{}; // pitch angle in radians
   float yaw{};   // yaw angle in radians
 
-  glm::vec3 GetForwardDir() const { return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)}; }
+  glm::vec3 GetForwardDir() const
+  {
+    return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)};
+  }
 
-  glm::mat4 GetViewMatrix() const { return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0)); }
+  glm::mat4 GetViewMatrix() const
+  {
+    return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
+  }
 };
 
 struct ObjectUniforms
@@ -324,7 +330,7 @@ void RenderScene()
               .maxDepth = 1.0f,
           },
       .clearColorOnLoad = false,
-      .clearColorValue = Fwog::ClearColorValue{.f = {.0f, .0f, .0f, 1.0f}},
+      .clearColorValue = {.0f, .0f, .0f, 1.0f},
       .clearDepthOnLoad = false,
       .clearStencilOnLoad = false,
   };
@@ -335,13 +341,13 @@ void RenderScene()
   auto gdepthTex = Fwog::CreateTexture2D({gWindowWidth, gWindowHeight}, Fwog::Format::D32_UNORM);
 
   Fwog::RenderAttachment gcolorAttachment{.texture = &gcolorTex,
-                                          .clearValue = Fwog::ClearValue{.color{.f{.1f, .3f, .5f, 0.0f}}},
+                                          .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
                                           .clearOnLoad = true};
   Fwog::RenderAttachment gnormalAttachment{.texture = &gnormalTex,
-                                           .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                           .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                            .clearOnLoad = false};
   Fwog::RenderAttachment gdepthAttachment{.texture = &gdepthTex,
-                                          .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f}},
+                                          .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                           .clearOnLoad = true};
   Fwog::RenderAttachment cgAttachments[] = {gcolorAttachment, gnormalAttachment};
   Fwog::RenderInfo gbufferRenderInfo{.colorAttachments = cgAttachments,
@@ -354,13 +360,13 @@ void RenderScene()
   auto rdepthTex = Fwog::CreateTexture2D({gShadowmapWidth, gShadowmapHeight}, Fwog::Format::D16_UNORM);
 
   Fwog::RenderAttachment rcolorAttachment{.texture = &rfluxTex,
-                                          .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                          .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                           .clearOnLoad = false};
   Fwog::RenderAttachment rnormalAttachment{.texture = &rnormalTex,
-                                           .clearValue = Fwog::ClearValue{.color{.f{0, 0, 0, 0}}},
+                                           .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                            .clearOnLoad = false};
   Fwog::RenderAttachment rdepthAttachment{.texture = &rdepthTex,
-                                          .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f}},
+                                          .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                           .clearOnLoad = true};
   Fwog::RenderAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
   Fwog::RenderInfo rsmRenderInfo{.colorAttachments = crAttachments,

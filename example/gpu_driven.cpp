@@ -386,13 +386,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     globalUniformsBuffer.SubDataTyped(mainCameraUniforms);
 
     Fwog::RenderAttachment gDepthAttachment{.texture = &gBufferDepthTexture,
-                                            .clearValue = Fwog::ClearValue{.depthStencil{.depth = 1.0f}},
+                                            .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                             .clearOnLoad = true};
 
     // scene pass
     {
       Fwog::RenderAttachment gColorAttachment{.texture = &gBufferColorTexture,
-                                              .clearValue = Fwog::ClearValue{.color{.f{.1f, .3f, .5f, 0.0f}}},
+                                              .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
                                               .clearOnLoad = true};
       Fwog::BeginRendering({.name = "Scene",
                             .viewport = &mainViewport,

@@ -1,10 +1,14 @@
 #pragma once
 #include <Fwog/BasicTypes.h>
+#include <array>
 #include <span>
 #include <string_view>
+#include <type_traits>
+#include <variant>
 
 namespace Fwog
 {
+  // clang-format off
   class Texture;
   class Sampler;
   class Buffer;
@@ -13,12 +17,16 @@ namespace Fwog
 
   struct ClearColorValue
   {
-    union
+    ClearColorValue() {};
+
+    template<typename... Args>
+    requires (sizeof...(Args) <= 4)
+    ClearColorValue(const Args&... args)
+      : data(std::array<std::common_type_t<std::remove_cvref_t<Args>...>, 4>{ args...})
     {
-      float f[4];
-      uint32_t ui[4];
-      int32_t i[4];
-    };
+    }
+
+    std::variant<std::array<float, 4>, std::array<uint32_t, 4>, std::array<int32_t, 4>> data;
   };
 
   struct ClearDepthStencilValue
@@ -27,11 +35,7 @@ namespace Fwog
     int32_t stencil;
   };
 
-  union ClearValue
-  {
-    ClearColorValue color;
-    ClearDepthStencilValue depthStencil;
-  };
+  using ClearValue = std::variant<ClearColorValue, ClearDepthStencilValue>;
 
   struct RenderAttachment
   {
@@ -121,26 +125,41 @@ namespace Fwog
     void SetScissor(const Rect2D& scissor); // glScissor
 
     // drawing operations
+
+    // glDrawArraysInstancedBaseInstance
     void Draw(uint32_t vertexCount,
-              uint32_t instanceCount, // glDrawArraysInstancedBaseInstance
+              uint32_t instanceCount,
               uint32_t firstVertex,
               uint32_t firstInstance);
+
+    // glDrawElementsInstancedBaseVertexBaseInstance
     void DrawIndexed(uint32_t indexCount,
-                     uint32_t instanceCount, // glDrawElementsInstancedBaseVertexBaseInstance
+                     uint32_t instanceCount,
                      uint32_t firstIndex,
                      int32_t vertexOffset,
                      uint32_t firstInstance);
-    void DrawIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset, uint32_t drawCount, uint32_t stride);
+
+    // glMultiDrawArraysIndirect
+    void DrawIndirect(const Buffer& commandBuffer,
+                      uint64_t commandBufferOffset,
+                      uint32_t drawCount,
+                      uint32_t stride);
+
+    // glMultiDrawArraysIndirectCount
     void DrawIndirectCount(const Buffer& commandBuffer,
                            uint64_t commandBufferOffset,
                            const Buffer& countBuffer,
                            uint64_t countBufferOffset,
                            uint32_t maxDrawCount,
                            uint32_t stride);
+
+    // glMultiDrawElementsIndirect
     void DrawIndexedIndirect(const Buffer& commandBuffer,
                              uint64_t commandBufferOffset,
                              uint32_t drawCount,
                              uint32_t stride);
+
+    // glMultiDrawElementsIndirectCount
     void DrawIndexedIndirectCount(const Buffer& commandBuffer,
                                   uint64_t commandBufferOffset,
                                   const Buffer& countBuffer,
@@ -149,23 +168,32 @@ namespace Fwog
                                   uint32_t stride);
 
     // vertex setup
-    void BindVertexBuffer(uint32_t bindingIndex,
-                          const Buffer& buffer,
-                          uint64_t offset,
-                          uint64_t stride);                          // glVertexArrayVertexBuffer
-    void BindIndexBuffer(const Buffer& buffer, IndexType indexType); // glVertexArrayElementBuffer
+
+    // glVertexArrayVertexBuffer
+    void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride);
+    
+    // glVertexArrayElementBuffer
+    void BindIndexBuffer(const Buffer& buffer, IndexType indexType);
 
     // 'descriptors'
     // valid in render and compute scopes
-    void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size); // glBindBufferRange
-    void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size); // glBindBufferRange
-    void BindSampledImage(uint32_t index,
-                          const Texture& texture,
-                          const Sampler& sampler);                          // glBindTextureUnit + glBindSampler
-    void BindImage(uint32_t index, const Texture& texture, uint32_t level); // glBindImageTexture{s}
+    
+    // glBindBufferRange
+    void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);
+
+    // glBindBufferRange
+    void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size);
+
+    // glBindTextureUnit + glBindSampler
+    void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler);
+
+    // glBindImageTexture{s}
+    void BindImage(uint32_t index, const Texture& texture, uint32_t level);
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset);
     void MemoryBarrier(MemoryBarrierAccessBits accessBits);
+
+    // clang-format on
   } // namespace Cmd
 } // namespace Fwog
