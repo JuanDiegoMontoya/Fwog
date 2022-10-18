@@ -252,6 +252,7 @@ Fwog::ComputePipeline CreatePostprocessingPipeline()
 
 void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
 {
+  ImGui_ImplGlfw_CursorPosCallback(window, currentCursorX, currentCursorY);
   static bool firstFrame = true;
   if (firstFrame)
   {
