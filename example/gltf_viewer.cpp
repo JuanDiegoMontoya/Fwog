@@ -315,7 +315,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
 
   if (!fileName)
   {
-    Utility::LoadModelFromFile(scene, "models/sponza_textured_separated.glb", glm::mat4{.5}, true);
+    Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
   }
   else
   {
