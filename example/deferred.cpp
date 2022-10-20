@@ -343,7 +343,7 @@ void RenderScene()
   //load blue noise texture
   int x = 0;
   int y = 0;
-  auto noise = stbi_load("textures/bluenoise16.png", &x, &y, nullptr, 4);
+  auto noise = stbi_load("textures/bluenoise256.png", &x, &y, nullptr, 4);
   assert(noise);
   auto noiseTex = Fwog::CreateTexture2D({ static_cast<uint32_t>(x), static_cast<uint32_t>(y) }, Fwog::Format::R8G8B8A8_UNORM);
   noiseTex.SubImage({

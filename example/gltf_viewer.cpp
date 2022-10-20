@@ -122,7 +122,7 @@ float gSensitivity = 0.005f;
 
 // scene parameters
 uint32_t gRSMSamples = 400;
-uint32_t gRSMFilteredSamples = 10;
+uint32_t gRSMFilteredSamples = 15;
 float gRMax = 0.08f;
 bool gRSMFiltered = false;
 
@@ -369,7 +369,7 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
   ShadingUniforms shadingUniforms
   {
     .sunDir = glm::normalize(glm::vec4{ -.1, -.3, -.6, 0 }),
-    .sunStrength = glm::vec4{ 5, 5, 5, 0 },
+    .sunStrength = glm::vec4{ 2, 2, 2, 0 },
   };
 
   RSMUniforms rsmUniforms
@@ -509,12 +509,13 @@ void RenderScene(std::optional<std::string_view> fileName, float scale, bool bin
     GlobalUniforms mainCameraUniforms{};
     mainCameraUniforms.viewProj = proj * camera.GetViewMatrix();
     mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
+    mainCameraUniforms.proj = proj;
     mainCameraUniforms.cameraPos = glm::vec4(camera.position, 0.0);
 
     globalUniformsBuffer.SubData(mainCameraUniforms, 0);
 
     glm::vec3 eye = glm::vec3{ shadingUniforms.sunDir * -5.f };
-    float eyeWidth = 7.0f;
+    float eyeWidth = 17.0f;
     //shadingUniforms.viewPos = glm::vec4(camera.position, 0);
     shadingUniforms.sunViewProj =
       glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f) *
