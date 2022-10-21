@@ -113,6 +113,21 @@ namespace Fwog
     uint64_t bindlessHandle_ = 0;
   };
 
+  // TODO: implement
+  //class ColorTexture : public Texture
+  //{
+  //public:
+  //  // Should this constructor take a version of TextureCreateInfo that uses a more constrained format enum?
+  //  explicit ColorTexture()
+  //};
+
+  //class DepthStencilTexture : public Texture
+  //{
+  //public:
+  //  // See comment for above class' constructor
+  //  explicit DepthStencilTexture()
+  //};
+
   class TextureView : public Texture
   {
   public:
