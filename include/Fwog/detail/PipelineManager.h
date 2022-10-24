@@ -36,11 +36,11 @@ namespace Fwog::detail
     std::string name;
   };
 
-  GraphicsPipeline CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info);
-  std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline);
-  bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline);
+  uint64_t CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info);
+  std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(uint64_t pipeline);
+  void DestroyGraphicsPipelineInternal(uint64_t pipeline);
 
-  ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info);
-  std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(ComputePipeline pipeline);
-  bool DestroyComputePipelineInternal(ComputePipeline pipeline);
+  uint64_t CompileComputePipelineInternal(const ComputePipelineInfo& info);
+  std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(uint64_t pipeline);
+  void DestroyComputePipelineInternal(uint64_t pipeline);
 } // namespace Fwog::detail

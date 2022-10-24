@@ -49,7 +49,7 @@ namespace Fwog::detail
     }
   } // namespace
 
-  GraphicsPipeline CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
+  uint64_t CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
     FWOG_ASSERT(info.vertexShader && "A graphics pipeline must at least have a vertex shader");
     GLuint program = glCreateProgram();
@@ -68,37 +68,38 @@ namespace Fwog::detail
 
     if (auto it = gGraphicsPipelines.find(program); it != gGraphicsPipelines.end())
     {
-      return GraphicsPipeline{it->first};
+      return it->first;
     }
 
     auto owning = MakePipelineInfoOwning(info);
     gGraphicsPipelines.insert({program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning))});
-    return GraphicsPipeline{program};
+    return program;
   }
 
-  std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(GraphicsPipeline pipeline)
+  std::shared_ptr<const GraphicsPipelineInfoOwning> GetGraphicsPipelineInternal(uint64_t pipeline)
   {
-    if (auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline.id)); it != gGraphicsPipelines.end())
+    if (auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline)); it != gGraphicsPipelines.end())
     {
       return it->second;
     }
     return nullptr;
   }
 
-  bool DestroyGraphicsPipelineInternal(GraphicsPipeline pipeline)
+  void DestroyGraphicsPipelineInternal(uint64_t pipeline)
   {
-    auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline.id));
+    auto it = gGraphicsPipelines.find(static_cast<GLuint>(pipeline));
     if (it == gGraphicsPipelines.end())
     {
-      return false;
+      // Tried to delete a nonexistent pipeline.
+      FWOG_UNREACHABLE;
+      return;
     }
 
-    glDeleteProgram(static_cast<GLuint>(pipeline.id));
+    glDeleteProgram(static_cast<GLuint>(pipeline));
     gGraphicsPipelines.erase(it);
-    return true;
   }
 
-  ComputePipeline CompileComputePipelineInternal(const ComputePipelineInfo& info)
+  uint64_t CompileComputePipelineInternal(const ComputePipelineInfo& info)
   {
     FWOG_ASSERT(info.shader);
     GLuint program = glCreateProgram();
@@ -113,33 +114,34 @@ namespace Fwog::detail
 
     if (auto it = gComputePipelines.find(program); it != gComputePipelines.end())
     {
-      return ComputePipeline{it->first};
+      return it->first;
     }
 
     auto owning = ComputePipelineInfoOwning{.name = std::string(info.name)};
     gComputePipelines.insert({program, std::make_shared<const ComputePipelineInfoOwning>()});
-    return ComputePipeline{program};
+    return program;
   }
 
-  std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(ComputePipeline pipeline)
+  std::shared_ptr<const ComputePipelineInfoOwning> GetComputePipelineInternal(uint64_t pipeline)
   {
-    if (auto it = gComputePipelines.find(static_cast<GLuint>(pipeline.id)); it != gComputePipelines.end())
+    if (auto it = gComputePipelines.find(static_cast<GLuint>(pipeline)); it != gComputePipelines.end())
     {
       return it->second;
     }
     return nullptr;
   }
 
-  bool DestroyComputePipelineInternal(ComputePipeline pipeline)
+  void DestroyComputePipelineInternal(uint64_t pipeline)
   {
-    auto it = gComputePipelines.find(static_cast<GLuint>(pipeline.id));
+    auto it = gComputePipelines.find(static_cast<GLuint>(pipeline));
     if (it == gComputePipelines.end())
     {
-      return false;
+      // Tried to delete a nonexistent pipeline.
+      FWOG_UNREACHABLE;
+      return;
     }
 
-    glDeleteProgram(static_cast<GLuint>(pipeline.id));
+    glDeleteProgram(static_cast<GLuint>(pipeline));
     gComputePipelines.erase(it);
-    return true;
   }
 } // namespace Fwog::detail

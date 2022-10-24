@@ -459,12 +459,12 @@ namespace Fwog
 
   namespace Cmd
   {
-    void BindGraphicsPipeline(GraphicsPipeline pipeline)
+    void BindGraphicsPipeline(const GraphicsPipeline& pipeline)
     {
       FWOG_ASSERT(isRendering);
-      FWOG_ASSERT(pipeline.id != 0);
+      FWOG_ASSERT(pipeline.Handle() != 0);
 
-      auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline);
+      auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline.Handle());
       FWOG_ASSERT(pipelineState);
 
       if (sLastGraphicsPipeline == pipelineState)
@@ -488,7 +488,7 @@ namespace Fwog
       }
 
       //////////////////////////////////////////////////////////////// shader program
-      glUseProgram(static_cast<GLuint>(pipeline.id));
+      glUseProgram(static_cast<GLuint>(pipeline.Handle()));
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipelineState->inputAssemblyState;
@@ -694,12 +694,12 @@ namespace Fwog
       sLastGraphicsPipeline = pipelineState;
     }
 
-    void BindComputePipeline(ComputePipeline pipeline)
+    void BindComputePipeline(const ComputePipeline& pipeline)
     {
       FWOG_ASSERT(isComputeActive);
-      FWOG_ASSERT(pipeline.id != 0);
+      FWOG_ASSERT(pipeline.Handle() != 0);
 
-      auto pipelineState = detail::GetComputePipelineInternal(pipeline);
+      auto pipelineState = detail::GetComputePipelineInternal(pipeline.Handle());
 
       if (isPipelineDebugGroupPushed)
       {
@@ -716,7 +716,7 @@ namespace Fwog
         isPipelineDebugGroupPushed = true;
       }
 
-      glUseProgram(static_cast<GLuint>(pipeline.id));
+      glUseProgram(static_cast<GLuint>(pipeline.Handle()));
     }
 
     void SetViewport(const Viewport& viewport)

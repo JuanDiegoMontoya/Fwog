@@ -130,8 +130,8 @@ namespace Fwog
   // Cmd:: functions can only be called within a rendering scope
   namespace Cmd
   {
-    void BindGraphicsPipeline(GraphicsPipeline pipeline); // sets pipeline state
-    void BindComputePipeline(ComputePipeline pipeline);
+    void BindGraphicsPipeline(const GraphicsPipeline& pipeline); // sets pipeline state
+    void BindComputePipeline(const ComputePipeline& pipeline);
 
     // dynamic state
     // void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv

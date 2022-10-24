@@ -1,25 +1,55 @@
 #include <Fwog/Pipeline.h>
 #include <Fwog/detail/PipelineManager.h>
 
+#include <utility>
+
 namespace Fwog
 {
-  GraphicsPipeline CompileGraphicsPipeline(const GraphicsPipelineInfo& info)
+  GraphicsPipeline::GraphicsPipeline(const GraphicsPipelineInfo& info)
+      : id_(detail::CompileGraphicsPipelineInternal(info))
   {
-    return detail::CompileGraphicsPipelineInternal(info);
   }
 
-  bool DestroyGraphicsPipeline(GraphicsPipeline pipeline)
+  GraphicsPipeline::~GraphicsPipeline()
   {
-    return detail::DestroyGraphicsPipelineInternal(pipeline);
+    if (id_ != 0)
+    {
+      detail::DestroyGraphicsPipelineInternal(id_);
+    }
   }
 
-  ComputePipeline CompileComputePipeline(const ComputePipelineInfo& info)
+  GraphicsPipeline::GraphicsPipeline(GraphicsPipeline&& old) noexcept : id_(std::exchange(old.id_, 0)) {}
+
+  GraphicsPipeline& GraphicsPipeline::operator=(GraphicsPipeline&& old) noexcept
   {
-    return detail::CompileComputePipelineInternal(info);
+    if (this == &old)
+    {
+      return *this;
+    }
+
+    id_ = std::exchange(old.id_, 0);
   }
 
-  bool DestroyComputePipeline(ComputePipeline pipeline)
+  ComputePipeline::ComputePipeline(const ComputePipelineInfo& info) : id_(detail::CompileComputePipelineInternal(info))
   {
-    return detail::DestroyComputePipelineInternal(pipeline);
+  }
+
+  ComputePipeline::~ComputePipeline()
+  {
+    if (id_ != 0)
+    {
+      detail::DestroyComputePipelineInternal(id_);
+    }
+  }
+  ComputePipeline::ComputePipeline(ComputePipeline&& old) noexcept : id_(std::exchange(old.id_, 0)) {}
+
+  ComputePipeline& ComputePipeline::operator=(ComputePipeline&& old) noexcept
+  {
+    if (this == &old)
+    {
+      return *this;
+    }
+
+    id_ = std::exchange(old.id_, 0);
   }
 } // namespace Fwog
