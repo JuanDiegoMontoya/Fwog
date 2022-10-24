@@ -61,13 +61,12 @@ Fwog::GraphicsPipeline CreatePipeline()
   auto vertexShader = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource);
   auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
 
-  auto pipeline = Fwog::CompileGraphicsPipeline(
-      Fwog::GraphicsPipelineInfo{.vertexShader = &vertexShader,
-                                 .fragmentShader = &fragmentShader,
-                                 .vertexInputState = {inputDescs},
-                                 .depthState = {.depthTestEnable = false, .depthWriteEnable = false}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline(Fwog::GraphicsPipelineInfo{
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .vertexInputState = {inputDescs},
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
+  });
 }
 
 int main()

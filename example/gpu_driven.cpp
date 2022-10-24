@@ -54,9 +54,15 @@ struct View
   float pitch{}; // pitch angle in radians
   float yaw{};   // yaw angle in radians
 
-  glm::vec3 GetForwardDir() const { return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)}; }
+  glm::vec3 GetForwardDir() const
+  {
+    return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)};
+  }
 
-  glm::mat4 GetViewMatrix() const { return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0)); }
+  glm::mat4 GetViewMatrix() const
+  {
+    return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
+  }
 };
 
 struct alignas(16) ObjectUniforms
@@ -147,14 +153,13 @@ Fwog::GraphicsPipeline CreateScenePipeline()
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER,
                    LoadFileWithInclude("shaders/gpu_driven/SceneForward.frag.glsl", "shaders/gpu_driven"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline(
-      {.name = "Generic material",
-       .vertexShader = &vertexShader,
-       .fragmentShader = &fragmentShader,
-       .vertexInputState = {GetSceneInputBindingDescs()},
-       .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::LESS}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .name = "Generic material",
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .vertexInputState = {GetSceneInputBindingDescs()},
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::LESS},
+  });
 }
 
 Fwog::GraphicsPipeline CreateBoundingBoxDebugPipeline()
@@ -166,7 +171,7 @@ Fwog::GraphicsPipeline CreateBoundingBoxDebugPipeline()
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER,
                    LoadFileWithInclude("shaders/gpu_driven/SolidColor.frag.glsl", "shaders/gpu_driven"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({
+  return Fwog::GraphicsPipeline({
       .name = "Wireframe bounding boxes",
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
@@ -174,8 +179,6 @@ Fwog::GraphicsPipeline CreateBoundingBoxDebugPipeline()
       .rasterizationState = {.polygonMode = Fwog::PolygonMode::LINE, .cullMode = Fwog::CullMode::NONE},
       .depthState = {.depthTestEnable = true, .depthWriteEnable = false, .depthCompareOp = Fwog::CompareOp::LESS},
   });
-
-  return pipeline;
 }
 
 Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
@@ -187,7 +190,7 @@ Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER,
                    LoadFileWithInclude("shaders/gpu_driven/CullVisibility.frag.glsl", "shaders/gpu_driven"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({
+  return Fwog::GraphicsPipeline({
       .name = "Culling bounding boxes",
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
@@ -195,8 +198,6 @@ Fwog::GraphicsPipeline CreateBoundingBoxCullingPipeline()
       .rasterizationState = {.polygonMode = Fwog::PolygonMode::FILL, .cullMode = Fwog::CullMode::NONE},
       .depthState = {.depthTestEnable = true, .depthWriteEnable = false, .depthCompareOp = Fwog::CompareOp::LESS},
   });
-
-  return pipeline;
 }
 
 void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)

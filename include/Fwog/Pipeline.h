@@ -118,20 +118,43 @@ namespace Fwog
 
   struct GraphicsPipeline
   {
+    GraphicsPipeline(const GraphicsPipelineInfo& info);
+    ~GraphicsPipeline();
+    GraphicsPipeline(GraphicsPipeline&& old) noexcept;
+    GraphicsPipeline& operator=(GraphicsPipeline&& old) noexcept;
+    GraphicsPipeline(const GraphicsPipeline&) = delete;
+    GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
+
     bool operator==(const GraphicsPipeline&) const = default;
-    uint64_t id;
+
+    [[nodiscard]] uint64_t Handle() const
+    {
+      return id_;
+    }
+
+  private:
+    uint64_t id_;
   };
 
   struct ComputePipeline
   {
+    ComputePipeline(const ComputePipelineInfo& info);
+    ~ComputePipeline();
+    ComputePipeline(ComputePipeline&& old) noexcept;
+    ComputePipeline& operator=(ComputePipeline&& old) noexcept;
+    ComputePipeline(const ComputePipeline&) = delete;
+    ComputePipeline& operator=(const ComputePipeline&) = delete;
+
     bool operator==(const ComputePipeline&) const = default;
-    uint64_t id;
+    
+    [[nodiscard]] uint64_t Handle() const
+    {
+      return id_;
+    }
+
+  private:
+    uint64_t id_;
   };
 
-  GraphicsPipeline CompileGraphicsPipeline(const GraphicsPipelineInfo& info);
-  bool DestroyGraphicsPipeline(GraphicsPipeline pipeline);
-
-  ComputePipeline CompileComputePipeline(const ComputePipelineInfo& info);
-  bool DestroyComputePipeline(ComputePipeline pipeline);
   // clang-format on
 } // namespace Fwog

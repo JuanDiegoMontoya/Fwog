@@ -191,12 +191,12 @@ Fwog::GraphicsPipeline CreateScenePipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/SceneDeferred.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({.vertexShader = &vertexShader,
-                                                 .fragmentShader = &fragmentShader,
-                                                 .vertexInputState = {GetSceneInputBindingDescs()},
-                                                 .depthState = {.depthTestEnable = true, .depthWriteEnable = true}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .vertexInputState = {GetSceneInputBindingDescs()},
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true},
+  });
 }
 
 Fwog::GraphicsPipeline CreateShadowPipeline()
@@ -206,18 +206,18 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/RSMScene.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({.vertexShader = &vertexShader,
-                                                 .fragmentShader = &fragmentShader,
-                                                 .vertexInputState = {GetSceneInputBindingDescs()},
-                                                 .rasterizationState =
-                                                     {
-                                                         .depthBiasEnable = true,
-                                                         .depthBiasConstantFactor = 0.0f,
-                                                         .depthBiasSlopeFactor = 2.0f,
-                                                     },
-                                                 .depthState = {.depthTestEnable = true, .depthWriteEnable = true}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .vertexInputState = {GetSceneInputBindingDescs()},
+      .rasterizationState =
+          {
+              .depthBiasEnable = true,
+              .depthBiasConstantFactor = 0.0f,
+              .depthBiasSlopeFactor = 2.0f,
+          },
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true},
+  });
 }
 
 Fwog::GraphicsPipeline CreateShadingPipeline()
@@ -227,13 +227,11 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/ShadeDeferred.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({
+  return Fwog::GraphicsPipeline({
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
   });
-
-  return pipeline;
 }
 
 Fwog::GraphicsPipeline CreateDebugTexturePipeline()
@@ -243,22 +241,18 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/Texture.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({
+  return Fwog::GraphicsPipeline({
       .vertexShader = &vertexShader,
       .fragmentShader = &fragmentShader,
       .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
   });
-
-  return pipeline;
 }
 
 Fwog::ComputePipeline CreateRSMIndirectPipeline()
 {
   auto shader = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Utility::LoadFile("shaders/RSMIndirect.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({.shader = &shader});
-
-  return pipeline;
+  return Fwog::ComputePipeline({.shader = &shader});
 }
 
 Fwog::ComputePipeline CreateRSMIndirectDitheredFilteredPipeline()
@@ -266,9 +260,7 @@ Fwog::ComputePipeline CreateRSMIndirectDitheredFilteredPipeline()
   auto shader = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
                              Utility::LoadFile("shaders/RSMIndirectDitheredFiltered.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({.shader = &shader});
-
-  return pipeline;
+  return Fwog::ComputePipeline({.shader = &shader});
 }
 
 void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
