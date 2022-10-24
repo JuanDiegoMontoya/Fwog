@@ -59,9 +59,15 @@ struct View
   float pitch{}; // pitch angle in radians
   float yaw{};   // yaw angle in radians
 
-  glm::vec3 GetForwardDir() const { return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)}; }
+  glm::vec3 GetForwardDir() const
+  {
+    return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)};
+  }
 
-  glm::mat4 GetViewMatrix() const { return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0)); }
+  glm::mat4 GetViewMatrix() const
+  {
+    return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
+  }
 };
 
 glm::mat4 InfReverseZPerspectiveRH(float fovY_radians, float aspectWbyH, float zNear)
@@ -163,13 +169,12 @@ Fwog::GraphicsPipeline CreateScenePipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/SceneDeferredSimple.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline(
-      {.vertexShader = &vertexShader,
-       .fragmentShader = &fragmentShader,
-       .vertexInputState = {GetSceneInputBindingDescs()},
-       .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .vertexInputState = {GetSceneInputBindingDescs()},
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER},
+  });
 }
 
 Fwog::GraphicsPipeline CreateShadowPipeline()
@@ -177,17 +182,17 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
   auto vertexShader =
       Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Utility::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({.vertexShader = &vertexShader,
-                                                 .vertexInputState = {GetSceneInputBindingDescs()},
-                                                 .rasterizationState =
-                                                     {
-                                                         .depthBiasEnable = true,
-                                                         .depthBiasConstantFactor = 3.0f,
-                                                         .depthBiasSlopeFactor = 5.0f,
-                                                     },
-                                                 .depthState = {.depthTestEnable = true, .depthWriteEnable = true}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .vertexShader = &vertexShader,
+      .vertexInputState = {GetSceneInputBindingDescs()},
+      .rasterizationState =
+          {
+              .depthBiasEnable = true,
+              .depthBiasConstantFactor = 3.0f,
+              .depthBiasSlopeFactor = 5.0f,
+          },
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true},
+  });
 }
 
 Fwog::GraphicsPipeline CreateShadingPipeline()
@@ -197,12 +202,12 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/ShadeDeferredSimple.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({.vertexShader = &vertexShader,
-                                                 .fragmentShader = &fragmentShader,
-                                                 .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
-                                                 .depthState = {.depthTestEnable = false, .depthWriteEnable = false}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
+  });
 }
 
 Fwog::GraphicsPipeline CreateDebugTexturePipeline()
@@ -212,12 +217,12 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
   auto fragmentShader =
       Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/Texture.frag.glsl"));
 
-  auto pipeline = Fwog::CompileGraphicsPipeline({.vertexShader = &vertexShader,
-                                                 .fragmentShader = &fragmentShader,
-                                                 .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
-                                                 .depthState = {.depthTestEnable = false, .depthWriteEnable = false}});
-
-  return pipeline;
+  return Fwog::GraphicsPipeline({
+      .vertexShader = &vertexShader,
+      .fragmentShader = &fragmentShader,
+      .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
+  });
 }
 
 Fwog::ComputePipeline CreateCopyToEsmPipeline()
@@ -225,9 +230,7 @@ Fwog::ComputePipeline CreateCopyToEsmPipeline()
   auto shader = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
                              Utility::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({.shader = &shader});
-
-  return pipeline;
+  return Fwog::ComputePipeline({.shader = &shader});
 }
 
 Fwog::ComputePipeline CreateGaussianBlurPipeline()
@@ -235,9 +238,7 @@ Fwog::ComputePipeline CreateGaussianBlurPipeline()
   auto shader =
       Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Utility::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({.shader = &shader});
-
-  return pipeline;
+  return Fwog::ComputePipeline({.shader = &shader});
 }
 
 Fwog::ComputePipeline CreatePostprocessingPipeline()
@@ -245,9 +246,7 @@ Fwog::ComputePipeline CreatePostprocessingPipeline()
   auto shader = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
                              Utility::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
 
-  auto pipeline = Fwog::CompileComputePipeline({.shader = &shader});
-
-  return pipeline;
+  return Fwog::ComputePipeline({.shader = &shader});
 }
 
 void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double currentCursorX, double currentCursorY)
@@ -328,9 +327,9 @@ public:
     free(marchVolume);
     free(accumulateDensity);
 
-    accumulateDensityPipeline = Fwog::CompileComputePipeline({.shader = &accumulateShader});
-    marchVolumePipeline = Fwog::CompileComputePipeline({.shader = &marchShader});
-    applyDeferredPipeline = Fwog::CompileComputePipeline({.shader = &applyShader});
+    accumulateDensityPipeline = Fwog::ComputePipeline({.shader = &accumulateShader});
+    marchVolumePipeline = Fwog::ComputePipeline({.shader = &marchShader});
+    applyDeferredPipeline = Fwog::ComputePipeline({.shader = &applyShader});
 
     // Load the normalized MiePlot generated scattering data.
     // This texture is used if a compile-time switch is set in marchVolume.comp.glsl.
@@ -436,7 +435,7 @@ public:
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
     Fwog::BeginCompute();
-    Fwog::Cmd::BindComputePipeline(accumulateDensityPipeline);
+    Fwog::Cmd::BindComputePipeline(*accumulateDensityPipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
     Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer, 0, esmUniformBuffer.Size());
     Fwog::Cmd::BindStorageBuffer(0, lightBuffer, 0, lightBuffer.Size());
@@ -457,7 +456,7 @@ public:
 
     Fwog::BeginCompute();
     Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
-    Fwog::Cmd::BindComputePipeline(marchVolumePipeline);
+    Fwog::Cmd::BindComputePipeline(*marchVolumePipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
     Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
@@ -479,7 +478,7 @@ public:
 
     Fwog::BeginCompute();
     Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
-    Fwog::Cmd::BindComputePipeline(applyDeferredPipeline);
+    Fwog::Cmd::BindComputePipeline(*applyDeferredPipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
     Fwog::Cmd::BindSampledImage(0, gbufferColor, sampler);
     Fwog::Cmd::BindSampledImage(1, gbufferDepth, sampler);
@@ -492,9 +491,9 @@ public:
   }
 
 private:
-  Fwog::ComputePipeline accumulateDensityPipeline;
-  Fwog::ComputePipeline marchVolumePipeline;
-  Fwog::ComputePipeline applyDeferredPipeline;
+  std::optional<Fwog::ComputePipeline> accumulateDensityPipeline;
+  std::optional<Fwog::ComputePipeline> marchVolumePipeline;
+  std::optional<Fwog::ComputePipeline> applyDeferredPipeline;
   std::optional<Fwog::Buffer> uniformBuffer;
   std::optional<Fwog::Texture> scatteringTexture;
 };
