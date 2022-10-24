@@ -4,10 +4,10 @@ add_custom_target(copy_shaders ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${
 add_custom_target(copy_models ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/models ${CMAKE_CURRENT_BINARY_DIR}/models)
 add_custom_target(copy_textures ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/textures ${CMAKE_CURRENT_BINARY_DIR}/textures)
 
-add_executable(01_hello_triangle "01_hello_triangle.cpp" common/common.cpp common/common.h)
-target_link_libraries(01_hello_triangle PRIVATE glfw lib_glad fwog)
+add_executable(01_hello_triangle "01_hello_triangle.cpp" common/Application.cpp common/Application.h)
+target_link_libraries(01_hello_triangle PRIVATE glfw lib_glad fwog glm lib_imgui)
 
-add_executable(02_deferred "02_deferred.cpp" common/common.cpp common/common.h)
+add_executable(02_deferred "02_deferred.cpp" common/Application.cpp common/Application.h)
 target_include_directories(02_deferred PUBLIC ${tinygltf_SOURCE_DIR})
 target_link_libraries(02_deferred PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(02_deferred copy_shaders copy_textures)
