@@ -13,6 +13,9 @@ BinPackParameters: 'false'
 BreakBeforeBraces: Allman
 BreakConstructorInitializers: BeforeColon
 ColumnLimit: '120'
+ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
+ConstructorInitializerIndentWidth: '2'
+ContinuationIndentWidth: '2'
 FixNamespaceComments: 'true'
 IndentCaseLabels: 'false'
 IndentPPDirectives: BeforeHash

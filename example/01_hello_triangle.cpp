@@ -20,7 +20,7 @@
  * - Loading shaders
  * - Creating a graphics pipeline
  * - Rendering to the screen
- * 
+ *
  * All of the examples use a common framework to reduce code duplication between examples.
  * It abstracts away boring things like creating a window and loading OpenGL function pointers.
  * It also provides a main loop, inside of which our rendering function is called.
@@ -55,8 +55,7 @@ void main()
 }
 )";
 
-// clang-format off
-class TriangleApplication : public Application
+class TriangleApplication final : public Application
 {
 public:
   TriangleApplication(const Application::CreateInfo& createInfo);
@@ -73,34 +72,34 @@ private:
   Fwog::Buffer vertexPosBuffer;
   Fwog::Buffer vertexColorBuffer;
 
-  // Since pipelines have complicated construction, we use a small helper class here to 
+  // Since pipelines have complicated construction, we use a small helper class here to
   // delay its initialization so it can be constructed in the body of the function.
   DelayedInit<Fwog::GraphicsPipeline> pipeline;
 };
 
 TriangleApplication::TriangleApplication(const Application::CreateInfo& createInfo)
-    : Application(createInfo), 
-      // Load the triangle's vertices (3 * vec2 position, 3 * 8 bit colors).
-      // The colors will be specified as a UNORM integer format so they are treated as [0, 1] floats in the shader.
-      vertexPosBuffer(triPositions), 
-      vertexColorBuffer(triColors)
+  : Application(createInfo),
+    // Load the triangle's vertices (3 * vec2 position, 3 * 8 bit colors).
+    // The colors will be specified as a UNORM integer format so they are treated as [0, 1] floats in the shader.
+    vertexPosBuffer(triPositions),
+    vertexColorBuffer(triColors)
 {
   // Specify our two vertex attributes: position and color.
   // Positions are 2x float, so we will use R32G32_FLOAT like we would in Vulkan.
   auto descPos = Fwog::VertexInputBindingDescription{
-      .location = 0,
-      .binding = 0,
-      .format = Fwog::Format::R32G32_FLOAT,
-      .offset = 0,
+    .location = 0,
+    .binding = 0,
+    .format = Fwog::Format::R32G32_FLOAT,
+    .offset = 0,
   };
   // Colors are 3x uint8, so we will use R8G8B8.
   // To treat them as normalized floats in [0, 1], we make sure it's a _UNORM format.
   // Note that means we do not need to specify whether the data is normalized like we would with glVertexAttribPointer.
   auto descColor = Fwog::VertexInputBindingDescription{
-      .location = 1,
-      .binding = 1,
-      .format = Fwog::Format::R8G8B8_UNORM,
-      .offset = 0,
+    .location = 1,
+    .binding = 1,
+    .format = Fwog::Format::R8G8B8_UNORM,
+    .offset = 0,
   };
   // Create an initializer list or array (or anything implicitly convertable to std::span) of our input binding
   // descriptions to send to the pipeline.
@@ -121,9 +120,9 @@ TriangleApplication::TriangleApplication(const Application::CreateInfo& createIn
   // If linking fails, a PipelineCompilationException containing the linker error will be thrown.
   // Similar to before, we will let the exception propagate up.
   pipeline.emplace(Fwog::GraphicsPipelineInfo{
-      .vertexShader = &vertexShader,
-      .fragmentShader = &fragmentShader,
-      .vertexInputState = {inputDescs},
+    .vertexShader = &vertexShader,
+    .fragmentShader = &fragmentShader,
+    .vertexInputState = {inputDescs},
   });
 }
 
@@ -135,9 +134,9 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
   // We are also provided with an opportunity to clear any of the render targets here.
   // We will use it to clear the color buffer with a soothing dark magenta.
   Fwog::BeginSwapchainRendering(Fwog::SwapchainRenderInfo{
-      .viewport = Fwog::Viewport{.drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}}},
-      .clearColorOnLoad = true,
-      .clearColorValue = {.2f, .0f, .2f, 1.0f},
+    .viewport = Fwog::Viewport{.drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}}},
+    .clearColorOnLoad = true,
+    .clearColorValue = {.2f, .0f, .2f, 1.0f},
   });
 
   // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
@@ -161,10 +160,10 @@ int main()
 {
   // Create our app with the specified settings and run it.
   auto appInfo = Application::CreateInfo{
-      .name = "Hello Triangle",
-      .maximize = false,
-      .decorate = true,
-      .vsync = true,
+    .name = "Hello Triangle",
+    .maximize = false,
+    .decorate = true,
+    .vsync = true,
   };
   auto app = TriangleApplication(appInfo);
 
