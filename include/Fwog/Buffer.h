@@ -122,6 +122,12 @@ namespace Fwog
       : Buffer(data, storageFlags, mapFlags)
     {
     }
+    explicit TypedBuffer(const T& data,
+                         BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+                         BufferMapFlags mapFlags = BufferMapFlag::NONE)
+      : Buffer(&data, sizeof(T), storageFlags, mapFlags)
+    {
+    }
 
     TypedBuffer(TypedBuffer&& other) noexcept = default;
     TypedBuffer& operator=(TypedBuffer&& other) noexcept = default;
