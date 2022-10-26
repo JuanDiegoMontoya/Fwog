@@ -168,17 +168,17 @@ namespace Fwog::detail
     case UploadType::SINT:                return GL_INT;
     case UploadType::FLOAT:               return GL_FLOAT;
     case UploadType::UBYTE_3_3_2:         return GL_UNSIGNED_BYTE_3_3_2;
-    case UploadType::UBYTE_2_3_3:         return GL_UNSIGNED_BYTE_2_3_3_REV;
+    case UploadType::UBYTE_2_3_3_REV:         return GL_UNSIGNED_BYTE_2_3_3_REV;
     case UploadType::USHORT_5_6_5:        return GL_UNSIGNED_SHORT_5_6_5;
     case UploadType::USHORT_5_6_5_REV:    return GL_UNSIGNED_SHORT_5_6_5_REV;
     case UploadType::USHORT_4_4_4_4:      return GL_UNSIGNED_SHORT_4_4_4_4;
     case UploadType::USHORT_4_4_4_4_REV:  return GL_UNSIGNED_SHORT_4_4_4_4_REV;
     case UploadType::USHORT_5_5_5_1:      return GL_UNSIGNED_SHORT_5_5_5_1;
-    case UploadType::USHORT_5_5_5_1_REV:  return GL_UNSIGNED_SHORT_1_5_5_5_REV;
+    case UploadType::USHORT_1_5_5_5_REV:  return GL_UNSIGNED_SHORT_1_5_5_5_REV;
     case UploadType::UINT_8_8_8_8:        return GL_UNSIGNED_INT_8_8_8_8;
     case UploadType::UINT_8_8_8_8_REV:    return GL_UNSIGNED_INT_8_8_8_8_REV;
     case UploadType::UINT_10_10_10_2:     return GL_UNSIGNED_INT_10_10_10_2;
-    case UploadType::UINT_10_10_10_2_REV: return GL_UNSIGNED_INT_2_10_10_10_REV;
+    case UploadType::UINT_2_10_10_10_REV: return GL_UNSIGNED_INT_2_10_10_10_REV;
     default: FWOG_UNREACHABLE; return 0;
     }
   }
