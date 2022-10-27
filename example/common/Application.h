@@ -57,12 +57,13 @@ protected:
   virtual void OnWindowResize([[maybe_unused]] uint32_t newWidth, [[maybe_unused]] uint32_t newHeight){};
   virtual void OnUpdate([[maybe_unused]] double dt){};
   virtual void OnRender([[maybe_unused]] double dt){};
-  virtual void OnGui(){};
+  virtual void OnGui([[maybe_unused]] double dt){};
 
   GLFWwindow* window;
   View mainCamera{};
   float cursorSensitivity = 0.0025f;
   float cameraSpeed = 4.5f;
+  bool cursorIsActive = true;
   
   uint32_t windowWidth{};
   uint32_t windowHeight{};
@@ -72,4 +73,5 @@ private:
   glm::dvec2 previousCursorPos{};
   glm::dvec2 cursorFrameOffset{};
   bool cursorJustEnteredWindow = true;
+  bool graveHeldLastFrame = false;
 };
