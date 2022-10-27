@@ -73,38 +73,3 @@ private:
   glm::dvec2 cursorFrameOffset{};
   bool cursorJustEnteredWindow = true;
 };
-
-// A helper type that provides aligned storage for an object.
-// The object MUST be constructed before its lifetime ends.
-// A helper destroy() is provided in case the user wants to place multiple objects into the storage.
-template<typename T>
-struct DelayedInit
-{
-  template<typename... Args>
-  void emplace(Args... args)
-  {
-    std::construct_at(reinterpret_cast<T*>(storage), std::forward<Args>(args)...);
-  }
-
-  operator T&()
-  {
-    return *reinterpret_cast<T*>(storage);
-  }
-
-  T* operator->()
-  {
-    return reinterpret_cast<T*>(&storage);
-  }
-
-  void destroy()
-  {
-    std::destroy_at<T>(reinterpret_cast<T*>(storage));
-  }
-
-  ~DelayedInit()
-  {
-    destroy();
-  }
-
-  alignas(T) std::byte storage[sizeof(T)];
-};

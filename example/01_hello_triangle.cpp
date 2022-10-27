@@ -2,6 +2,7 @@
 
 #include <array>
 #include <iostream>
+#include <optional>
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
@@ -72,9 +73,9 @@ private:
   Fwog::Buffer vertexPosBuffer;
   Fwog::Buffer vertexColorBuffer;
 
-  // Since pipelines have complicated construction, we use a small helper class here to
+  // Since pipelines have complicated construction, we use a std::optional here to
   // delay its initialization so it can be constructed in the body of the function.
-  DelayedInit<Fwog::GraphicsPipeline> pipeline;
+  std::optional<Fwog::GraphicsPipeline> pipeline;
 };
 
 TriangleApplication::TriangleApplication(const Application::CreateInfo& createInfo)
@@ -142,7 +143,7 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
   // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
   // Pipelines must be bound before we can issue drawing-related calls.
   // This is where, under the hood, the actual GL program is bound and all the pipeline state is set.
-  Fwog::Cmd::BindGraphicsPipeline(pipeline);
+  Fwog::Cmd::BindGraphicsPipeline(*pipeline);
 
   // Vertex buffers are bound at draw time, similar to Vulkan or with glBindVertexBuffer.
   Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
