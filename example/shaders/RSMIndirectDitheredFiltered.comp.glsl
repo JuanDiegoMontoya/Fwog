@@ -82,7 +82,7 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
 
   // This isn't the actual sampled area, but a wise person did some math and determined that TWO_PI is what to use here.
   float worldSpaceSampledArea = TWO_PI * rMaxWorld * rMaxWorld;
-  
+
   for (int i = 0; i < rsm.samples; i++)
   {
     vec2 xi = Hammersley(i, rsm.samples);
@@ -105,7 +105,7 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
     sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;
   }
 
-  return worldSpaceSampledArea * sumC * surfaceAlbedo / rsm.samples;
+  return worldSpaceSampledArea * sumC / rsm.samples;
 }
 
 vec3 Tap(in sampler2D tex, ivec2 coord, ivec2 offset, vec3 src_normal, float src_depth, inout float sum_weight)
@@ -217,6 +217,12 @@ void main()
     else if (rsm.currentPass == 4)
     {
       ambient = FilterBoxY(s_inIndirect, gid);
+    }
+    else if (rsm.currentPass == 5)
+    {
+      // Apply albedo after filtering so we don't blur textures
+      ambient = texelFetch(s_inIndirect, gid, 0).xyz;
+      ambient *= albedo;
     }
   }
 

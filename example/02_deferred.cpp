@@ -591,6 +591,19 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
         Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
         Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
       }
+
+      {
+        Fwog::ScopedDebugMarker marker2("Modulate Albedo");
+        currentPass = 5;
+        rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+        Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
+        Fwog::Cmd::BindImage(0, *frame.indirectLightingTexPingPong, 0);
+        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+      }
+
+      std::swap(frame.indirectLightingTex, frame.indirectLightingTexPingPong);
     }
     else // Unfiltered RSM: the original paper
     {
