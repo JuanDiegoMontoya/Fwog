@@ -268,6 +268,8 @@ private:
   int rsmFilteredSamples = 15;
   float gRMax = 0.08f;
   bool rsmFiltered = false;
+  bool rsmFilteredSkipFiltering = false;
+  bool rsmFilteredSkipAlbedoModulation = false;
   bool cursorIsActive = false;
   float sunPosition = 0;
 
@@ -556,42 +558,47 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
                                Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
 
+      if (!rsmFilteredSkipFiltering)
       {
-        Fwog::ScopedDebugMarker marker2("Filter Subsampled");
-        for (int i = 0; i < 2; ++i)
+
         {
-          currentPass = 1;
+          Fwog::ScopedDebugMarker marker2("Filter Subsampled");
+          for (int i = 0; i < 2; ++i)
+          {
+            currentPass = 1;
+            rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+            Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
+            Fwog::Cmd::BindImage(0, *frame.indirectLightingTexPingPong, 0);
+            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+            currentPass = 2;
+            rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+            Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTexPingPong, nearestSampler);
+            Fwog::Cmd::BindImage(0, *frame.indirectLightingTex, 0);
+            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          }
+        }
+
+        {
+          Fwog::ScopedDebugMarker marker2("Filter Box");
+          currentPass = 3;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
           Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
           Fwog::Cmd::BindImage(0, *frame.indirectLightingTexPingPong, 0);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-          currentPass = 2;
+          currentPass = 4;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
           Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTexPingPong, nearestSampler);
           Fwog::Cmd::BindImage(0, *frame.indirectLightingTex, 0);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
         }
       }
 
-      {
-        Fwog::ScopedDebugMarker marker2("Filter Box");
-        currentPass = 3;
-        rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-        Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
-        Fwog::Cmd::BindImage(0, *frame.indirectLightingTexPingPong, 0);
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-        currentPass = 4;
-        rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-        Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTexPingPong, nearestSampler);
-        Fwog::Cmd::BindImage(0, *frame.indirectLightingTex, 0);
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-      }
-
+      if (!rsmFilteredSkipAlbedoModulation)
       {
         Fwog::ScopedDebugMarker marker2("Modulate Albedo");
         currentPass = 5;
@@ -601,9 +608,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
         Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
         Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
         Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        std::swap(frame.indirectLightingTex, frame.indirectLightingTexPingPong);
       }
-
-      std::swap(frame.indirectLightingTex, frame.indirectLightingTexPingPong);
     }
     else // Unfiltered RSM: the original paper
     {
@@ -690,12 +696,21 @@ void DeferredApplication::OnGui(double dt)
   ImGui::Text("Framerate: %.0f Hertz", 1 / dt);
   ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
 
-  ImGui::Checkbox("Filter RSM", &rsmFiltered);
-  ImGui::SliderInt("RSM samples", &rsmSamples, 1, 400);
-  ImGui::SliderInt("Filtered RSM samples", &rsmFilteredSamples, 1, 20);
-  rsmUniforms.samples = static_cast<uint32_t>(rsmFiltered ? rsmFilteredSamples : rsmSamples);
-  ImGui::SliderFloat("rMax", &rsmUniforms.rMax, 0.02f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+  
   ImGui::SliderFloat("Sun Angle", &sunPosition, -1.2f, 2.1f);
+  ImGui::SliderFloat("rMax", &rsmUniforms.rMax, 0.02f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+  
+  ImGui::Text("Unfiltered RSM");
+  ImGui::Separator();
+  ImGui::SliderInt("Samples##unfiltered", &rsmSamples, 1, 400);
+
+  ImGui::Text("Filtered RSM");
+  ImGui::Separator();
+  ImGui::Checkbox("Use", &rsmFiltered);
+  ImGui::Checkbox("Skip Filter Passes", &rsmFilteredSkipFiltering);
+  ImGui::Checkbox("Skip Albedo Modulation", &rsmFilteredSkipAlbedoModulation);
+  ImGui::SliderInt("Samples##filtered", &rsmFilteredSamples, 1, 20);
+  rsmUniforms.samples = static_cast<uint32_t>(rsmFiltered ? rsmFilteredSamples : rsmSamples);
 
   ImGui::BeginTabBar("tabbed");
   if (ImGui::BeginTabItem("G-Buffers"))
