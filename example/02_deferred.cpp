@@ -27,7 +27,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-/* 01_hello_triangle
+/* 02_deferred
  *
  * This example implements a deferred renderer to visualize a simple 3D box scene. Deferred rendering is a technique
  * which renders the scene in two main passes instead of one. The first pass draws material properties to multiple render
