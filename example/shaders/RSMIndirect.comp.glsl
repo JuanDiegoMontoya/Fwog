@@ -1,6 +1,7 @@
 #version 460 core
 
-#define TWO_PI (2.0 * 3.14159265)
+#define PI     3.14159265
+#define TWO_PI (2.0 * PI)
 
 layout(binding = 0) uniform sampler2D s_inIndirect;
 layout(binding = 1) uniform sampler2D s_gAlbedo;
@@ -28,7 +29,8 @@ layout(binding = 1, std140) uniform RSMUniforms
   float rMax;       // max radius for which indirect lighting will be considered
   uint currentPass; // used to determine which pixels to shade
   uint samples;
-}rsm;
+}
+rsm;
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
@@ -40,37 +42,45 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 
 vec2 Hammersley(uint i, uint N)
 {
-  return vec2(
-    float(i) / float(N),
-    float(bitfieldReverse(i)) * 2.3283064365386963e-10
-  );
+  return vec2(float(i) / float(N), float(bitfieldReverse(i)) * 2.3283064365386963e-10);
 }
 
 vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, vec3 rsmWorldPos, vec3 rsmNormal)
 {
   // move rsmPos in negative of normal by small constant amount(?)
-  //rsmWorldPos -= rsmNormal * .01;
-  float geometry = max(0.0, dot(rsmNormal, surfaceWorldPos - rsmWorldPos)) * 
+  // rsmWorldPos -= rsmNormal * .01;
+  float geometry = max(0.0, dot(rsmNormal, surfaceWorldPos - rsmWorldPos)) *
                    max(0.0, dot(surfaceNormal, rsmWorldPos - surfaceWorldPos));
-  float d = distance(surfaceWorldPos, rsmWorldPos);
+
+  // Clamp distance to prevent singularity.
+  float d = max(distance(surfaceWorldPos, rsmWorldPos), 0.01);
+
   return rsmFlux * geometry / (d * d * d * d);
 }
 
 vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surfaceWorldPos)
 {
-  vec3 sumC = { 0, 0, 0 };
+  vec3 sumC = {0, 0, 0};
 
+  // Compute the position of this surface point projected into the RSM's UV space
   const vec4 rsmClip = rsm.sunViewProj * vec4(surfaceWorldPos, 1.0);
   const vec2 rsmUV = (rsmClip.xy / rsmClip.w) * .5 + .5;
+  
+  // Calculate the area of the world-space disk we are integrating over.
+  float rMaxWorld = distance(UnprojectUV(0.0, rsmUV, rsm.invSunViewProj),
+                             UnprojectUV(0.0, vec2(rsmUV.x + rsm.rMax, rsmUV.y), rsm.invSunViewProj));
+  
+  // This isn't the actual sampled area, but a wise person did some math and determined that TWO_PI is what to use here.
+  float worldSpaceSampledArea = TWO_PI * rMaxWorld * rMaxWorld;
 
   for (int i = 0; i < rsm.samples; i++)
   {
-    // xi can be randomly rotated based on screen position
+    // Get two random numbers.
     vec2 xi = Hammersley(i, rsm.samples);
-    float r = xi.x * rsm.rMax;
+    float r = xi.x;
     float theta = xi.y * TWO_PI;
-    vec2 pixelLightUV = rsmUV + vec2(r * cos(theta), r * sin(theta));
-    float weight = xi.x * xi.x;
+    vec2 pixelLightUV = rsmUV + vec2(r * cos(theta), r * sin(theta)) * rsm.rMax;
+    float weight = xi.x;
 
     vec3 rsmFlux = textureLod(s_rsmFlux, pixelLightUV, 0.0).rgb;
     vec3 rsmNormal = textureLod(s_rsmNormal, pixelLightUV, 0.0).xyz;
@@ -79,8 +89,8 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
 
     sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;
   }
-  
-  return sumC * surfaceAlbedo / rsm.samples;
+
+  return worldSpaceSampledArea * sumC * surfaceAlbedo / rsm.samples;
 }
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -125,22 +135,14 @@ void main()
     ivec2 offsets[4];
     if (rsm.currentPass == 1)
     {
-      offsets = ivec2[4](
-        ivec2(-1, 1),
-        ivec2( 1, 1),
-        ivec2(-1,-1),
-        ivec2( 1,-1));
+      offsets = ivec2[4](ivec2(-1, 1), ivec2(1, 1), ivec2(-1, -1), ivec2(1, -1));
     }
     else if (rsm.currentPass > 1)
     {
-      offsets = ivec2[4](
-        ivec2( 0, 1),
-        ivec2( 0,-1),
-        ivec2(-1, 0),
-        ivec2( 1, 0));
+      offsets = ivec2[4](ivec2(0, 1), ivec2(0, -1), ivec2(-1, 0), ivec2(1, 0));
     }
 
-    // compute weights for each 
+    // compute weights for each
     float accum_weight = 0;
     vec3 accum_color = vec3(0);
     for (int i = 0; i < 4; i++)
@@ -150,7 +152,7 @@ void main()
         continue;
 
       vec3 c = texelFetch(s_inIndirect, corner, 0).rgb;
-      
+
       vec3 n = texelFetch(s_gNormal, corner, 0).xyz;
       vec3 dn = normal - n;
       float n_weight = exp(-dot(dn, dn) / 1.0);
@@ -170,9 +172,9 @@ void main()
     if (accum_weight <= 3.0)
     {
       ambient = ComputeIndirectIrradiance(albedo, normal, worldPos);
-      //ambient = vec3(1, 0, 0); // debug
+      // ambient = vec3(1, 0, 0); // debug
     }
   }
-  
+
   imageStore(i_outIndirect, gid, vec4(ambient, 1.0));
 }
