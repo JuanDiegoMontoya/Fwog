@@ -29,23 +29,34 @@
 
 /* 01_hello_triangle
  *
- * This example renders a Cornell Box-like scene
+ * This example implements a deferred renderer to visualize a simple 3D box scene. Deferred rendering is a technique
+ * which renders the scene in two main passes instead of one. The first pass draws material properties to multiple render
+ * targets: normal, albedo, and depth. The second pass uses a full-screen shader and these material properties to shade 
+ * the scene.
+ * 
+ * This example also implements the paper reflective shadow maps (RSM) by Carsten Dachsbacher and Marc Stamminger.
+ * RSM is an extension of shadow maps which adds normals and radiant flux render targets to the shadow pass to form
+ * an RSM. Then, the RSM can be treated as a grid of point lights which is sampled several times to approximate one bounce
+ * of indirect illumination. Also implemented is an extension of RSM which improves sampling and adds an edge-stopping
+ * a-trous filter to blur the shadows, producing higher quality and cheaper indirect illumination.
+ * 
+ * In the GUI, RSM properties can be modified and other information about the scene can be viewed.
  *
- * Shown:
+ * Shown (+ indicates new features):
  * - Creating vertex buffers
  * - Specifying vertex attributes
  * - Loading shaders
  * - Creating a graphics pipeline
  * - Rendering to the screen
- * + Creating compute pipelines
- * + Rendering to off-screen render targets
- * + Uniform buffers
- * + Storage buffers
- * + 
+ * + Creating and dispatching compute pipelines
+ * + Rendering to multiple off-screen render targets
+ * + Dynamic uniform and storage buffers
+ * + Memory barriers
+ * + Profiling with timer queries
+ * + Texture loading
+ * + Sampler creation
+ * + Sampled textures and images
  *
- * All of the examples use a common framework to reduce code duplication between examples.
- * It abstracts away boring things like creating a window and loading OpenGL function pointers.
- * It also provides a main loop, inside of which our rendering function is called.
  */
 
 ////////////////////////////////////// Types
@@ -727,22 +738,9 @@ void DeferredApplication::OnGui(double dt)
 
 int main()
 {
-  try
-  {
-    auto appInfo = Application::CreateInfo{.name = "Deferred Example"};
-    auto app = DeferredApplication(appInfo);
-    app.Run();
-  }
-  catch (std::exception& e)
-  {
-    printf("Error: %s", e.what());
-    throw;
-  }
-  catch (...)
-  {
-    printf("Unknown error");
-    throw;
-  }
+  auto appInfo = Application::CreateInfo{.name = "Deferred Example"};
+  auto app = DeferredApplication(appInfo);
+  app.Run();
 
   return 0;
 }
