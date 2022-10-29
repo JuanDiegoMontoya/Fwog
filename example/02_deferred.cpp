@@ -30,16 +30,16 @@
 /* 02_deferred
  *
  * This example implements a deferred renderer to visualize a simple 3D box scene. Deferred rendering is a technique
- * which renders the scene in two main passes instead of one. The first pass draws material properties to multiple render
- * targets: normal, albedo, and depth. The second pass uses a full-screen shader and these material properties to shade 
- * the scene.
- * 
+ * which renders the scene in two main passes instead of one. The first pass draws material properties to multiple
+ * render targets: normal, albedo, and depth. The second pass uses a full-screen shader and these material properties to
+ * shade the scene.
+ *
  * This example also implements the paper reflective shadow maps (RSM) by Carsten Dachsbacher and Marc Stamminger.
  * RSM is an extension of shadow maps which adds normals and radiant flux render targets to the shadow pass to form
- * an RSM. Then, the RSM can be treated as a grid of point lights which is sampled several times to approximate one bounce
- * of indirect illumination. Also implemented is an extension of RSM which improves sampling and adds an edge-stopping
- * a-trous filter to blur the shadows, producing higher quality and cheaper indirect illumination.
- * 
+ * an RSM. Then, the RSM can be treated as a grid of point lights which is sampled several times to approximate one
+ * bounce of indirect illumination. Also implemented is an extension of RSM which improves sampling and adds an
+ * edge-stopping a-trous filter to blur the shadows, producing higher quality and cheaper indirect illumination.
+ *
  * In the GUI, RSM properties can be modified and other information about the scene can be viewed.
  *
  * Shown (+ indicates new features):
@@ -266,9 +266,10 @@ private:
   // scene parameters
   int rsmSamples = 400;
   int rsmFilteredSamples = 15;
+  int rsmFilterPasses = 2;
+  int rsmBoxBlurPasses = 1;
   float gRMax = 0.08f;
   bool rsmFiltered = false;
-  bool rsmFilteredSkipFiltering = false;
   bool rsmFilteredSkipAlbedoModulation = false;
   bool cursorIsActive = false;
   float sunPosition = 0;
@@ -558,30 +559,29 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
                                Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
       Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
 
-      if (!rsmFilteredSkipFiltering)
       {
-
+        Fwog::ScopedDebugMarker marker2("Filter Subsampled");
+        for (int i = 0; i < rsmFilterPasses; i++)
         {
-          Fwog::ScopedDebugMarker marker2("Filter Subsampled");
-          for (int i = 0; i < 2; ++i)
-          {
-            currentPass = 1;
-            rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-            Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
-            Fwog::Cmd::BindImage(0, *frame.indirectLightingTexPingPong, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-            currentPass = 2;
-            rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
-            Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTexPingPong, nearestSampler);
-            Fwog::Cmd::BindImage(0, *frame.indirectLightingTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
-          }
+          currentPass = 1;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
+          Fwog::Cmd::BindImage(0, *frame.indirectLightingTexPingPong, 0);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
+          currentPass = 2;
+          rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
+          Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTexPingPong, nearestSampler);
+          Fwog::Cmd::BindImage(0, *frame.indirectLightingTex, 0);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::Dispatch(numGroupsX, numGroupsY, 1);
         }
+      }
 
+      {
+        Fwog::ScopedDebugMarker marker2("Filter Box");
+        for (int i = 0; i < rsmBoxBlurPasses; i++)
         {
-          Fwog::ScopedDebugMarker marker2("Filter Box");
           currentPass = 3;
           rsmUniformBuffer.SubData(currentPass, offsetof(RSMUniforms, currentPass));
           Fwog::Cmd::BindSampledImage(0, *frame.indirectLightingTex, nearestSampler);
@@ -696,21 +696,58 @@ void DeferredApplication::OnGui(double dt)
   ImGui::Text("Framerate: %.0f Hertz", 1 / dt);
   ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
 
-  
   ImGui::SliderFloat("Sun Angle", &sunPosition, -1.2f, 2.1f);
   ImGui::SliderFloat("rMax", &rsmUniforms.rMax, 0.02f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
-  
-  ImGui::Text("Unfiltered RSM");
-  ImGui::Separator();
-  ImGui::SliderInt("Samples##unfiltered", &rsmSamples, 1, 400);
 
-  ImGui::Text("Filtered RSM");
   ImGui::Separator();
-  ImGui::Checkbox("Use", &rsmFiltered);
-  ImGui::Checkbox("Skip Filter Passes", &rsmFilteredSkipFiltering);
-  ImGui::Checkbox("Skip Albedo Modulation", &rsmFilteredSkipAlbedoModulation);
-  ImGui::SliderInt("Samples##filtered", &rsmFilteredSamples, 1, 20);
+
+  if (ImGui::BeginCombo("Method", rsmFiltered ? "Filtered" : "Unfiltered"))
+  {
+    if (ImGui::Selectable("Unfiltered", !rsmFiltered))
+    {
+      rsmFiltered = false;
+    }
+    if (ImGui::Selectable("Filtered", rsmFiltered))
+    {
+      rsmFiltered = true;
+    }
+
+    ImGui::EndCombo();
+  }
+
+  ImGui::PushButtonRepeat(true);
+
+  if (!rsmFiltered)
+  {
+    ImGui::SliderInt("Samples##Uniltered", &rsmSamples, 1, 400);
+    ImGui::SameLine();
+    if (ImGui::Button(" - "))
+      rsmSamples--;
+    ImGui::SameLine();
+    if (ImGui::Button(" + "))
+      rsmSamples++;
+    rsmSamples = rsmSamples <= 0 ? 1 : rsmSamples;
+  }
+  else
+  {
+    ImGui::InputInt("Filter Passes", &rsmFilterPasses, 1, 1);
+    rsmFilterPasses = rsmFilterPasses < 0 ? 0 : rsmFilterPasses;
+    ImGui::InputInt("Box Blur Passes", &rsmBoxBlurPasses, 1, 1);
+    rsmBoxBlurPasses = rsmBoxBlurPasses < 0 ? 0 : rsmBoxBlurPasses;
+    ImGui::Checkbox("Skip Albedo Modulation", &rsmFilteredSkipAlbedoModulation);
+    ImGui::SliderInt("Samples##Filtered", &rsmFilteredSamples, 1, 40);
+    ImGui::SameLine();
+    if (ImGui::Button(" - "))
+      rsmFilteredSamples--;
+    ImGui::SameLine();
+    if (ImGui::Button(" + "))
+      rsmFilteredSamples++;
+    rsmFilteredSamples = rsmFilteredSamples <= 0 ? 1 : rsmFilteredSamples;
+  }
+  
   rsmUniforms.samples = static_cast<uint32_t>(rsmFiltered ? rsmFilteredSamples : rsmSamples);
+
+  ImGui::PopButtonRepeat();
 
   ImGui::BeginTabBar("tabbed");
   if (ImGui::BeginTabItem("G-Buffers"))
@@ -718,46 +755,38 @@ void DeferredApplication::OnGui(double dt)
     float aspect = float(windowWidth) / windowHeight;
     glTextureParameteri(frame.gcolorTex.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gcolorTex.value().Handle())),
-                       {100 * aspect, 100},
-                       {0, 1},
-                       {1, 0});
+                 {100 * aspect, 100},
+                 {0, 1},
+                 {1, 0});
     ImGui::SameLine();
     glTextureParameteri(frame.gnormalTex.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gnormalTex.value().Handle())),
-                       {100 * aspect, 100},
-                       {0, 1},
-                       {1, 0});
+                 {100 * aspect, 100},
+                 {0, 1},
+                 {1, 0});
     glTextureParameteri(frame.gdepthTex.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gdepthTex.value().Handle())),
-                       {100 * aspect, 100},
-                       {0, 1},
-                       {1, 0});
+                 {100 * aspect, 100},
+                 {0, 1},
+                 {1, 0});
     ImGui::SameLine();
     glTextureParameteri(frame.indirectLightingTex.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.indirectLightingTex.value().Handle())),
-                       {100 * aspect, 100},
-                       {0, 1},
-                       {1, 0});
+                 {100 * aspect, 100},
+                 {0, 1},
+                 {1, 0});
     ImGui::EndTabItem();
   }
   if (ImGui::BeginTabItem("RSM Buffers"))
   {
     glTextureParameteri(rdepthTex.Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rdepthTex.Handle())),
-                 {100, 100},
-                 {0, 1},
-                 {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rdepthTex.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::SameLine();
     glTextureParameteri(rnormalTex.Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rnormalTex.Handle())),
-                 {100, 100},
-                 {0, 1},
-                 {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rnormalTex.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::SameLine();
     glTextureParameteri(rfluxTex.Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rfluxTex.Handle())),
-                 {100, 100},
-                 {0, 1}, {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rfluxTex.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::EndTabItem();
   }
   ImGui::EndTabBar();
