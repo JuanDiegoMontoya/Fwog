@@ -16,11 +16,11 @@
  * This example renders a simple triangle with Fwog.
  *
  * Shown:
- * - Creating vertex buffers
- * - Specifying vertex attributes
- * - Loading shaders
- * - Creating a graphics pipeline
- * - Rendering to the screen
+ * + Creating vertex buffers
+ * + Specifying vertex attributes
+ * + Loading shaders
+ * + Creating a graphics pipeline
+ * + Rendering to the screen
  *
  * All of the examples use a common framework to reduce code duplication between examples.
  * It abstracts away boring things like creating a window and loading OpenGL function pointers.
@@ -139,7 +139,7 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
     .clearColorOnLoad = true,
     .clearColorValue = {.2f, .0f, .2f, 1.0f},
   });
-
+  
   // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
   // Pipelines must be bound before we can issue drawing-related calls.
   // This is where, under the hood, the actual GL program is bound and all the pipeline state is set.
