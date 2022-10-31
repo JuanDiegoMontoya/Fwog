@@ -65,13 +65,13 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
   // Compute the position of this surface point projected into the RSM's UV space
   const vec4 rsmClip = rsm.sunViewProj * vec4(surfaceWorldPos, 1.0);
   const vec2 rsmUV = (rsmClip.xy / rsmClip.w) * .5 + .5;
-  
+
   // Calculate the area of the world-space disk we are integrating over.
   float rMaxWorld = distance(UnprojectUV(0.0, rsmUV, rsm.invSunViewProj),
                              UnprojectUV(0.0, vec2(rsmUV.x + rsm.rMax, rsmUV.y), rsm.invSunViewProj));
-  
-  // This isn't the actual sampled area, but a wise person did some math and determined that TWO_PI is what to use here.
-  float worldSpaceSampledArea = TWO_PI * rMaxWorld * rMaxWorld;
+
+  // Samples need to be normalized based on the radius that is sampled, otherwise changing rMax will affect the brightness.
+  float normalizationFactor = 2.0 * rMaxWorld * rMaxWorld;
 
   for (int i = 0; i < rsm.samples; i++)
   {
@@ -90,7 +90,7 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
     sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;
   }
 
-  return worldSpaceSampledArea * sumC * surfaceAlbedo / rsm.samples;
+  return normalizationFactor * sumC * surfaceAlbedo / rsm.samples;
 }
 
 layout(local_size_x = 8, local_size_y = 8) in;

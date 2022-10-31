@@ -80,8 +80,8 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
   float rMaxWorld = distance(UnprojectUV(0.0, rsmUV, rsm.invSunViewProj),
                              UnprojectUV(0.0, vec2(rsmUV.x + rsm.rMax, rsmUV.y), rsm.invSunViewProj));
 
-  // This isn't the actual sampled area, but a wise person did some math and determined that TWO_PI is what to use here.
-  float worldSpaceSampledArea = TWO_PI * rMaxWorld * rMaxWorld;
+  // Samples need to be normalized based on the radius that is sampled, otherwise changing rMax will affect the brightness.
+  float normalizationFactor = 2.0 * rMaxWorld * rMaxWorld;
 
   for (int i = 0; i < rsm.samples; i++)
   {
@@ -105,7 +105,7 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
     sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;
   }
 
-  return worldSpaceSampledArea * sumC / rsm.samples;
+  return normalizationFactor * sumC / rsm.samples;
 }
 
 vec3 Tap(in sampler2D tex, ivec2 coord, ivec2 offset, vec3 src_normal, float src_depth, inout float sum_weight)
