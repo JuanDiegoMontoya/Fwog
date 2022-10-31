@@ -1,18 +1,3 @@
-/* gltf_viewer.cpp
- *
- * A viewer of glTF files.
- *
- * The app has three optional arguments that must appear in order.
- * If a later option is used, the previous options must be use used as well.
- *
- * Options
- * Filename (string) : name of the glTF file you wish to view.
- * Scale (real)      : uniform scale factor in case the model is tiny or huge. Default: 1.0
- * Binary (int)      : whether the input file is binary glTF. Default: false
- *
- * If no options are specified, the default scene "models/hierarchyTest.glb" will be loaded.
- */
-
 #include "common/Application.h"
 #include "common/RsmTechnique.h"
 #include "common/SceneLoader.h"
@@ -43,6 +28,24 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+
+/* 03_gltf_viewer
+ *
+ * A simple model viewer for glTF scene files. This example build upon 02_deferred, which implements deferred rendering
+ * and reflective shadow maps (RSM). Also implemented in this example are point lights.
+ * 
+ * The app has three optional arguments that must appear in order.
+ * If a later option is used, the previous options must be use used as well.
+ *
+ * Options
+ * Filename (string) : name of the glTF file you wish to view.
+ * Scale (real)      : uniform scale factor in case the model is tiny or huge. Default: 1.0
+ * Binary (int)      : whether the input file is binary glTF. Default: false
+ *
+ * If no options are specified, the default scene will be loaded.
+ * 
+ * TODO: add clustered light culling
+ */
 
 ////////////////////////////////////// Types
 
@@ -236,8 +239,8 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
   if (!filename)
   {
     Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
-    //Utility::LoadModelFromFile(scene, "models/rock_terrain_3/scene.gltf", glm::mat4{.5}, false);
-    //Utility::LoadModelFromFile(scene, "models/Sponza/glTF/Sponza.gltf", glm::mat4{.5}, false);
+    // Utility::LoadModelFromFile(scene, "models/rock_terrain_3/scene.gltf", glm::mat4{.5}, false);
+    // Utility::LoadModelFromFile(scene, "models/Sponza/glTF/Sponza.gltf", glm::mat4{.5}, false);
   }
   else
   {
@@ -252,31 +255,31 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
   //////////////////////////////////////// Clustered rendering stuff
   std::vector<Light> lights;
-  //lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
-  //lights.push_back(Light{ .position = { 3, -2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
-  //lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
+  // lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { .2f, .8f, 1.0f }, .invRadius = 1.0f / 4.0f });
+  // lights.push_back(Light{ .position = { 3, -2, 0, 0 }, .intensity = { .7f, .8f, 0.1f }, .invRadius = 1.0f / 2.0f });
+  // lights.push_back(Light{ .position = { 3, 2, 0, 0 }, .intensity = { 1.2f, .8f, .1f }, .invRadius = 1.0f / 6.0f });
 
   meshUniformBuffer.emplace(meshUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
   lightBuffer.emplace(lights, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
-  //clusterTexture({.imageType = Fwog::ImageType::TEX_3D,
-  //                                     .format = Fwog::Format::R16G16_UINT,
-  //                                     .extent = {16, 9, 24},
-  //                                     .mipLevels = 1,
-  //                                     .arrayLayers = 1,
-  //                                     .sampleCount = Fwog::SampleCount::SAMPLES_1},
-  //                                    "Cluster Texture");
+  // clusterTexture({.imageType = Fwog::ImageType::TEX_3D,
+  //                                      .format = Fwog::Format::R16G16_UINT,
+  //                                      .extent = {16, 9, 24},
+  //                                      .mipLevels = 1,
+  //                                      .arrayLayers = 1,
+  //                                      .sampleCount = Fwog::SampleCount::SAMPLES_1},
+  //                                     "Cluster Texture");
 
   //// atomic counter + uint array
-  //clusterIndicesBuffer = Fwog::Buffer(sizeof(uint32_t) + sizeof(uint32_t) * 10000);
-  //const uint32_t zero = 0; // what it says on the tin
-  //clusterIndicesBuffer.ClearSubData(0,
-  //                                  clusterIndicesBuffer.Size(),
-  //                                  Fwog::Format::R32_UINT,
-  //                                  Fwog::UploadFormat::R,
-  //                                  Fwog::UploadType::UINT,
-  //                                  &zero);
+  // clusterIndicesBuffer = Fwog::Buffer(sizeof(uint32_t) + sizeof(uint32_t) * 10000);
+  // const uint32_t zero = 0; // what it says on the tin
+  // clusterIndicesBuffer.ClearSubData(0,
+  //                                   clusterIndicesBuffer.Size(),
+  //                                   Fwog::Format::R32_UINT,
+  //                                   Fwog::UploadFormat::R,
+  //                                   Fwog::UploadType::UINT,
+  //                                   &zero);
 
   OnWindowResize(windowWidth, windowHeight);
 }
@@ -299,7 +302,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
     .sunStrength = glm::vec4{5, 5, 5, 0},
   };
-  
+
   Fwog::SamplerState ss;
   ss.minFilter = Fwog::Filter::NEAREST;
   ss.magFilter = Fwog::Filter::NEAREST;
@@ -412,7 +415,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   globalUniformsBuffer.SubData(mainCameraUniforms, 0);
 
-    auto rsmCameraUniforms = RSM::CameraUniforms{
+  auto rsmCameraUniforms = RSM::CameraUniforms{
     .viewProj = mainCameraUniforms.viewProj,
     .invViewProj = mainCameraUniforms.invViewProj,
     .proj = proj,
@@ -429,7 +432,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
                                      rsmDepth);
 
   // clear cluster indices atomic counter
-  //clusterIndicesBuffer.ClearSubData(0, sizeof(uint32_t), Fwog::Format::R32_UINT, Fwog::UploadFormat::R, Fwog::UploadType::UINT, &zero);
+  // clusterIndicesBuffer.ClearSubData(0, sizeof(uint32_t), Fwog::Format::R32_UINT, Fwog::UploadFormat::R, Fwog::UploadType::UINT, &zero);
 
   // record active clusters
   // TODO
