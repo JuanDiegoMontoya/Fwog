@@ -21,6 +21,8 @@ namespace Fwog
     uint32_t mipLevels = 0;
     uint32_t arrayLayers = 0;
     SampleCount sampleCount = {};
+
+    bool operator==(const TextureCreateInfo&) const noexcept = default;
   };
 
   struct TextureViewCreateInfo
@@ -83,6 +85,8 @@ namespace Fwog
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
     ~Texture();
+
+    bool operator==(const Texture&) const noexcept = default;
 
     void SubImage(const TextureUpdateInfo& info);
     void ClearImage(const TextureClearInfo& info);

@@ -159,19 +159,7 @@ namespace Fwog
       isScopedDebugGroupPushed = true;
     }
 
-    std::vector<const Texture*> colorAttachments;
-    colorAttachments.reserve(ri.colorAttachments.size());
-    for (const auto& attachment : ri.colorAttachments)
-    {
-      colorAttachments.push_back(attachment.texture);
-    }
-    detail::RenderAttachments attachments{
-        .colorAttachments = colorAttachments,
-        .depthAttachment = ri.depthAttachment ? ri.depthAttachment->texture : nullptr,
-        .stencilAttachment = ri.stencilAttachment ? ri.stencilAttachment->texture : nullptr,
-    };
-
-    sFbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
+    sFbo = sFboCache.CreateOrGetCachedFramebuffer(ri);
     glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
 
     for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
@@ -387,12 +375,12 @@ namespace Fwog
                    Filter filter,
                    AspectMask aspect)
   {
-    detail::RenderAttachments sourceAttachments;
-    detail::RenderAttachments destAttachments;
-    sourceAttachments.colorAttachments.push_back(&source);
-    destAttachments.colorAttachments.push_back(&target);
-    auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(sourceAttachments);
-    auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(destAttachments);
+    RenderAttachment attachmentSource{.texture = &source};
+    RenderInfo renderInfoSource{.colorAttachments = {&attachmentSource, 1}};
+    auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(renderInfoSource);
+    RenderAttachment attachmentDest{.texture = &source};
+    RenderInfo renderInfoDest{.colorAttachments = {&attachmentDest, 1}};
+    auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(renderInfoDest);
     glBlitNamedFramebuffer(fboSource,
                            fboDest,
                            sourceOffset.x,
@@ -415,9 +403,9 @@ namespace Fwog
                               Filter filter,
                               AspectMask aspect)
   {
-    detail::RenderAttachments attachments;
-    attachments.colorAttachments.push_back(&source);
-    auto fbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
+    RenderAttachment attachment{.texture = &source};
+    RenderInfo renderInfo{.colorAttachments = {&attachment, 1}};
+    auto fbo = sFboCache.CreateOrGetCachedFramebuffer(renderInfo);
     glBlitNamedFramebuffer(fbo,
                            0,
                            sourceOffset.x,
