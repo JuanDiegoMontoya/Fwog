@@ -11,7 +11,7 @@ layout(binding = 4) uniform sampler2D s_rsmFlux;
 layout(binding = 5) uniform sampler2D s_rsmNormal;
 layout(binding = 6) uniform sampler2D s_rsmDepth;
 
-layout(binding = 0) uniform restrict writeonly image2D i_outIndirect;
+layout(binding = 0) uniform writeonly image2D i_outIndirect;
 
 layout(binding = 0, std140) uniform GlobalUniforms
 {

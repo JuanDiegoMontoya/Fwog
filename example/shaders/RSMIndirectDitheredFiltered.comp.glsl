@@ -30,6 +30,7 @@ layout(binding = 1, std140) uniform RSMUniforms
   float rMax;       // max radius for which indirect lighting will be considered
   uint currentPass; // used to determine which pixels to shade
   uint samples;
+  float random;
   // clang-format off
 } rsm; // clang-format on
 
@@ -181,23 +182,24 @@ void main()
   vec2 texel = 1.0 / rsm.targetDim;
   vec2 uv = (vec2(gid) + 0.5) / rsm.targetDim;
 
-  vec3 albedo = texelFetch(s_gAlbedo, gid, 0).rgb;
-  vec3 normal = texelFetch(s_gNormal, gid, 0).xyz;
-  float depth = texelFetch(s_gDepth, gid, 0).x;
-  vec3 worldPos = UnprojectUV(depth, uv, invViewProj);
-
-  if (depth == 1.0)
-  {
-    imageStore(i_outIndirect, gid, vec4(0.0));
-    return;
-  }
-
-  vec2 noise = textureLod(s_blueNoise, (vec2(gid) + 0.5) / textureSize(s_blueNoise, 0), 0).xy;
+  vec2 noise = rsm.random + textureLod(s_blueNoise, (vec2(gid) + 0.5) / textureSize(s_blueNoise, 0), 0).xy;
 
   vec3 ambient = vec3(0);
 
+  vec3 albedo = texelFetch(s_gAlbedo, gid, 0).rgb;
+
   if (rsm.currentPass == 0)
   {
+    vec3 normal = texelFetch(s_gNormal, gid, 0).xyz;
+    float depth = texelFetch(s_gDepth, gid, 0).x;
+    vec3 worldPos = UnprojectUV(depth, uv, invViewProj);
+
+    if (depth == 1.0)
+    {
+      imageStore(i_outIndirect, gid, vec4(0.0));
+      return;
+    }
+
     ambient = ComputeIndirectIrradiance(albedo, normal, worldPos, noise);
   }
   else
