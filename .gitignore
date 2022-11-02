@@ -41,3 +41,5 @@ build/
 
 # Large/test assets
 /example/models
+
+.cache/
