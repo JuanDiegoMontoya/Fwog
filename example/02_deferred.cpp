@@ -262,6 +262,7 @@ private:
     std::optional<Fwog::Texture> gAlbedo;
     std::optional<Fwog::Texture> gNormal;
     std::optional<Fwog::Texture> gDepth;
+    std::optional<Fwog::Texture> gDepthPrev;
     std::optional<RSM::RsmTechnique> rsm;
   };
   Frame frame{};
@@ -347,6 +348,7 @@ void DeferredApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
   frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_UNORM);
   frame.gNormal = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepth = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
+  frame.gDepthPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
 
   frame.rsm = RSM::RsmTechnique(newWidth, newHeight);
 }
@@ -355,6 +357,8 @@ void DeferredApplication::OnUpdate([[maybe_unused]] double dt) {}
 
 void DeferredApplication::OnRender([[maybe_unused]] double dt)
 {
+  std::swap(frame.gDepth, frame.gDepthPrev);
+
   shadingUniforms = ShadingUniforms{
     .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
     .sunStrength = glm::vec4{2, 2, 2, 0},
@@ -477,12 +481,13 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
 
     frame.rsm->ComputeIndirectLighting(shadingUniforms.sunViewProj,
                                        rsmCameraUniforms,
-                                       *frame.gAlbedo,
-                                       *frame.gNormal,
-                                       *frame.gDepth,
+                                       frame.gAlbedo.value(),
+                                       frame.gNormal.value(),
+                                       frame.gDepth.value(),
                                        rsmFlux,
                                        rsmNormal,
-                                       rsmDepth);
+                                       rsmDepth,
+                                       frame.gDepthPrev.value());
   }
 
   // shading pass (full screen tri)

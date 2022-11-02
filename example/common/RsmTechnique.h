@@ -23,7 +23,7 @@ namespace RSM
   public:
     RsmTechnique(uint32_t width, uint32_t height);
 
-    // Input: camera uniforms, g-buffers, RSM buffers
+    // Input: camera uniforms, g-buffers, RSM buffers, previous g-buffer depth (for reprojection)
     void ComputeIndirectLighting(const glm::mat4& lightViewProj,
                                  const CameraUniforms& cameraUniforms,
                                  const Fwog::Texture& gAlbedo,
@@ -31,7 +31,8 @@ namespace RSM
                                  const Fwog::Texture& gDepth,
                                  const Fwog::Texture& rsmFlux,
                                  const Fwog::Texture& rsmNormal,
-                                 const Fwog::Texture& rsmDepth);
+                                 const Fwog::Texture& rsmDepth,
+                                 const Fwog::Texture& gDepthPrev);
 
     const Fwog::Texture& GetIndirectLighting();
 
@@ -41,7 +42,8 @@ namespace RSM
     int rsmFilteredSamples = 15;
     int rsmFilterPasses = 2;
     int rsmBoxBlurPasses = 1;
-    float rMax = 0.08f;
+    float rMax = 0.2f;
+    float temporalAlpha = 0;
     bool rsmFiltered = false;
     bool rsmFilteredSkipAlbedoModulation = false;
 
@@ -55,15 +57,33 @@ namespace RSM
       uint32_t currentPass;
       uint32_t samples;
       float random;
+      uint32_t _padding00;
+      uint32_t _padding01;
     };
 
+    struct ReprojectionUniforms
+    {
+      glm::mat4 invViewProjCurrent;
+      glm::mat4 viewProjPrevious;
+      glm::mat4 invViewProjPrevious;
+      glm::ivec2 targetDim;
+      float temporalWeightFactor;
+      glm::uint _padding00;
+    };
+
+    glm::mat4 viewProjPrevious{1};
+    glm::uint seed;
     RsmUniforms rsmUniforms;
     Fwog::TypedBuffer<RsmUniforms> rsmUniformBuffer;
     Fwog::TypedBuffer<CameraUniforms> cameraUniformBuffer;
+    Fwog::TypedBuffer<ReprojectionUniforms> reprojectionUniformBuffer;
     Fwog::ComputePipeline rsmIndirectPipeline;
     Fwog::ComputePipeline rsmIndirectFilteredPipeline;
-    Fwog::Texture indirectLightingTex;
-    Fwog::Texture indirectLightingTexPingPong;
+    Fwog::ComputePipeline rsmReprojectPipeline;
+    Fwog::Texture indirectUnfilteredTex;
+    Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
+    Fwog::Texture indirectFilteredTex;
+    Fwog::Texture indirectFilteredTexPingPong;
     std::optional<Fwog::Texture> noiseTex;
   };
 } // namespace RSM
