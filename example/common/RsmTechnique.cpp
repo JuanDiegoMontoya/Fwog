@@ -21,8 +21,13 @@ static Fwog::ComputePipeline CreateRsmIndirectPipeline()
 static Fwog::ComputePipeline CreateRsmIndirectFilteredPipeline()
 {
   auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
-                         Application::LoadFile("shaders/RSMIndirectDitheredFiltered.comp.glsl"));
+                         Application::LoadFile("shaders/rsm/IndirectDitheredFiltered.comp.glsl"));
+  return Fwog::ComputePipeline({.shader = &cs});
+}
 
+static Fwog::ComputePipeline CreateRsmReprojectPipeline()
+{
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/rsm/Reproject.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
