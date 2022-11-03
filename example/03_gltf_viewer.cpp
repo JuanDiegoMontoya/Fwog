@@ -234,7 +234,7 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
   cursorIsActive = true;
 
-  cameraSpeed = 4.0f;
+  cameraSpeed = 2.5f;
   mainCamera.position.y = 2;
 
   if (!filename)
