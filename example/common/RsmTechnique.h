@@ -39,13 +39,14 @@ namespace RSM
     void DrawGui();
 
     int rsmSamples = 400;
-    int rsmFilteredSamples = 15;
-    int rsmFilterPasses = 2;
+    int rsmFilteredSamples = 1;
+    int rsmFilterPasses = 1;
     int rsmBoxBlurPasses = 1;
     float rMax = 0.2f;
     float temporalAlpha = 0;
     bool rsmFiltered = false;
     bool rsmFilteredSkipAlbedoModulation = false;
+    bool seedEachFrame = true;
 
   private:
     struct RsmUniforms
@@ -84,6 +85,7 @@ namespace RSM
     Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
     Fwog::Texture indirectFilteredTex;
     Fwog::Texture indirectFilteredTexPingPong;
+    Fwog::Texture historyLengthTex;
     std::optional<Fwog::Texture> noiseTex;
   };
 } // namespace RSM

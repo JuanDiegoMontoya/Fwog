@@ -72,7 +72,8 @@ namespace RSM
       indirectUnfilteredTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectUnfilteredTexPrev(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectFilteredTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
-      indirectFilteredTexPingPong(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT))
+      indirectFilteredTexPingPong(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
+      historyLengthTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R8_UINT))
   {
     // load blue noise texture
     int x = 0;
@@ -90,6 +91,14 @@ namespace RSM
       .pixels = noise,
     });
     stbi_image_free(noise);
+
+    constexpr uint8_t zero = 0;
+    historyLengthTex.ClearImage({
+      .size = historyLengthTex.Extent(),
+      .format = Fwog::UploadFormat::R_INTEGER,
+      .type = Fwog::UploadType::UBYTE,
+      .data = &zero,
+    });
   }
 
   void RsmTechnique::ComputeIndirectLighting(const glm::mat4& lightViewProj,
@@ -109,9 +118,20 @@ namespace RSM
     ss.addressModeV = Fwog::AddressMode::REPEAT;
     auto nearestSampler = Fwog::Sampler(ss);
 
+    ss.minFilter = Fwog::Filter::LINEAR;
+    ss.magFilter = Fwog::Filter::LINEAR;
+    auto linearSampler = Fwog::Sampler(ss);
+
     rsmUniforms.sunViewProj = lightViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
-    rsmUniforms.random = rng(seed);
+    if (seedEachFrame)
+    {
+      rsmUniforms.random = rng(seed);
+    }
+    else
+    {
+      rsmUniforms.random = 0;
+    }
     rsmUniformBuffer.SubData(rsmUniforms, 0);
 
     cameraUniformBuffer.SubDataTyped(cameraUniforms);
@@ -148,24 +168,26 @@ namespace RSM
         Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
         // Temporally accumulate samples before filtering
-        ReprojectionUniforms reprojectionUniforms = {
-          .invViewProjCurrent = cameraUniforms.invViewProj,
-          .viewProjPrevious = viewProjPrevious,
-          .invViewProjPrevious = glm::inverse(viewProjPrevious),
-          .targetDim = {indirectUnfilteredTex.Extent().width, indirectUnfilteredTex.Extent().height},
-          .temporalWeightFactor = temporalAlpha
-        };
-        viewProjPrevious = cameraUniforms.viewProj;
-        reprojectionUniformBuffer.SubDataTyped(reprojectionUniforms);
-        Fwog::Cmd::BindComputePipeline(rsmReprojectPipeline);
-        Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
-        Fwog::Cmd::BindSampledImage(1, indirectUnfilteredTexPrev, nearestSampler);
-        Fwog::Cmd::BindSampledImage(2, gDepth, nearestSampler);
-        Fwog::Cmd::BindSampledImage(3, gDepthPrev, nearestSampler);
-        Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-        Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
-        Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
-
+        {
+          Fwog::ScopedDebugMarker marker2("Temporal Accumulation");
+          ReprojectionUniforms reprojectionUniforms = {
+            .invViewProjCurrent = cameraUniforms.invViewProj,
+            .viewProjPrevious = viewProjPrevious,
+            .invViewProjPrevious = glm::inverse(viewProjPrevious),
+            .targetDim = {indirectUnfilteredTex.Extent().width, indirectUnfilteredTex.Extent().height},
+            .temporalWeightFactor = temporalAlpha};
+          viewProjPrevious = cameraUniforms.viewProj;
+          reprojectionUniformBuffer.SubDataTyped(reprojectionUniforms);
+          Fwog::Cmd::BindComputePipeline(rsmReprojectPipeline);
+          Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(1, indirectUnfilteredTexPrev, linearSampler);
+          Fwog::Cmd::BindSampledImage(2, gDepth, nearestSampler);
+          Fwog::Cmd::BindSampledImage(3, gDepthPrev, nearestSampler);
+          Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
+          Fwog::Cmd::BindImage(1, historyLengthTex, 0);
+          Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
+          Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+        }
 
         Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
         Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
@@ -243,8 +265,9 @@ namespace RSM
           Fwog::Cmd::BindImage(0, indirectFilteredTexPingPong, 0);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
-          std::swap(indirectFilteredTex, indirectFilteredTexPingPong);
         }
+
+        std::swap(indirectFilteredTex, indirectFilteredTexPingPong);
       }
       else // Unfiltered RSM: the original paper
       {
@@ -320,8 +343,9 @@ namespace RSM
       rsmFilterPasses = rsmFilterPasses < 0 ? 0 : rsmFilterPasses;
       ImGui::InputInt("Box Blur Passes", &rsmBoxBlurPasses, 1, 1);
       rsmBoxBlurPasses = rsmBoxBlurPasses < 0 ? 0 : rsmBoxBlurPasses;
-      ImGui::SliderFloat("Temporal Alpha", &temporalAlpha, 0, 1);
       ImGui::Checkbox("Skip Albedo Modulation", &rsmFilteredSkipAlbedoModulation);
+      ImGui::SliderFloat("Temporal Override", &temporalAlpha, 0, 1);
+      ImGui::Checkbox("Seed Each Frame", &seedEachFrame);
     }
 
     rsmUniforms.samples = static_cast<uint32_t>(rsmFiltered ? rsmFilteredSamples : rsmSamples);
