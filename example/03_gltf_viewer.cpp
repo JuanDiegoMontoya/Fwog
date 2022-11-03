@@ -232,7 +232,7 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 {
   ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
 
-  cursorIsActive = false;
+  cursorIsActive = true;
 
   cameraSpeed = 4.0f;
   mainCamera.position.y = 2;

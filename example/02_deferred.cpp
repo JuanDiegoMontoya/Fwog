@@ -305,7 +305,7 @@ DeferredApplication::DeferredApplication(const Application::CreateInfo& createIn
 {
   ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
 
-  cursorIsActive = false;
+  cursorIsActive = true;
 
   cameraSpeed = 1.0f;
 
