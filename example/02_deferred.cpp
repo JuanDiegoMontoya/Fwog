@@ -262,6 +262,7 @@ private:
     std::optional<Fwog::Texture> gAlbedo;
     std::optional<Fwog::Texture> gNormal;
     std::optional<Fwog::Texture> gDepth;
+    std::optional<Fwog::Texture> gNormalPrev;
     std::optional<Fwog::Texture> gDepthPrev;
     std::optional<RSM::RsmTechnique> rsm;
   };
@@ -348,6 +349,7 @@ void DeferredApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
   frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_UNORM);
   frame.gNormal = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepth = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
+  frame.gNormalPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepthPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
 
   frame.rsm = RSM::RsmTechnique(newWidth, newHeight);
@@ -358,6 +360,7 @@ void DeferredApplication::OnUpdate([[maybe_unused]] double dt) {}
 void DeferredApplication::OnRender([[maybe_unused]] double dt)
 {
   std::swap(frame.gDepth, frame.gDepthPrev);
+  std::swap(frame.gNormal, frame.gNormalPrev);
 
   shadingUniforms = ShadingUniforms{
     .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
@@ -487,7 +490,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
                                        rsmFlux,
                                        rsmNormal,
                                        rsmDepth,
-                                       frame.gDepthPrev.value());
+                                       frame.gDepthPrev.value(),
+                                       frame.gNormalPrev.value());
   }
 
   // shading pass (full screen tri)

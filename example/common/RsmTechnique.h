@@ -32,7 +32,8 @@ namespace RSM
                                  const Fwog::Texture& rsmFlux,
                                  const Fwog::Texture& rsmNormal,
                                  const Fwog::Texture& rsmDepth,
-                                 const Fwog::Texture& gDepthPrev);
+                                 const Fwog::Texture& gDepthPrev,
+                                 const Fwog::Texture& gNormalPrev);
 
     const Fwog::Texture& GetIndirectLighting();
 

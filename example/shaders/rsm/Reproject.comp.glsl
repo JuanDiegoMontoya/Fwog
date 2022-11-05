@@ -4,7 +4,8 @@ layout(binding = 0) uniform sampler2D s_indirectUnfilteredCurrent;
 layout(binding = 1) uniform sampler2D s_indirectUnfilteredPrevious;
 layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2D s_gDepthPrev;
-// layout(binding = 3) uniform sampler2D s_gNormal;
+layout(binding = 4) uniform sampler2D s_gNormal;
+layout(binding = 5) uniform sampler2D s_gNormalPrev;
 
 layout(binding = 0) uniform restrict writeonly image2D i_outIndirect;
 layout(binding = 1, r8ui) uniform restrict uimage2D i_historyLength;
@@ -52,7 +53,7 @@ float RejectDepth(vec3 reprojectedUV)
   vec3 finalLerp = mix(bottomHLerp, topHLerp, lerpFactor.y); // Approximate world position
 
   vec3 diff = finalLerp - reprojectedWorldPos;
-  return exp(-dot(diff, diff) / .05);
+  return exp(-dot(diff, diff) / .2);
 }
 
 float RejectDepthBad(vec3 reprojectedUV)
@@ -66,6 +67,15 @@ float RejectDepthBad(vec3 reprojectedUV)
     return 0;
   }
   return 1;
+}
+
+float RejectNormal(vec2 uv, vec3 reprojectedUV)
+{
+  vec3 normalCur = textureLod(s_gNormal, uv, 0).xyz;
+  vec3 normalPrev = textureLod(s_gNormalPrev, reprojectedUV.xy, 0).xyz;
+
+  float d = max(0, dot(normalCur, normalPrev));
+  return d * d;
 }
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -103,6 +113,9 @@ void main()
 
   // Reject previous sample if this pixel was disoccluded
   confidence *= RejectDepth(reprojectedUV);
+
+  // Reject previous sample if its normal is too different
+  confidence *= RejectNormal(uv, reprojectedUV);
 
   uint historyLength = imageLoad(i_historyLength, gid).x;
   vec3 prevColor = textureLod(s_indirectUnfilteredPrevious, reprojectedUV.xy, 0).rgb;

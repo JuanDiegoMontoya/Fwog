@@ -109,7 +109,8 @@ namespace RSM
                                              const Fwog::Texture& rsmFlux,
                                              const Fwog::Texture& rsmNormal,
                                              const Fwog::Texture& rsmDepth,
-                                             const Fwog::Texture& gDepthPrev)
+                                             const Fwog::Texture& gDepthPrev,
+                                             const Fwog::Texture& gNormalPrev)
   {
     Fwog::SamplerState ss;
     ss.minFilter = Fwog::Filter::NEAREST;
@@ -192,6 +193,8 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(1, indirectUnfilteredTexPrev, linearSampler);
           Fwog::Cmd::BindSampledImage(2, gDepth, nearestSampler);
           Fwog::Cmd::BindSampledImage(3, gDepthPrev, nearestSampler);
+          Fwog::Cmd::BindSampledImage(4, gNormal, nearestSampler);
+          Fwog::Cmd::BindSampledImage(5, gNormalPrev, nearestSampler);
           Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
           Fwog::Cmd::BindImage(1, historyLengthTex, 0);
           Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
@@ -202,6 +205,8 @@ namespace RSM
         Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
         Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
         Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
+        Fwog::Cmd::BindSampledImage(4, rsmFlux, nearestSamplerClamped);
+        Fwog::Cmd::BindSampledImage(5, rsmNormal, nearestSampler);
         Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer, 0, cameraUniformBuffer.Size());
 
         // Edge-avoiding a-trous (subsampled) filter pass
