@@ -78,7 +78,7 @@ namespace RSM
     // load blue noise texture
     int x = 0;
     int y = 0;
-    auto noise = stbi_load("textures/bluenoise16.png", &x, &y, nullptr, 4);
+    auto noise = stbi_load("textures/bluenoise256.png", &x, &y, nullptr, 4);
     assert(noise);
     noiseTex = Fwog::CreateTexture2D({static_cast<uint32_t>(x), static_cast<uint32_t>(y)}, Fwog::Format::R8G8B8A8_UNORM);
     noiseTex->SubImage({
@@ -122,6 +122,11 @@ namespace RSM
     ss.magFilter = Fwog::Filter::LINEAR;
     auto linearSampler = Fwog::Sampler(ss);
 
+    ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
+    ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
+    ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
+    auto nearestSamplerClamped = Fwog::Sampler(ss);
+
     rsmUniforms.sunViewProj = lightViewProj;
     rsmUniforms.invSunViewProj = glm::inverse(rsmUniforms.sunViewProj);
     if (seedEachFrame)
@@ -146,7 +151,7 @@ namespace RSM
       Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
       Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
       Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, rsmFlux, nearestSampler);
+      Fwog::Cmd::BindSampledImage(4, rsmFlux, nearestSamplerClamped);
       Fwog::Cmd::BindSampledImage(5, rsmNormal, nearestSampler);
       Fwog::Cmd::BindSampledImage(6, rsmDepth, nearestSampler);
       Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer, 0, cameraUniformBuffer.Size());
@@ -154,18 +159,22 @@ namespace RSM
 
       if (rsmFiltered)
       {
-        Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
-        Fwog::Cmd::BindSampledImage(7, *noiseTex, nearestSampler);
-
         const int localSize = 8;
         const auto numGroups = (rsmUniforms.targetDim + localSize - 1) / localSize;
 
         uint32_t currentPass = 0;
-        rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
-                                 Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
-        Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-        Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+
+        // Evaluate indirect illumination (sample the reflective shadow map)
+        {
+          Fwog::ScopedDebugMarker marker2("Sample RSM");
+          Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
+          Fwog::Cmd::BindSampledImage(7, *noiseTex, nearestSampler);
+          rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
+                                   Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
+          Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
+          Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+        }
 
         // Temporally accumulate samples before filtering
         {
