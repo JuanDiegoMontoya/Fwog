@@ -84,7 +84,7 @@ namespace Fwog::detail
         {
           framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
           framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
-          return;
+          i--;
         }
       }
 
@@ -92,14 +92,14 @@ namespace Fwog::detail
       {
         framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
         framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
-        return;
+        i--;
       }
 
       if (texp == attachments.stencilAttachment)
       {
         framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
         framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
-        return;
+        i--;
       }
     }
   }
