@@ -84,7 +84,7 @@ namespace Fwog
     Texture& operator=(Texture&& old) noexcept;
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
-    ~Texture();
+    virtual ~Texture();
 
     bool operator==(const Texture&) const noexcept = default;
 
