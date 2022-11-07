@@ -2,6 +2,7 @@
 #include <Fwog/Texture.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <Fwog/detail/SamplerCache.h>
+#include <Fwog/detail/FramebufferCache.h>
 #include <array>
 #include <utility>
 
@@ -15,6 +16,8 @@ namespace Fwog
   {
     detail::SamplerCache sSamplerCache;
   }
+
+  extern detail::FramebufferCache sFboCache;
 
   namespace // detail
   {
@@ -174,6 +177,8 @@ namespace Fwog
       glMakeTextureHandleNonResidentARB(bindlessHandle_);
     }
     glDeleteTextures(1, &id_);
+    // Ensure that the texture is no longer referenced in the FBO cache
+    sFboCache.RemoveTexture(*this);
   }
 
   TextureView Texture::CreateMipView(uint32_t level) const

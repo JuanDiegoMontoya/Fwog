@@ -36,6 +36,8 @@ namespace Fwog::detail
     }
     void Clear();
 
+    void RemoveTexture(const Texture& texture);
+
   private:
     std::vector<RenderAttachments> framebufferCacheKey_;
     std::vector<uint32_t> framebufferCacheValue_;

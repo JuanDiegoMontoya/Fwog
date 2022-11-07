@@ -1,7 +1,7 @@
 #include "Fwog/detail/FramebufferCache.h"
 #include "Fwog/Texture.h"
 #include "Fwog/detail/Hash.h"
-#include "glad/gl.h"
+#include "Fwog/Common.h"
 
 namespace Fwog::detail
 {
@@ -67,6 +67,41 @@ namespace Fwog::detail
 
     framebufferCacheKey_.clear();
     framebufferCacheValue_.clear();
+  }
+
+  // Must be called when a texture is deleted, otherwise the cache becomes invalid.
+  void FramebufferCache::RemoveTexture(const Texture& texture)
+  {
+    const TextureProxy texp = {texture.CreateInfo(), texture.Handle()};
+
+    for (size_t i = 0; i < framebufferCacheKey_.size(); i++)
+    {
+      const auto& attachments = framebufferCacheKey_[i];
+
+      for (const auto& ci : attachments.colorAttachments)
+      {
+        if (texp == ci)
+        {
+          framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
+          framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
+          return;
+        }
+      }
+
+      if (texp == attachments.depthAttachment)
+      {
+        framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
+        framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
+        return;
+      }
+
+      if (texp == attachments.stencilAttachment)
+      {
+        framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
+        framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
+        return;
+      }
+    }
   }
 
   bool RenderAttachments::operator==(const RenderAttachments& rhs) const
