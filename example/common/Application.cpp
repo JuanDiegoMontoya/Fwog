@@ -272,6 +272,7 @@ void Application::Run()
     // Updates ImGui.
     // A frame marker is inserted to distinguish ImGui rendering from the application's in a debugger.
     {
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
       ImGui::Render();
       auto marker = Fwog::ScopedDebugMarker("Draw GUI");
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
