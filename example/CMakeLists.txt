@@ -22,7 +22,7 @@ target_include_directories(04_volumetric PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(04_volumetric PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(04_volumetric copy_shaders copy_models copy_textures)
 
-add_executable(05_gpu_driven "05_gpu_driven.cpp" common/common.cpp common/common.h common/SceneLoader.cpp common/SceneLoader.h)
+add_executable(05_gpu_driven "05_gpu_driven.cpp" common/Application.cpp common/Application.h common/SceneLoader.cpp common/SceneLoader.h)
 target_include_directories(05_gpu_driven PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(05_gpu_driven PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(05_gpu_driven copy_shaders copy_models)
