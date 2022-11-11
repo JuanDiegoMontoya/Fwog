@@ -92,13 +92,6 @@ struct ShadingUniforms
   glm::vec4 sunStrength;
 };
 
-struct
-{
-  float viewNearPlane = 0.3f;
-  bool freezeCulling = false;
-  bool viewBoundingBoxes = false;
-} config;
-
 std::string LoadFileWithInclude(std::string_view path, std::string_view includeDir)
 {
   char error[256] = {};
@@ -193,6 +186,14 @@ private:
   void OnRender(double dt) override;
   void OnGui(double dt) override;
 
+  // Config info.
+  struct
+  {
+    float viewNearPlane = 0.3f;
+    bool freezeCulling = false;
+    bool viewBoundingBoxes = false;
+  } config;
+
   // Resources tied to the swapchain/output size
   struct Frame
   {
@@ -253,11 +254,15 @@ GpuDrivenApplication::GpuDrivenApplication(const Application::CreateInfo& create
   int curObjectIndex = 0;
   for (const auto& mesh : scene.meshes)
   {
+    // The mesh uniforms are indexed with gl_DrawID (each mesh gets one set of uniforms).
     meshUniforms.push_back(ObjectUniforms{.model = mesh.transform, .materialIdx = mesh.materialIdx});
+    // Each mesh has a bounding box which is used as its cheap-to-draw proxy volume for occlusion culling.
     boundingBoxes.push_back(BoundingBox{
       .offset = mesh.boundingBox.offset,
       .halfExtent = mesh.boundingBox.halfExtent,
     });
+    // Initialize the indirect draw command. Note that the instance count is initialized to 0.
+    // The other draw parameters depend on the mesh's location in the one big vertex buffer.
     drawCommands.push_back(Fwog::DrawIndexedIndirectCommand{
       .indexCount = mesh.indexCount,
       .instanceCount = 0,
@@ -265,6 +270,7 @@ GpuDrivenApplication::GpuDrivenApplication(const Application::CreateInfo& create
       .vertexOffset = mesh.startVertex,
       .firstInstance = 0,
     });
+    // Currently unused.
     objectIndices.push_back(curObjectIndex++);
   }
 
@@ -296,7 +302,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
   const auto aspectRatio = windowWidth / (float)windowHeight;
   auto proj = glm::perspective(fovy, aspectRatio, 0.3f, 100.f);
 
-  // Update global uniforms
+  // Update global per-frame uniforms
   GlobalUniforms mainCameraUniforms{};
   mainCameraUniforms.viewProj = proj * mainCamera.GetViewMatrix();
   mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
