@@ -28,6 +28,7 @@ namespace Fwog
     }
 
     id_ = std::exchange(old.id_, 0);
+    return *this;
   }
 
   ComputePipeline::ComputePipeline(const ComputePipelineInfo& info) : id_(detail::CompileComputePipelineInternal(info))
@@ -51,5 +52,6 @@ namespace Fwog
     }
 
     id_ = std::exchange(old.id_, 0);
+    return *this;
   }
 } // namespace Fwog
