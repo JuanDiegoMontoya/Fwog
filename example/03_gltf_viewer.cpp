@@ -174,6 +174,8 @@ private:
   static constexpr int gShadowmapWidth = 1024;
   static constexpr int gShadowmapHeight = 1024;
 
+  double illuminationTime = 0;
+
   // scene parameters
   float sunPosition = -1.127f;
 
@@ -429,6 +431,13 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     .cameraPos = glm::vec4(mainCamera.position, 0),
   };
 
+  {
+    static Fwog::TimerQueryAsync timer(5);
+    if (auto t = timer.PopTimestamp())
+    {
+      illuminationTime = *t / 10e5;
+    }
+    Fwog::TimerScoped scopedTimer(timer);
   frame.rsm->ComputeIndirectLighting(shadingUniforms.sunViewProj,
                                      rsmCameraUniforms,
                                      frame.gAlbedo.value(),
@@ -439,6 +448,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
                                      rsmDepth,
                                      frame.gDepthPrev.value(),
                                      frame.gNormalPrev.value());
+  }
 
   // clear cluster indices atomic counter
   // clusterIndicesBuffer.ClearSubData(0, sizeof(uint32_t), Fwog::Format::R32_UINT, Fwog::UploadFormat::R, Fwog::UploadType::UINT, &zero);
@@ -499,6 +509,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
 {
   ImGui::Begin("glTF Viewer");
+  ImGui::Text("Framerate: %.0f Hertz", 1 / dt);
+  ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
+
   ImGui::SliderFloat("Sun Angle", &sunPosition, -2.7f, 0.5f);
 
   ImGui::Separator();

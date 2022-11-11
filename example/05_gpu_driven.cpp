@@ -378,9 +378,10 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
                                Fwog::Filter::NEAREST);
 }
 
-void GpuDrivenApplication::OnGui([[maybe_unused]] double dt)
+void GpuDrivenApplication::OnGui(double dt)
 {
   ImGui::Begin("Options");
+  ImGui::Text("Framerate: %.0f Hertz", 1 / dt);
   ImGui::Checkbox("Freeze culling", &config.freezeCulling);
   ImGui::Checkbox("View bounding boxes", &config.viewBoundingBoxes);
   ImGui::End();
