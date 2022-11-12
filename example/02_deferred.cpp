@@ -375,8 +375,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   glm::vec3 eye = glm::vec3{shadingUniforms.sunDir * -5.f};
   float eyeWidth = 2.5f;
   // shadingUniforms.viewPos = glm::vec4(camera.position, 0);
-  shadingUniforms.sunViewProj =
-    glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 10.f) * glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
+  auto projtemp = glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 10.f);
+  shadingUniforms.sunViewProj = projtemp * glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
   shadingUniformsBuffer.SubData(shadingUniforms, 0);
 
   Fwog::SamplerState ss;
@@ -392,29 +392,29 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   ss.magFilter = Fwog::Filter::LINEAR;
   auto rsmShadowSampler = Fwog::Sampler(ss);
 
-  // geometry buffer pass
-  Fwog::RenderAttachment gcolorAttachment{
+  // Render scene geometry to the g-buffer
+  Fwog::RenderAttachment gAlbedoAttachment{
     .texture = &frame.gAlbedo.value(),
     .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
     .clearOnLoad = true,
   };
-  Fwog::RenderAttachment gnormalAttachment{
+  Fwog::RenderAttachment gNormalAttachment{
     .texture = &frame.gNormal.value(),
     .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
     .clearOnLoad = false,
   };
-  Fwog::RenderAttachment gdepthAttachment{
+  Fwog::RenderAttachment gDepthAttachment{
     .texture = &frame.gDepth.value(),
     .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
     .clearOnLoad = true,
   };
-  Fwog::RenderAttachment cgAttachments[] = {gcolorAttachment, gnormalAttachment};
-  Fwog::RenderInfo gbufferRenderInfo{
+  Fwog::RenderAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
+  Fwog::BeginRendering({
+    .name = "Base Pass",
     .colorAttachments = cgAttachments,
-    .depthAttachment = &gdepthAttachment,
+    .depthAttachment = &gDepthAttachment,
     .stencilAttachment = nullptr,
-  };
-  Fwog::BeginRendering(gbufferRenderInfo);
+  });
   {
     Fwog::ScopedDebugMarker marker("Geometry");
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
@@ -428,7 +428,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
 
   globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
 
-  // shadow map (RSM) scene pass
+  // Shadow map (RSM) scene pass
   Fwog::RenderAttachment rcolorAttachment{
     .texture = &rsmFlux,
     .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
@@ -445,12 +445,12 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .clearOnLoad = true,
   };
   Fwog::RenderAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
-  Fwog::RenderInfo rsmRenderInfo{
+  Fwog::BeginRendering({
+    .name = "RSM Scene",
     .colorAttachments = crAttachments,
     .depthAttachment = &rdepthAttachment,
     .stencilAttachment = nullptr,
-  };
-  Fwog::BeginRendering(rsmRenderInfo);
+  });
   {
     Fwog::ScopedDebugMarker marker("RSM Scene");
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
@@ -496,6 +496,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
 
   // shading pass (full screen tri)
   Fwog::BeginSwapchainRendering({
+    .name = "Shading",
     .viewport =
       Fwog::Viewport{
         .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},

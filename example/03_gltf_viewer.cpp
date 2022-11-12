@@ -341,23 +341,24 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
                                 glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
   shadingUniformsBuffer.SubData(shadingUniforms, 0);
 
-  // geometry buffer pass
+  // Render scene geometry to the g-buffer
   {
-    Fwog::RenderAttachment gcolorAttachment{.texture = &frame.gAlbedo.value(),
+    Fwog::RenderAttachment gAlbedoAttachment{.texture = &frame.gAlbedo.value(),
                                             .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
                                             .clearOnLoad = true};
-    Fwog::RenderAttachment gnormalAttachment{.texture = &frame.gNormal.value(),
+    Fwog::RenderAttachment gNormalAttachment{.texture = &frame.gNormal.value(),
                                              .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
                                              .clearOnLoad = false};
-    Fwog::RenderAttachment gdepthAttachment{.texture = &frame.gDepth.value(),
+    Fwog::RenderAttachment gDepthAttachment{.texture = &frame.gDepth.value(),
                                             .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                             .clearOnLoad = true};
-    Fwog::RenderAttachment cgAttachments[] = {gcolorAttachment, gnormalAttachment};
-    Fwog::RenderInfo gbufferRenderInfo{.colorAttachments = cgAttachments,
-                                       .depthAttachment = &gdepthAttachment,
-                                       .stencilAttachment = nullptr};
-    Fwog::BeginRendering(gbufferRenderInfo);
-    Fwog::ScopedDebugMarker marker("Geometry");
+    Fwog::RenderAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
+    Fwog::BeginRendering({
+      .name = "Base Pass",
+      .colorAttachments = cgAttachments,
+      .depthAttachment = &gDepthAttachment,
+      .stencilAttachment = nullptr,
+    });
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
     Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
     Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer, 0, materialUniformsBuffer.Size());
@@ -382,7 +383,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
 
-  // shadow map (RSM) scene pass
+  // Shadow map (RSM) scene pass
   {
     Fwog::RenderAttachment rcolorAttachment{.texture = &rsmFlux,
                                             .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
@@ -394,11 +395,12 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
                                             .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
                                             .clearOnLoad = true};
     Fwog::RenderAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
-    Fwog::RenderInfo rsmRenderInfo{.colorAttachments = crAttachments,
+    Fwog::BeginRendering({
+      .name = "RSM Scene",
+      .colorAttachments = crAttachments,
                                    .depthAttachment = &rdepthAttachment,
-                                   .stencilAttachment = nullptr};
-    Fwog::BeginRendering(rsmRenderInfo);
-    Fwog::ScopedDebugMarker marker("RSM Scene");
+      .stencilAttachment = nullptr,
+    });
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
     Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
     Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
@@ -463,6 +465,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   // shading pass (full screen tri)
 
   Fwog::BeginSwapchainRendering({
+    .name = "Shading",
     .viewport =
       Fwog::Viewport{
         .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},
