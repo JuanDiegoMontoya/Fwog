@@ -113,7 +113,10 @@ public:
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     app->windowWidth = static_cast<uint32_t>(newWidth);
     app->windowHeight = static_cast<uint32_t>(newHeight);
-    app->OnWindowResize(app->windowWidth, app->windowHeight);
+    if (newWidth > 0 && newHeight > 0)
+    {
+      app->OnWindowResize(app->windowWidth, app->windowHeight);
+    }
   }
 };
 
@@ -274,8 +277,12 @@ void Application::Run()
 
     // Call the application's overriden functions each frame.
     OnUpdate(dt);
-    OnRender(dt);
-    OnGui(dt);
+
+    if (windowWidth > 0 && windowHeight > 0)
+    {
+      OnRender(dt);
+      OnGui(dt);
+    }
 
     glDisable(GL_FRAMEBUFFER_SRGB);
 
