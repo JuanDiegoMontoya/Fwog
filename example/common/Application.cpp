@@ -13,6 +13,16 @@
 
 #include <glm/gtc/constants.hpp>
 
+// Use the high-performance GPU (if available) on Windows laptops
+// https://docs.nvidia.com/gameworks/content/technologies/desktop/optimus.htm
+// https://gpuopen.com/learn/amdpowerxpressrequesthighperformance/
+#ifdef _WIN32
+extern "C"
+{
+  __declspec(dllexport) unsigned long NvOptimusEnablement = 1;
+  __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
 
 namespace
 {
