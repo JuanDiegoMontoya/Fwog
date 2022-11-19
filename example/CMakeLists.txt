@@ -15,7 +15,7 @@ add_dependencies(02_deferred copy_shaders copy_textures)
 add_executable(03_gltf_viewer "03_gltf_viewer.cpp" common/Application.cpp common/Application.h common/SceneLoader.cpp common/SceneLoader.h "common/RsmTechnique.h" "common/RsmTechnique.cpp")
 target_include_directories(03_gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR})
 target_link_libraries(03_gltf_viewer PRIVATE glfw lib_glad fwog glm lib_imgui)
-add_dependencies(03_gltf_viewer copy_shaders copy_models)
+add_dependencies(03_gltf_viewer copy_shaders copy_models copy_textures)
 
 add_executable(04_volumetric "04_volumetric.cpp" common/common.cpp common/common.h common/SceneLoader.cpp common/SceneLoader.h)
 target_include_directories(04_volumetric PUBLIC ${tinygltf_SOURCE_DIR} vendor)
