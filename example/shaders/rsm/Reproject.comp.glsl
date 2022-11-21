@@ -15,10 +15,11 @@ layout(binding = 0, std140) uniform ReprojectionUniforms
   mat4 invViewProjCurrent;
   mat4 viewProjPrevious;
   mat4 invViewProjPrevious;
-  ivec2 targetDim;
+  mat4 proj; // The near & far planes are assumed to not change between frames
+  vec3 viewDir;
   float temporalWeightFactor;
-}
-uniforms;
+  ivec2 targetDim;
+}uniforms;
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
@@ -26,6 +27,20 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
   vec4 ndc = vec4(uv * 2.0 - 1.0, z, 1.0);
   vec4 world = invXProj * ndc;
   return world.xyz / world.w;
+}
+
+float GetViewDepth(float depth, mat4 proj)
+{
+  // Returns linear depth in [near, far]
+  return proj[3][2] / (proj[2][2] + (depth * 2.0 - 1.0));
+}
+
+float LinearizeDepth(float depth, mat4 proj)
+{
+  float near = GetViewDepth(0, proj);
+  float far = GetViewDepth(1, proj);
+  float actual = GetViewDepth(depth, proj);
+  return (actual - near) / (far - near); // Map from [near, far] to [0, 1]
 }
 
 float RejectDepth(vec3 reprojectedUV)
@@ -69,10 +84,90 @@ float RejectDepthBad(vec3 reprojectedUV)
   return 1;
 }
 
+float RejectDepth3(vec3 reprojectedUV)
+{
+#if 1
+  // Choose the pixel in the reprojected 2x2 neighborhood with the closest depth to this one.
+  vec4 depthPrevs = textureGather(s_gDepthPrev, reprojectedUV.xy, 0);
+  vec4 diffs = abs(depthPrevs - reprojectedUV.z);
+  float depthPrev;
+  if (diffs[0] < diffs[1] && diffs[0] < diffs[2] && diffs[0] < diffs[3])
+    depthPrev = depthPrevs[0];
+  else if (diffs[1] < diffs[2] && diffs[1] < diffs[3])
+    depthPrev = depthPrevs[1];
+  else if (diffs[2] < diffs[3])
+    depthPrev = depthPrevs[2];
+  else
+    depthPrev = depthPrevs[3];
+
+  float linearDepthPrev = LinearizeDepth(depthPrev, uniforms.proj);
+#else
+  // Bilinearly interpolate linear depths
+  const vec2 texel = 1.0 / uniforms.targetDim;
+  //vec2 bottomLeft = floor((reprojectedUV.xy - texel * 0.5) * uniforms.targetDim) * texel;
+  vec4 depthPrevs = textureGather(s_gDepthPrev, reprojectedUV.xy, 0);
+  for (int i = 0; i < 4; i++) depthPrevs[i] = LinearizeDepth(depthPrevs[i], uniforms.proj);
+
+  vec2 lerpFactor = fract((reprojectedUV.xy - texel * 0.5) * uniforms.targetDim);
+  float topHLerp = mix(depthPrevs[0], depthPrevs[1], lerpFactor.x);
+  float bottomHLerp = mix(depthPrevs[3], depthPrevs[2], lerpFactor.x);
+  float linearDepthPrev = mix(bottomHLerp, topHLerp, lerpFactor.y);
+#endif
+
+  //float linearDepthPrev = LinearizeDepth(textureLod(s_gDepthPrev, reprojectedUV.xy, 0).x, uniforms.proj);
+  
+  float linearDepth = LinearizeDepth(reprojectedUV.z, uniforms.proj);
+  
+  // Some jank I cooked up with the help of a calculator
+  // https://www.desmos.com/calculator/6qb6expmgq
+  vec3 normalPrev = textureLod(s_gNormalPrev, reprojectedUV.xy, 0).xyz;
+
+  float angleFactor = max(0, -dot(normalPrev, uniforms.viewDir));
+
+  const float cutoff = 0.01;
+  float baseFactor = (abs(linearDepth - linearDepthPrev) * angleFactor) / cutoff;
+  float weight = 1.0 - baseFactor * baseFactor;
+
+  return weight;
+}
+
 float RejectNormal(vec2 uv, vec3 reprojectedUV)
 {
   vec3 normalCur = textureLod(s_gNormal, uv, 0).xyz;
   vec3 normalPrev = textureLod(s_gNormalPrev, reprojectedUV.xy, 0).xyz;
+
+  float d = max(0, dot(normalCur, normalPrev));
+  return d * d;
+}
+
+float RejectNormal2(vec2 uv, vec3 reprojectedUV)
+{
+  vec4 normalPrevsX = textureGather(s_gNormalPrev, reprojectedUV.xy, 0);
+  vec4 normalPrevsY = textureGather(s_gNormalPrev, reprojectedUV.xy, 1);
+  vec4 normalPrevsZ = textureGather(s_gNormalPrev, reprojectedUV.xy, 2);
+  vec3 normals[4] = vec3[4](
+    vec3(normalPrevsX[0], normalPrevsY[0], normalPrevsZ[0]),
+    vec3(normalPrevsX[1], normalPrevsY[1], normalPrevsZ[1]),
+    vec3(normalPrevsX[2], normalPrevsY[2], normalPrevsZ[2]),
+    vec3(normalPrevsX[3], normalPrevsY[3], normalPrevsZ[3])
+  );
+
+  vec3 normalCur = textureLod(s_gNormal, uv, 0).xyz;
+
+  vec4 dots = vec4(
+    dot(normalCur, normals[0]), 
+    dot(normalCur, normals[1]), 
+    dot(normalCur, normals[2]), 
+    dot(normalCur, normals[3]));
+  vec3 normalPrev;
+  if (dots[0] > dots[1] && dots[0] > dots[2] && dots[0] > dots[3])
+    normalPrev = normals[0];
+  else if (dots[1] > dots[2] && dots[1] > dots[3])
+    normalPrev = normals[1];
+  else if (dots[2] > dots[3])
+    normalPrev = normals[2];
+  else
+    normalPrev = normals[3];
 
   float d = max(0, dot(normalCur, normalPrev));
   return d * d;
@@ -102,20 +197,31 @@ void main()
   reprojectedUV.z = ndcPosPrev.z * .5 + .5;
 
   float confidence = 1.0;
-  vec3 debugColor = vec3(0);
 
   // Reject previous sample if it is outside of the screen
   if (any(greaterThan(reprojectedUV, vec3(1))) || any(lessThan(reprojectedUV, vec3(0))))
   {
     confidence = 0;
-    // debugColor += vec3(1, 0, 0);
+//    imageStore(i_outIndirect, gid, vec4(0, 0, 1, 0.0));
+//    return;
   }
 
   // Reject previous sample if this pixel was disoccluded
-  confidence *= RejectDepth(reprojectedUV);
+  //confidence *= RejectDepth(reprojectedUV);
+  confidence *= RejectDepth3(reprojectedUV);
+//  if (confidence <= .1)
+//  {
+//    imageStore(i_outIndirect, gid, vec4(1, 0, 0, 0.0));
+//    return;
+//  }
 
   // Reject previous sample if its normal is too different
-  confidence *= RejectNormal(uv, reprojectedUV);
+  confidence *= RejectNormal2(uv, reprojectedUV);
+//  if (confidence <= .1)
+//  {
+//    imageStore(i_outIndirect, gid, vec4(0, 1, 0, 0.0));
+//    return;
+//  }
 
   uint historyLength = imageLoad(i_historyLength, gid).x;
   vec3 prevColor = textureLod(s_indirectUnfilteredPrevious, reprojectedUV.xy, 0).rgb;
@@ -124,13 +230,12 @@ void main()
   float historyFactor = 1.0 - max(.01, exp(-float(historyLength) / 32.0));
   float weight = clamp(1.0 - confidence * historyFactor, 0.01, 1.0);
   vec3 blended = mix(prevColor, curColor, max(weight, uniforms.temporalWeightFactor));
-  blended += debugColor;
   // blended = vec3(historyLength / 255.0);
 
   imageStore(i_outIndirect, gid, vec4(blended, 0.0));
 
   // Update history
-  if (round(confidence) == 0)
+  if (round(confidence) == 0) 
   {
     imageStore(i_historyLength, gid, uvec4(0));
   }

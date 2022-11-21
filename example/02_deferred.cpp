@@ -367,7 +367,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .sunStrength = glm::vec4{2, 2, 2, 0},
   };
 
-  auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 100.f);
+  auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 5.f);
   glm::mat4 viewProj = proj * mainCamera.GetViewMatrix();
   globalUniformsBuffer.SubData(viewProj, 0);
   globalUniformsBuffer.SubData(proj, offsetof(GlobalUniforms, proj));
@@ -480,6 +480,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
       .invViewProj = glm::inverse(viewProj),
       .proj = proj,
       .cameraPos = glm::vec4(mainCamera.position, 0),
+      .viewDir = mainCamera.GetForwardDir(),
     };
 
     frame.rsm->ComputeIndirectLighting(shadingUniforms.sunViewProj,

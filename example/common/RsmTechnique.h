@@ -16,6 +16,8 @@ namespace RSM
     glm::mat4 invViewProj;
     glm::mat4 proj;
     glm::vec4 cameraPos;
+    glm::vec3 viewDir;
+    uint32_t _padding00;
   };
 
   class RsmTechnique
@@ -68,9 +70,21 @@ namespace RSM
       glm::mat4 invViewProjCurrent;
       glm::mat4 viewProjPrevious;
       glm::mat4 invViewProjPrevious;
-      glm::ivec2 targetDim;
+      glm::mat4 proj;
+      glm::vec3 viewDir;
       float temporalWeightFactor;
-      glm::uint _padding00;
+      glm::ivec2 targetDim;
+      uint32_t _padding00;
+      uint32_t _padding01;
+    };
+
+    struct FilterUniforms
+    {
+      glm::mat4 proj;
+      glm::mat4 invViewProj;
+      glm::vec3 viewDir;
+      float stepWidth;
+      glm::ivec2 targetDim;
     };
 
     glm::mat4 viewProjPrevious{1};
@@ -79,9 +93,11 @@ namespace RSM
     Fwog::TypedBuffer<RsmUniforms> rsmUniformBuffer;
     Fwog::TypedBuffer<CameraUniforms> cameraUniformBuffer;
     Fwog::TypedBuffer<ReprojectionUniforms> reprojectionUniformBuffer;
+    Fwog::TypedBuffer<FilterUniforms> filterUniformBuffer;
     Fwog::ComputePipeline rsmIndirectPipeline;
     Fwog::ComputePipeline rsmIndirectFilteredPipeline;
     Fwog::ComputePipeline rsmReprojectPipeline;
+    Fwog::ComputePipeline fullscreenBlurPipeline;
     Fwog::Texture indirectUnfilteredTex;
     Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
     Fwog::Texture indirectFilteredTex;

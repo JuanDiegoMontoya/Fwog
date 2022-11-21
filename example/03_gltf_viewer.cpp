@@ -330,6 +330,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   GlobalUniforms mainCameraUniforms{};
   mainCameraUniforms.viewProj = proj * mainCamera.GetViewMatrix();
   mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
+  mainCameraUniforms.proj = proj;
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
 
   globalUniformsBuffer.SubData(mainCameraUniforms, 0);
@@ -431,6 +432,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     .invViewProj = mainCameraUniforms.invViewProj,
     .proj = proj,
     .cameraPos = glm::vec4(mainCamera.position, 0),
+    .viewDir = mainCamera.GetForwardDir(),
   };
 
   {

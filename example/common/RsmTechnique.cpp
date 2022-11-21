@@ -54,6 +54,12 @@ static Fwog::ComputePipeline CreateRsmReprojectPipeline()
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
+static Fwog::ComputePipeline CreateFullscreenBlurPipeline()
+{
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/rsm/Bilateral3x3.comp.glsl"));
+  return Fwog::ComputePipeline({.shader = &cs});
+}
+
 namespace RSM
 {
   RsmTechnique::RsmTechnique(uint32_t width, uint32_t height)
@@ -66,9 +72,11 @@ namespace RSM
       cameraUniformBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
       reprojectionUniformBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
       rsmUniformBuffer(rsmUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
+      filterUniformBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
       rsmIndirectPipeline(CreateRsmIndirectPipeline()),
       rsmIndirectFilteredPipeline(CreateRsmIndirectFilteredPipeline()),
       rsmReprojectPipeline(CreateRsmReprojectPipeline()),
+      fullscreenBlurPipeline(CreateFullscreenBlurPipeline()),
       indirectUnfilteredTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectUnfilteredTexPrev(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectFilteredTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
@@ -173,7 +181,29 @@ namespace RSM
           rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
                                    Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
+          Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
+          Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+        }
+
+        // Apply a 3x3 bilateral filter on the image before temporal accumulation.
+        {
+          Fwog::ScopedDebugMarker marker2("Fullscreen Blur");
+          FilterUniforms filterUniforms = {
+            .proj = cameraUniforms.proj,
+            .invViewProj = cameraUniforms.invViewProj,
+            .viewDir = cameraUniforms.viewDir,
+            .stepWidth = 1,
+            .targetDim = {indirectUnfilteredTex.Extent().width, indirectFilteredTex.Extent().height},
+          };
+          filterUniformBuffer.SubDataTyped(filterUniforms);
+
+          Fwog::Cmd::BindComputePipeline(fullscreenBlurPipeline);
+          Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(1, gNormal, nearestSampler);
+          Fwog::Cmd::BindSampledImage(2, gDepth, nearestSampler);
+          Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
           Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         }
 
@@ -184,8 +214,11 @@ namespace RSM
             .invViewProjCurrent = cameraUniforms.invViewProj,
             .viewProjPrevious = viewProjPrevious,
             .invViewProjPrevious = glm::inverse(viewProjPrevious),
+            .proj = cameraUniforms.proj,
+            .viewDir = cameraUniforms.viewDir,
+            .temporalWeightFactor = temporalAlpha,
             .targetDim = {indirectUnfilteredTex.Extent().width, indirectUnfilteredTex.Extent().height},
-            .temporalWeightFactor = temporalAlpha};
+          };
           viewProjPrevious = cameraUniforms.viewProj;
           reprojectionUniformBuffer.SubDataTyped(reprojectionUniforms);
           Fwog::Cmd::BindComputePipeline(rsmReprojectPipeline);
