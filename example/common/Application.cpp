@@ -150,6 +150,7 @@ Application::Application(const CreateInfo& createInfo)
   window = glfwCreateWindow(int(videoMode->width * .75), int(videoMode->height * .75), createInfo.name.data(), nullptr, nullptr);
   if (!window)
   {
+    glfwTerminate();
     throw std::runtime_error("Failed to create window");
   }
 
