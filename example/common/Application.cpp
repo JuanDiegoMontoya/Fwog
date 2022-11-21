@@ -160,6 +160,8 @@ Application::Application(const CreateInfo& createInfo)
   windowWidth = static_cast<uint32_t>(xSize);
   windowHeight = static_cast<uint32_t>(ySize);
 
+  glfwSetWindowPos(window, videoMode->width / 2 - windowWidth / 2, videoMode->height / 2 - windowHeight / 2);
+
   glfwSetWindowUserPointer(window, this);
   glfwMakeContextCurrent(window);
   glfwSwapInterval(createInfo.vsync ? 1 : 0);
