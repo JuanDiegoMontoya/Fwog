@@ -14,7 +14,6 @@
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
-#include <Fwog/DebugMarker.h>
 #include <Fwog/Pipeline.h>
 #include <Fwog/Rendering.h>
 #include <Fwog/Shader.h>
@@ -416,7 +415,6 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .stencilAttachment = nullptr,
   });
   {
-    Fwog::ScopedDebugMarker marker("Geometry");
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
     Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
     Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
@@ -452,7 +450,6 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .stencilAttachment = nullptr,
   });
   {
-    Fwog::ScopedDebugMarker marker("RSM Scene");
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
     Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
     Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
@@ -510,7 +507,6 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .clearStencilOnLoad = false,
   });
   {
-    Fwog::ScopedDebugMarker marker("Shading");
     Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
     Fwog::Cmd::BindSampledImage(0, *frame.gAlbedo, nearestSampler);
     Fwog::Cmd::BindSampledImage(1, *frame.gNormal, nearestSampler);

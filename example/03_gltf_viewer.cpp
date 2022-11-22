@@ -480,7 +480,6 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     .clearStencilOnLoad = false,
   });
   {
-    Fwog::ScopedDebugMarker marker("Shading");
     Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
     Fwog::Cmd::BindSampledImage(0, *frame.gAlbedo, nearestSampler);
     Fwog::Cmd::BindSampledImage(1, *frame.gNormal, nearestSampler);
