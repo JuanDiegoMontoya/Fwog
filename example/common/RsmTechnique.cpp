@@ -225,9 +225,9 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
           Fwog::Cmd::BindSampledImage(1, indirectUnfilteredTexPrev, linearSampler);
           Fwog::Cmd::BindSampledImage(2, gDepth, nearestSampler);
-          Fwog::Cmd::BindSampledImage(3, gDepthPrev, nearestSampler);
+          Fwog::Cmd::BindSampledImage(3, gDepthPrev, linearSampler);
           Fwog::Cmd::BindSampledImage(4, gNormal, nearestSampler);
-          Fwog::Cmd::BindSampledImage(5, gNormalPrev, nearestSampler);
+          Fwog::Cmd::BindSampledImage(5, gNormalPrev, linearSampler);
           Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
           Fwog::Cmd::BindImage(1, historyLengthTex, 0);
           Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
