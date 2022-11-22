@@ -91,7 +91,7 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
     // offset samples, but we do because it is important for the new filtering step.
 
     // Apply Cranley-Pattern rotation/toroidal shift with per-pixel noise
-    xi = mod(xi + vec2(noise.xy), vec2(1.0));
+    xi = fract(xi + noise.xy);
 
     float r = xi.x;
     float theta = xi.y * TWO_PI;

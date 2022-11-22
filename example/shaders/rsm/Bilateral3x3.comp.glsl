@@ -40,14 +40,6 @@ float GetViewDepth(float depth, mat4 proj)
   return proj[3][2] / (proj[2][2] + (depth * 2.0 - 1.0));
 }
 
-float LinearizeDepth(float depth, mat4 proj)
-{
-  float near = GetViewDepth(0, proj);
-  float far = GetViewDepth(1, proj);
-  float actual = GetViewDepth(depth, proj);
-  return (actual - near) / (far - near); // Map from [near, far] to [0, 1]
-}
-
 void AddFilterContribution(inout vec3 accumDiffuseIndirect,
                            inout float accumWeight,
                            vec3 cColor,
@@ -68,7 +60,7 @@ void AddFilterContribution(inout vec3 accumDiffuseIndirect,
 
   vec3 oColor = texelFetch(s_diffuseIrradiance, id, 0).rgb;
   vec3 oNormal = texelFetch(s_gBufferNormal, id, 0).xyz;
-  float oDepth = LinearizeDepth(texelFetch(s_gBufferDepth, id, 0).x, uniforms.proj);
+  float oDepth = GetViewDepth(texelFetch(s_gBufferDepth, id, 0).x, uniforms.proj);
 
   float normalDist = max(0, dot(cNormal, oNormal));
   float normalWeight = normalDist * normalDist;
@@ -101,7 +93,7 @@ void main()
 
   vec3 cColor = texelFetch(s_diffuseIrradiance, gid, 0).rgb;
   vec3 cNormal = texelFetch(s_gBufferNormal, gid, 0).xyz;
-  float cDepth = LinearizeDepth(texelFetch(s_gBufferDepth, gid, 0).x, uniforms.proj);
+  float cDepth = GetViewDepth(texelFetch(s_gBufferDepth, gid, 0).x, uniforms.proj);
 
   vec3 accumDiffuseIndirect = vec3(0);
   float accumWeight = 0;
