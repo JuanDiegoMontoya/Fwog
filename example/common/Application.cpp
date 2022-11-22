@@ -284,15 +284,18 @@ void Application::Run()
       OnGui(dt);
     }
 
-    glDisable(GL_FRAMEBUFFER_SRGB);
-
     // Updates ImGui.
     // A frame marker is inserted to distinguish ImGui rendering from the application's in a debugger.
     {
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
       ImGui::Render();
-      auto marker = Fwog::ScopedDebugMarker("Draw GUI");
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+      auto* drawData = ImGui::GetDrawData();
+      if (drawData->CmdListsCount > 0)
+      {
+        auto marker = Fwog::ScopedDebugMarker("Draw GUI");
+        glDisable(GL_FRAMEBUFFER_SRGB);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        ImGui_ImplOpenGL3_RenderDrawData(drawData);
+      }
       ImGui::EndFrame();
     }
 
