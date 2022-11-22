@@ -148,6 +148,11 @@ Application::Application(const CreateInfo& createInfo)
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
   window = glfwCreateWindow(int(videoMode->width * .75), int(videoMode->height * .75), createInfo.name.data(), nullptr, nullptr);
+  if (!window)
+  {
+    glfwTerminate();
+    throw std::runtime_error("Failed to create window");
+  }
 
   int xSize{};
   int ySize{};
@@ -155,10 +160,7 @@ Application::Application(const CreateInfo& createInfo)
   windowWidth = static_cast<uint32_t>(xSize);
   windowHeight = static_cast<uint32_t>(ySize);
 
-  if (!window)
-  {
-    throw std::runtime_error("Failed to create window");
-  }
+  glfwSetWindowPos(window, videoMode->width / 2 - windowWidth / 2, videoMode->height / 2 - windowHeight / 2);
 
   glfwSetWindowUserPointer(window, this);
   glfwMakeContextCurrent(window);
