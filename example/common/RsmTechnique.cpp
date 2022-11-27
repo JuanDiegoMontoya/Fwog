@@ -50,7 +50,7 @@ static Fwog::ComputePipeline CreateRsmIndirectFilteredPipeline()
 
 static Fwog::ComputePipeline CreateRsmReprojectPipeline()
 {
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/rsm/Reproject.comp.glsl"));
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/rsm/Reproject2.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
@@ -231,6 +231,8 @@ namespace RSM
           Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
           Fwog::Cmd::BindImage(1, historyLengthTex, 0);
           Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
+          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
+                                   Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         }
 
