@@ -1,5 +1,5 @@
 #version 460 core
-#extension GL_ARB_bindless_texture : enable
+#extension GL_ARB_bindless_texture : require
 #extension GL_GOOGLE_include_directive : enable
 
 #include "Common.h"
