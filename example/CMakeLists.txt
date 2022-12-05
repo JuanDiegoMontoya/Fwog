@@ -8,12 +8,12 @@ add_executable(01_hello_triangle "01_hello_triangle.cpp" common/Application.cpp 
 target_link_libraries(01_hello_triangle PRIVATE glfw lib_glad fwog glm lib_imgui)
 
 add_executable(02_deferred "02_deferred.cpp" common/Application.cpp common/Application.h "common/RsmTechnique.h" "common/RsmTechnique.cpp")
-target_include_directories(02_deferred PUBLIC ${tinygltf_SOURCE_DIR})
+target_include_directories(02_deferred PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(02_deferred PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(02_deferred copy_shaders copy_textures)
 
 add_executable(03_gltf_viewer "03_gltf_viewer.cpp" common/Application.cpp common/Application.h common/SceneLoader.cpp common/SceneLoader.h "common/RsmTechnique.h" "common/RsmTechnique.cpp")
-target_include_directories(03_gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR})
+target_include_directories(03_gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(03_gltf_viewer PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(03_gltf_viewer copy_shaders copy_models copy_textures)
 

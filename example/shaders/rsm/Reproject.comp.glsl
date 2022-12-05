@@ -47,7 +47,10 @@ float RejectDepth4(vec3 reprojectedUV)
   // https://www.desmos.com/calculator/6qb6expmgq
   vec3 normalPrev = textureLod(s_gNormalPrev, reprojectedUV.xy, 0).xyz;
 
-  float angleFactor = max(0, -dot(normalPrev, uniforms.viewDir));
+  vec3 fn = UnprojectUV(.4, reprojectedUV.xy, uniforms.invViewProjCurrent);
+  vec3 fp = UnprojectUV(.6, reprojectedUV.xy, uniforms.invViewProjCurrent);
+  vec3 testDir = normalize(fp - fn);
+  float angleFactor = max(0, -dot(normalPrev, testDir));
 
   // Cutoff in view space, inversely scaled by angleFactor
   const float cutoff = 0.1;

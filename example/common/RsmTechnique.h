@@ -43,10 +43,13 @@ namespace RSM
 
     int rsmSamples = 400;
     int rsmFilteredSamples = 1;
-    int rsmFilterPasses = 1;
-    int rsmBoxBlurPasses = 1;
     float rMax = 0.2f;
-    float temporalAlpha = 0;
+    float spatialFilterStep = 1.0f;
+    float alphaIlluminance = 0.1f;
+    float alphaMoments = 0.1f;
+    float phiLuminance = 1.0f;
+    float phiNormal = 0.3f;
+    float phiDepth = 0.1f;
     bool rsmFiltered = false;
     bool rsmFilteredSkipAlbedoModulation = false;
     bool seedEachFrame = true;
@@ -60,9 +63,8 @@ namespace RSM
       float rMax;
       uint32_t currentPass;
       uint32_t samples;
-      float random;
       uint32_t _padding00;
-      uint32_t _padding01;
+      glm::vec2 random;
     };
 
     struct ReprojectionUniforms
@@ -71,9 +73,13 @@ namespace RSM
       glm::mat4 viewProjPrevious;
       glm::mat4 invViewProjPrevious;
       glm::mat4 proj;
-      glm::vec3 viewDir;
+      glm::vec3 viewPos;
       float temporalWeightFactor;
       glm::ivec2 targetDim;
+      float alphaIlluminance;
+      float alphaMoments;
+      float phiDepth;
+      float phiNormal;
       uint32_t _padding00;
       uint32_t _padding01;
     };
@@ -82,13 +88,20 @@ namespace RSM
     {
       glm::mat4 proj;
       glm::mat4 invViewProj;
-      glm::vec3 viewDir;
+      glm::vec3 viewPos;
       float stepWidth;
       glm::ivec2 targetDim;
+      float phiLuminance;
+      float phiNormal;
+      float phiDepth;
+      uint32_t _padding00;
+      uint32_t _padding01;
+      uint32_t _padding02;
     };
 
     glm::mat4 viewProjPrevious{1};
-    glm::uint seed;
+    glm::uint seedX;
+    glm::uint seedY;
     RsmUniforms rsmUniforms;
     Fwog::TypedBuffer<RsmUniforms> rsmUniformBuffer;
     Fwog::TypedBuffer<CameraUniforms> cameraUniformBuffer;
@@ -97,12 +110,17 @@ namespace RSM
     Fwog::ComputePipeline rsmIndirectPipeline;
     Fwog::ComputePipeline rsmIndirectFilteredPipeline;
     Fwog::ComputePipeline rsmReprojectPipeline;
-    Fwog::ComputePipeline fullscreenBlurPipeline;
+    Fwog::ComputePipeline bilateral3x3Pipeline;
+    Fwog::ComputePipeline bilateral5x5Pipeline;
+    Fwog::ComputePipeline variancePipeline;
     Fwog::Texture indirectUnfilteredTex;
     Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
     Fwog::Texture indirectFilteredTex;
     Fwog::Texture indirectFilteredTexPingPong;
     Fwog::Texture historyLengthTex;
+    Fwog::Texture momentsTex;
+    Fwog::Texture momentsHistoryTex;
+    Fwog::Texture varianceTex;
     std::optional<Fwog::Texture> noiseTex;
   };
 } // namespace RSM
