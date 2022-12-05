@@ -86,6 +86,12 @@ static Fwog::ComputePipeline CreateVariancePipeline()
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
+static Fwog::ComputePipeline CreateModulatePipeline()
+{
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/Modulate.comp.glsl"));
+  return Fwog::ComputePipeline({.shader = &cs});
+}
+
 namespace RSM
 {
   RsmTechnique::RsmTechnique(uint32_t width, uint32_t height)
@@ -106,6 +112,7 @@ namespace RSM
       bilateral3x3Pipeline(CreateBilateral3x3Pipeline()),
       bilateral5x5Pipeline(CreateBilateral5x5Pipeline()),
       variancePipeline(CreateVariancePipeline()),
+      modulatePipeline(CreateModulatePipeline()),
       indirectUnfilteredTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectUnfilteredTexPrev(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectFilteredTex(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
@@ -303,7 +310,6 @@ namespace RSM
             .phiDepth = phiDepth,
           };
 
-
           // The output of the first filter pass gets stored in the history
           filterUniforms.stepWidth = 1 * spatialFilterStep;
           filterUniformBuffer.SubDataTyped(filterUniforms);
@@ -341,27 +347,18 @@ namespace RSM
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         }
 
-        Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
-        Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
-        Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
-        Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
-        Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
-        Fwog::Cmd::BindSampledImage(4, rsmFlux, nearestSamplerClamped);
-        Fwog::Cmd::BindSampledImage(5, rsmNormal, nearestSampler);
-        Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer, 0, cameraUniformBuffer.Size());
-
         if (!rsmFilteredSkipAlbedoModulation)
         {
           Fwog::ScopedDebugMarker marker2("Modulate Albedo");
-          currentPass = 5;
-          rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
+          Fwog::Cmd::BindComputePipeline(modulatePipeline);
           Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
           Fwog::Cmd::BindImage(0, indirectFilteredTexPingPong, 0);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+          std::swap(indirectFilteredTex, indirectFilteredTexPingPong);
         }
 
-        std::swap(indirectFilteredTex, indirectFilteredTexPingPong);
       }
       else // Unfiltered RSM: the original paper
       {

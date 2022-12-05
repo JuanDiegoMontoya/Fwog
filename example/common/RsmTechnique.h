@@ -45,8 +45,8 @@ namespace RSM
     int rsmFilteredSamples = 1;
     float rMax = 0.2f;
     float spatialFilterStep = 1.0f;
-    float alphaIlluminance = 0.1f;
-    float alphaMoments = 0.1f;
+    float alphaIlluminance = 0.05f;
+    float alphaMoments = 0.05f;
     float phiLuminance = 1.0f;
     float phiNormal = 0.3f;
     float phiDepth = 0.1f;
@@ -113,6 +113,7 @@ namespace RSM
     Fwog::ComputePipeline bilateral3x3Pipeline;
     Fwog::ComputePipeline bilateral5x5Pipeline;
     Fwog::ComputePipeline variancePipeline;
+    Fwog::ComputePipeline modulatePipeline;
     Fwog::Texture indirectUnfilteredTex;
     Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
     Fwog::Texture indirectFilteredTex;

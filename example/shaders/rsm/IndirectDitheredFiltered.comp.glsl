@@ -4,7 +4,6 @@
 #define TWO_PI (2.0 * PI)
 
 layout(binding = 0) uniform sampler2D s_inIndirect;
-layout(binding = 1) uniform sampler2D s_gAlbedo;
 layout(binding = 2) uniform sampler2D s_gNormal;
 layout(binding = 3) uniform sampler2D s_gDepth;
 layout(binding = 4) uniform sampler2D s_rsmFlux;
@@ -32,15 +31,6 @@ layout(binding = 1, std140) uniform RSMUniforms
   uint samples;
   vec2 random;
 } rsm;
-
-float LinearizeDepth(float depth)
-{
-  return proj[3][2] / (proj[2][2] + (2.0 * depth - 1.0));
-  /*float n = 0.1;
-  float f = 100.0;
-  float z_ndc = 2.0 * depth - 1.0;
-  return 2.0 * n * f / (f + n - z_ndc * (f - n));*/
-}
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
@@ -70,7 +60,7 @@ vec3 ComputePixelLight(vec3 surfaceWorldPos, vec3 surfaceNormal, vec3 rsmFlux, v
   return rsmFlux * geometry / (d * d * d * d);
 }
 
-vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surfaceWorldPos, vec2 noise)
+vec3 ComputeIndirectIrradiance(vec3 surfaceNormal, vec3 surfaceWorldPos, vec2 noise)
 {
   vec3 sumC = {0, 0, 0};
 
@@ -108,124 +98,32 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceAlbedo, vec3 surfaceNormal, vec3 surf
   return normalizationFactor * sumC / rsm.samples;
 }
 
-vec3 Tap(in sampler2D tex, ivec2 coord, ivec2 offset, vec3 src_normal, float src_depth, inout float sum_weight)
-{
-  vec3 result = vec3(0);
-  vec3 normal = texelFetch(s_gNormal, coord + offset, 0).xyz;
-  float depth = LinearizeDepth(texelFetch(s_gDepth, coord + offset, 0).x);
-  if (dot(normal, src_normal) >= 0.9 && abs(depth - src_depth) < 0.1)
-  {
-    result = texelFetch(tex, coord + offset, 0).xyz;
-    sum_weight += 1.0;
-  }
-  return result;
-}
-
-vec3 FilterSubsampled(in sampler2D tex, ivec2 coord, int pattern, int step_size)
-{
-  float sum_weight = 1.0;
-  vec3 sum = vec3(0);
-  sum += texelFetch(tex, coord, 0).xyz;
-  vec3 normal = texelFetch(s_gNormal, coord, 0).xyz;
-  float depth = LinearizeDepth(texelFetch(s_gDepth, coord, 0).x);
-  if (pattern == 0)
-  {
-    sum += Tap(tex, coord, ivec2(-2, 0) * step_size, normal, depth, sum_weight).xyz;
-    sum += Tap(tex, coord, ivec2(2, 0) * step_size, normal, depth, sum_weight).xyz;
-  }
-  else
-  {
-    sum += Tap(tex, coord, ivec2(0, -2) * step_size, normal, depth, sum_weight).xyz;
-    sum += Tap(tex, coord, ivec2(0, 2) * step_size, normal, depth, sum_weight).xyz;
-  }
-  sum += Tap(tex, coord, ivec2(-1, 1) * step_size, normal, depth, sum_weight).xyz;
-  sum += Tap(tex, coord, ivec2(1, 1) * step_size, normal, depth, sum_weight).xyz;
-  sum += Tap(tex, coord, ivec2(-1, -1) * step_size, normal, depth, sum_weight).xyz;
-  sum += Tap(tex, coord, ivec2(1, -1) * step_size, normal, depth, sum_weight).xyz;
-  return sum / sum_weight;
-}
-
-vec3 FilterBoxX(in sampler2D tex, ivec2 coord)
-{
-  float sum_weight = 1.0;
-  vec3 sum = texelFetch(tex, coord, 0).xyz;
-  vec3 normal = texelFetch(s_gNormal, coord, 0).xyz;
-  float depth = LinearizeDepth(texelFetch(s_gDepth, coord, 0).x);
-  sum += Tap(tex, coord, ivec2(-2, 0), normal, depth, sum_weight).xyz +
-         Tap(tex, coord, ivec2(-1, 0), normal, depth, sum_weight).xyz +
-         Tap(tex, coord, ivec2(1, 0), normal, depth, sum_weight).xyz +
-         Tap(tex, coord, ivec2(2, 0), normal, depth, sum_weight).xyz;
-  return sum / sum_weight;
-}
-
-vec3 FilterBoxY(in sampler2D tex, ivec2 coord)
-{
-  float sum_weight = 1.0;
-  vec3 sum = texelFetch(tex, coord, 0).xyz;
-  vec3 normal = texelFetch(s_gNormal, coord, 0).xyz;
-  float depth = LinearizeDepth(texelFetch(s_gDepth, coord, 0).x);
-  sum += Tap(tex, coord, ivec2(0, -2), normal, depth, sum_weight).xyz +
-         Tap(tex, coord, ivec2(0, -1), normal, depth, sum_weight).xyz +
-         Tap(tex, coord, ivec2(0, 1), normal, depth, sum_weight).xyz +
-         Tap(tex, coord, ivec2(0, 2), normal, depth, sum_weight).xyz;
-  return sum / sum_weight;
-}
-
 layout(local_size_x = 8, local_size_y = 8) in;
 void main()
 {
   ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
 
   if (any(greaterThanEqual(gid, rsm.targetDim)))
+  {
     return;
+  }
+
   vec2 texel = 1.0 / rsm.targetDim;
   vec2 uv = (vec2(gid) + 0.5) / rsm.targetDim;
 
   vec2 noise = rsm.random + textureLod(s_blueNoise, (vec2(gid) + 0.5) / textureSize(s_blueNoise, 0), 0).xy;
 
-  vec3 ambient = vec3(0);
+  vec3 normal = texelFetch(s_gNormal, gid, 0).xyz;
+  float depth = texelFetch(s_gDepth, gid, 0).x;
+  vec3 worldPos = UnprojectUV(depth, uv, invViewProj);
 
-  vec3 albedo = texelFetch(s_gAlbedo, gid, 0).rgb;
-
-  if (rsm.currentPass == 0)
+  if (depth == 1.0)
   {
-    vec3 normal = texelFetch(s_gNormal, gid, 0).xyz;
-    float depth = texelFetch(s_gDepth, gid, 0).x;
-    vec3 worldPos = UnprojectUV(depth, uv, invViewProj);
-
-    if (depth == 1.0)
-    {
-      imageStore(i_outIndirect, gid, vec4(0.0));
-      return;
-    }
-
-    ambient = ComputeIndirectIrradiance(albedo, normal, worldPos, noise);
+    imageStore(i_outIndirect, gid, vec4(0.0));
+    return;
   }
-  else
-  {
-    if (rsm.currentPass == 1)
-    {
-      ambient = FilterSubsampled(s_inIndirect, gid, 0, 5);
-    }
-    else if (rsm.currentPass == 2)
-    {
-      ambient = FilterSubsampled(s_inIndirect, gid, 1, 5);
-    }
-    else if (rsm.currentPass == 3)
-    {
-      ambient = FilterBoxX(s_inIndirect, gid);
-    }
-    else if (rsm.currentPass == 4)
-    {
-      ambient = FilterBoxY(s_inIndirect, gid);
-    }
-    else if (rsm.currentPass == 5)
-    {
-      // Apply albedo after filtering so we don't blur textures
-      ambient = texelFetch(s_inIndirect, gid, 0).xyz;
-      ambient *= albedo;
-    }
-  }
+
+  vec3 ambient = ComputeIndirectIrradiance(normal, worldPos, noise);
 
   imageStore(i_outIndirect, gid, vec4(ambient, 1.0));
 }
