@@ -344,15 +344,21 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   // Render scene geometry to the g-buffer
   {
-    Fwog::RenderAttachment gAlbedoAttachment{.texture = &frame.gAlbedo.value(),
+    Fwog::RenderAttachment gAlbedoAttachment{
+      .texture = &frame.gAlbedo.value(),
                                             .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
-                                            .clearOnLoad = true};
-    Fwog::RenderAttachment gNormalAttachment{.texture = &frame.gNormal.value(),
+      .clearOnLoad = true,
+    };
+    Fwog::RenderAttachment gNormalAttachment{
+      .texture = &frame.gNormal.value(),
                                              .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
-                                             .clearOnLoad = false};
-    Fwog::RenderAttachment gDepthAttachment{.texture = &frame.gDepth.value(),
+      .clearOnLoad = false,
+    };
+    Fwog::RenderAttachment gDepthAttachment{
+      .texture = &frame.gDepth.value(),
                                             .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
-                                            .clearOnLoad = true};
+      .clearOnLoad = true,
+    };
     Fwog::RenderAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
     Fwog::BeginRendering({
       .name = "Base Pass",
@@ -386,15 +392,21 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   // Shadow map (RSM) scene pass
   {
-    Fwog::RenderAttachment rcolorAttachment{.texture = &rsmFlux,
+    Fwog::RenderAttachment rcolorAttachment{
+      .texture = &rsmFlux,
                                             .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
-                                            .clearOnLoad = false};
-    Fwog::RenderAttachment rnormalAttachment{.texture = &rsmNormal,
+      .clearOnLoad = false,
+    };
+    Fwog::RenderAttachment rnormalAttachment{
+      .texture = &rsmNormal,
                                              .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
-                                             .clearOnLoad = false};
-    Fwog::RenderAttachment rdepthAttachment{.texture = &rsmDepth,
+      .clearOnLoad = false,
+    };
+    Fwog::RenderAttachment rdepthAttachment{
+      .texture = &rsmDepth,
                                             .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
-                                            .clearOnLoad = true};
+      .clearOnLoad = true,
+    };
     Fwog::RenderAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
     Fwog::BeginRendering({
       .name = "RSM Scene",

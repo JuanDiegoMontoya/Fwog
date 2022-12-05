@@ -14,21 +14,27 @@ namespace Fwog::detail
 
     GraphicsPipelineInfoOwning MakePipelineInfoOwning(const GraphicsPipelineInfo& info)
     {
-      return GraphicsPipelineInfoOwning{.name = std::string(info.name),
-                                        .inputAssemblyState = info.inputAssemblyState,
-                                        .vertexInputState = {{info.vertexInputState.vertexBindingDescriptions.begin(),
-                                                              info.vertexInputState.vertexBindingDescriptions.end()}},
-                                        .rasterizationState = info.rasterizationState,
-                                        .depthState = info.depthState,
-                                        .stencilState = info.stencilState,
-                                        .colorBlendState{.logicOpEnable = info.colorBlendState.logicOpEnable,
-                                                         .logicOp = info.colorBlendState.logicOp,
-                                                         .attachments = {info.colorBlendState.attachments.begin(),
-                                                                         info.colorBlendState.attachments.end()},
-                                                         .blendConstants = {info.colorBlendState.blendConstants[0],
-                                                                            info.colorBlendState.blendConstants[1],
-                                                                            info.colorBlendState.blendConstants[2],
-                                                                            info.colorBlendState.blendConstants[3]}}};
+      return GraphicsPipelineInfoOwning{
+        .name = std::string(info.name),
+        .inputAssemblyState = info.inputAssemblyState,
+        .vertexInputState = {{info.vertexInputState.vertexBindingDescriptions.begin(),
+                              info.vertexInputState.vertexBindingDescriptions.end()}},
+        .rasterizationState = info.rasterizationState,
+        .depthState = info.depthState,
+        .stencilState = info.stencilState,
+        .colorBlendState{
+          .logicOpEnable = info.colorBlendState.logicOpEnable,
+          .logicOp = info.colorBlendState.logicOp,
+          .attachments = {info.colorBlendState.attachments.begin(), info.colorBlendState.attachments.end()},
+          .blendConstants =
+            {
+              info.colorBlendState.blendConstants[0],
+              info.colorBlendState.blendConstants[1],
+              info.colorBlendState.blendConstants[2],
+              info.colorBlendState.blendConstants[3],
+            },
+        },
+      };
     }
 
     bool LinkProgram(GLuint program, std::string& outInfoLog)

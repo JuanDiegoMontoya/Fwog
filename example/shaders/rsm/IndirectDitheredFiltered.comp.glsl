@@ -30,9 +30,8 @@ layout(binding = 1, std140) uniform RSMUniforms
   float rMax;       // max radius for which indirect lighting will be considered
   uint currentPass; // used to determine which pixels to shade
   uint samples;
-  float random;
-  // clang-format off
-} rsm; // clang-format on
+  vec2 random;
+} rsm;
 
 float LinearizeDepth(float depth)
 {

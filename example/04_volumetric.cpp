@@ -73,8 +73,7 @@ struct View
 glm::mat4 InfReverseZPerspectiveRH(float fovY_radians, float aspectWbyH, float zNear)
 {
   float f = 1.0f / tan(fovY_radians / 2.0f);
-  return glm::
-      mat4(f / aspectWbyH, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, zNear, 0.0f);
+  return glm::mat4(f / aspectWbyH, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, zNear, 0.0f);
 }
 
 struct ObjectUniforms
@@ -214,8 +213,7 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 {
   auto vertexShader =
       Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Utility::LoadFile("shaders/FullScreenTri.vert.glsl"));
-  auto fragmentShader =
-      Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/Texture.frag.glsl"));
+  auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Utility::LoadFile("shaders/Texture.frag.glsl"));
 
   return Fwog::GraphicsPipeline({
       .vertexShader = &vertexShader,
@@ -500,11 +498,13 @@ private:
 
 void RenderScene(std::optional<std::string_view> fileName, float scale, bool binary)
 {
-  GLFWwindow* window = Utility::CreateWindow({.name = "Volumetric Fog Example",
+  GLFWwindow* window = Utility::CreateWindow({
+    .name = "Volumetric Fog Example",
                                               .maximize = false,
                                               .decorate = true,
                                               .width = gWindowWidth,
-                                              .height = gWindowHeight});
+    .height = gWindowHeight,
+  });
   Utility::InitOpenGL();
 
   ImGui::CreateContext();
