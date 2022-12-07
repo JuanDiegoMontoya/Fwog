@@ -4,7 +4,7 @@ layout(binding = 0) uniform sampler2D s_gAlbedo;
 layout(binding = 1) uniform sampler2D s_gNormal;
 layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2D s_rsmIndirect;
-layout(binding = 4) uniform sampler2DShadow s_rsmDepthShadow;
+layout(binding = 4) uniform sampler2D s_rsmDepth;
 
 layout(location = 0) in vec2 v_uv;
 
@@ -45,9 +45,28 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
   return world.xyz / world.w;
 }
 
-float Shadow(vec4 clip)
+float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
 {
-  return textureProj(s_rsmDepthShadow, clip * .5 + .5);
+  vec2 uv = clip.xy * .5 + .5;
+  if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+  {
+    return 0;
+  }
+
+  float viewDepth = clip.z * .5 + .5;
+  float lightDepth = textureLod(s_rsmDepth, uv, 0).x;
+
+  float constantFactor = 0.0002;
+  float angleFactor = 0.001 * (1.0 - dot(-shadingUniforms.sunDir.xyz, normal));
+  lightDepth += angleFactor + constantFactor;
+  
+  float lightOcclusion = 0.0;
+  if (lightDepth >= viewDepth)
+  {
+    lightOcclusion += 1.0;
+  }
+
+  return lightOcclusion;
 }
 
 float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
@@ -99,7 +118,8 @@ void main()
   vec3 incidentDir = -shadingUniforms.sunDir.xyz;
   float cosTheta = max(0.0, dot(incidentDir, normal));
   vec3 diffuse = albedo * cosTheta * shadingUniforms.sunStrength.rgb;
-  float shadow = Shadow(shadingUniforms.sunViewProj * vec4(fragWorldPos, 1.0));
+
+  float shadow = Shadow(shadingUniforms.sunViewProj * vec4(fragWorldPos, 1.0), normal, shadingUniforms.sunDir.xyz);
   
   vec3 viewDir = normalize(cameraPos.xyz - fragWorldPos);
   //vec3 reflectDir = reflect(-incidentDir, normal);

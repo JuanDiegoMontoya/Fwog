@@ -4,7 +4,7 @@ layout(binding = 0) uniform sampler2D s_gAlbedo;
 layout(binding = 1) uniform sampler2D s_gNormal;
 layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2D s_rsmIndirect;
-layout(binding = 4) uniform sampler2DShadow s_rsmDepthShadow;
+layout(binding = 4) uniform sampler2D s_rsmDepthShadow;
 
 layout(location = 0) in vec2 v_uv;
 
@@ -31,9 +31,28 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
   return world.xyz / world.w;
 }
 
-float Shadow(vec4 clip)
+float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
 {
-  return textureProj(s_rsmDepthShadow, clip * .5 + .5);
+  vec2 uv = clip.xy * .5 + .5;
+  if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+  {
+    return 0;
+  }
+
+  float viewDepth = clip.z * .5 + .5;
+  float lightDepth = textureLod(s_rsmDepthShadow, uv, 0).x;
+
+  float constantFactor = 0.001;
+  float angleFactor = 0.0015 * (1.0 - dot(-shadingUniforms.sunDir.xyz, normal));
+  lightDepth += angleFactor + constantFactor;
+  
+  float lightOcclusion = 0.0;
+  if (lightDepth >= viewDepth)
+  {
+    lightOcclusion += 1.0;
+  }
+
+  return lightOcclusion;
 }
 
 void main()
@@ -53,7 +72,7 @@ void main()
   vec3 incidentDir = -shadingUniforms.sunDir.xyz;
   float cosTheta = max(0.0, dot(incidentDir, normal));
   vec3 diffuse = albedo * cosTheta * shadingUniforms.sunStrength.rgb;
-  diffuse *= Shadow(shadingUniforms.sunViewProj * vec4(worldPos, 1.0));
+  diffuse *= Shadow(shadingUniforms.sunViewProj * vec4(worldPos, 1.0), normal, shadingUniforms.sunDir.xyz);
 
   //vec3 ambient = vec3(.03) * albedo;
   vec3 ambient = textureLod(s_rsmIndirect, v_uv, 0).rgb;

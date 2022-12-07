@@ -121,12 +121,6 @@ static Fwog::GraphicsPipeline CreateShadowPipeline()
     .vertexShader = &vs,
     .fragmentShader = &fs,
     .vertexInputState = {sceneInputBindingDescs},
-    .rasterizationState =
-      {
-        .depthBiasEnable = true,
-        .depthBiasConstantFactor = 3.0f,
-        .depthBiasSlopeFactor = 5.0f,
-      },
     .depthState = {.depthTestEnable = true, .depthWriteEnable = true},
   });
 }
@@ -319,12 +313,6 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   ss.addressModeV = Fwog::AddressMode::REPEAT;
   auto nearestSampler = Fwog::Sampler(ss);
 
-  ss.compareEnable = true;
-  ss.compareOp = Fwog::CompareOp::LESS;
-  ss.minFilter = Fwog::Filter::LINEAR;
-  ss.magFilter = Fwog::Filter::LINEAR;
-  auto rsmShadowSampler = Fwog::Sampler(ss);
-
   auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 100.f);
 
   GlobalUniforms mainCameraUniforms{};
@@ -497,7 +485,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindSampledImage(1, *frame.gNormal, nearestSampler);
     Fwog::Cmd::BindSampledImage(2, *frame.gDepth, nearestSampler);
     Fwog::Cmd::BindSampledImage(3, frame.rsm->GetIndirectLighting(), nearestSampler);
-    Fwog::Cmd::BindSampledImage(4, rsmDepth, rsmShadowSampler);
+    Fwog::Cmd::BindSampledImage(4, rsmDepth, nearestSampler);
     Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
     Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
     Fwog::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
