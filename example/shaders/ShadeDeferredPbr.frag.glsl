@@ -45,6 +45,16 @@ vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
   return world.xyz / world.w;
 }
 
+float hash(vec2 n)
+{ 
+	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+}
+
+vec2 Hammersley(uint i, uint N)
+{
+  return vec2(float(i) / float(N), float(bitfieldReverse(i)) * 2.3283064365386963e-10);
+}
+
 float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
 {
   vec2 uv = clip.xy * .5 + .5;
@@ -53,20 +63,31 @@ float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
     return 0;
   }
 
-  float viewDepth = clip.z * .5 + .5;
-  float lightDepth = textureLod(s_rsmDepth, uv, 0).x;
-
   float constantFactor = 0.0002;
   float angleFactor = 0.001 * (1.0 - dot(-shadingUniforms.sunDir.xyz, normal));
-  lightDepth += angleFactor + constantFactor;
-  
+
   float lightOcclusion = 0.0;
-  if (lightDepth >= viewDepth)
+
+  const int SAMPLES = 4;
+  for (int i = 0; i < SAMPLES; i++)
   {
-    lightOcclusion += 1.0;
+    float viewDepth = clip.z * .5 + .5;
+
+    vec2 xi = fract(Hammersley(i, SAMPLES) + hash(gl_FragCoord.xy));
+    float r = xi.x;
+    float theta = xi.y * 2.0 * 3.14159;
+    vec2 offset = 0.002 * vec2(r * cos(theta), r * sin(theta));
+    float lightDepth = textureLod(s_rsmDepth, uv + offset, 0).x;
+
+    lightDepth += angleFactor + constantFactor;
+    
+    if (lightDepth >= viewDepth)
+    {
+      lightOcclusion += 1.0;
+    }
   }
 
-  return lightOcclusion;
+  return lightOcclusion / SAMPLES;
 }
 
 float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
