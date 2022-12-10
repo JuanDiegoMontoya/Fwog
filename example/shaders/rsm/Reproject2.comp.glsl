@@ -69,7 +69,7 @@ void main()
   vec3 normalCur = texelFetch(s_gNormal, gid, 0).xyz;
 
   // Locate consistent samples to interpolate between in 2x2 area
-  ivec2 bottomLeftPos = ivec2(reprojectedUV.xy * uniforms.targetDim - (0.5 + 1.0 / 512.0));
+  ivec2 bottomLeftPos = ivec2(reprojectedUV.xy * uniforms.targetDim - 0.5);
   vec3 colors[2][2] = vec3[2][2](vec3[2](vec3(0), vec3(0)), vec3[2](vec3(0), vec3(0)));
   vec2 moments[2][2] = vec2[2][2](vec2[2](vec2(0), vec2(0)), vec2[2](vec2(0), vec2(0)));
   float valid[2][2] = float[2][2](float[2](0, 0), float[2](0, 0));
@@ -103,7 +103,7 @@ void main()
     }
   }
 
-  vec2 weight = fract(reprojectedUV.xy * uniforms.targetDim - (0.5 + 1.0 / 512.0));
+  vec2 weight = fract(reprojectedUV.xy * uniforms.targetDim - 0.5);
   vec3 curColor = texelFetch(s_indirectCurrent, gid, 0).rgb;
   float lum = Luminance(curColor);
   vec2 curMoments = { lum, lum * lum };
