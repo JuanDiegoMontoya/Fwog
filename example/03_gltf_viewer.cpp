@@ -172,6 +172,8 @@ private:
 
   // scene parameters
   float sunPosition = -1.127f;
+  float sunStrength = 5;
+  glm::vec3 sunColor = {1, 1, 1};
 
   // Resources tied to the swapchain/output size
   struct Frame
@@ -303,7 +305,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   shadingUniforms = ShadingUniforms{
     .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
-    .sunStrength = glm::vec4{5, 5, 5, 0},
+    .sunStrength = glm::vec4{sunStrength * sunColor, 0},
   };
 
   Fwog::SamplerState ss;
@@ -517,6 +519,8 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
 
   ImGui::SliderFloat("Sun Angle", &sunPosition, -2.7f, 0.5f);
+  ImGui::ColorEdit3("Sun Color", &sunColor[0], ImGuiColorEditFlags_Float);
+  ImGui::SliderFloat("Sun Strength", &sunStrength, 0, 20);
 
   ImGui::Separator();
 
