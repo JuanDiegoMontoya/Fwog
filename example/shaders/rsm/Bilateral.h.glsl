@@ -15,6 +15,7 @@ layout(binding = 0, std140) uniform FilterUniforms
   vec3 viewPos;
   float stepWidth;
   ivec2 targetDim;
+  ivec2 direction; // either (1, 0) or (0, 1)
   float phiLuminance;
   float phiNormal;
   float phiDepth;
@@ -31,20 +32,13 @@ void AddFilterContribution(inout vec3 accumDiffuseIndirect,
                            float cDepth,
                            float variance,
                            vec3 rayDir,
-                           uint row,
-                           uint col,
+                           ivec2 baseOffset,
+                           ivec2 offset,
                            ivec2 kernelStep,
+                           float kernelWeight,
+                           ivec2 id,
                            ivec2 gid)
 {
-  ivec2 baseOffset = ivec2(col - kRadius, row - kRadius);
-  ivec2 offset = baseOffset * kernelStep;
-  ivec2 id = gid + offset;
-  
-  if (any(greaterThanEqual(id, uniforms.targetDim)) || any(lessThan(id, ivec2(0))))
-  {
-    return;
-  }
-
   vec3 oColor = texelFetch(s_diffuseIrradiance, id, 0).rgb;
   float oLuminance = Luminance(oColor);
   vec3 oNormal = texelFetch(s_gBufferNormal, id, 0).xyz;
@@ -58,8 +52,8 @@ void AddFilterContribution(inout vec3 accumDiffuseIndirect,
   float luminanceWeight = LuminanceWeight(oLuminance, cLuminance, variance, uniforms.phiLuminance);
 luminanceWeight = 1;
   float weight = normalWeight * depthWeight * luminanceWeight;
-  accumDiffuseIndirect += oColor * weight * kernel[row][col];
-  accumWeight += weight * kernel[row][col];
+  accumDiffuseIndirect += oColor * weight * kernelWeight;
+  accumWeight += weight * kernelWeight;
 }
 
 float ComputeVarianceCenter(ivec2 ipos)
@@ -115,11 +109,55 @@ void main()
   uint historyLength = 1 + texelFetch(s_historyLength, gid, 0).x;
   ivec2 stepFactor = ivec2(max(1.0, 4.0 / historyLength));
 
-  for (int col = 0; col < kWidth; col++)
+  if (uniforms.direction == ivec2(0))
   {
-    for (int row = 0; row < kWidth; row++)
+    for (int col = 0; col < kWidth; col++)
+    {
+      for (int row = 0; row < kWidth; row++)
+      {
+        ivec2 kernelStep = stepFactor * ivec2(uniforms.stepWidth);
+        ivec2 baseOffset = ivec2(row - kRadius, col - kRadius);
+        ivec2 offset = baseOffset * kernelStep;
+        ivec2 id = gid + offset;
+        
+        if (any(greaterThanEqual(id, uniforms.targetDim)) || any(lessThan(id, ivec2(0))))
+        {
+          continue;
+        }
+
+        float kernelWeight = kernel[row][col];
+        AddFilterContribution(accumDiffuseIndirect,
+                              accumWeight,
+                              cColor,
+                              cLuminance,
+                              cNormal,
+                              cDepth,
+                              variance,
+                              rayDir,
+                              baseOffset,
+                              offset,
+                              kernelStep,
+                              kernelWeight,
+                              id,
+                              gid);
+      }
+    }
+  }
+  else
+  {
+    for (int i = 0; i < kWidth; i++)
     {
       ivec2 kernelStep = stepFactor * ivec2(uniforms.stepWidth);
+      ivec2 baseOffset = ivec2(i - kRadius) * uniforms.direction;
+      ivec2 offset = baseOffset * kernelStep;
+      ivec2 id = gid + offset;
+      
+      if (any(greaterThanEqual(id, uniforms.targetDim)) || any(lessThan(id, ivec2(0))))
+      {
+        continue;
+      }
+
+      float kernelWeight = kernel1D[i];
       AddFilterContribution(accumDiffuseIndirect,
                             accumWeight,
                             cColor,
@@ -128,9 +166,11 @@ void main()
                             cDepth,
                             variance,
                             rayDir,
-                            row,
-                            col,
+                            baseOffset,
+                            offset,
                             kernelStep,
+                            kernelWeight,
+                            id,
                             gid);
     }
   }

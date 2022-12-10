@@ -49,10 +49,11 @@ namespace RSM
     float alphaMoments = 0.05f;
     float phiLuminance = 1.0f;
     float phiNormal = 0.3f;
-    float phiDepth = 0.1f;
+    float phiDepth = 0.2f;
     bool rsmFiltered = false;
     bool rsmFilteredSkipAlbedoModulation = false;
     bool seedEachFrame = true;
+    bool useSeparableFilter = true;
 
   private:
     struct RsmUniforms
@@ -91,12 +92,11 @@ namespace RSM
       glm::vec3 viewPos;
       float stepWidth;
       glm::ivec2 targetDim;
+      glm::ivec2 direction;
       float phiLuminance;
       float phiNormal;
       float phiDepth;
       uint32_t _padding00;
-      uint32_t _padding01;
-      uint32_t _padding02;
     };
 
     glm::mat4 viewProjPrevious{1};
