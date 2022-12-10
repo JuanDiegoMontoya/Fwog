@@ -42,9 +42,16 @@ float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
   float viewDepth = clip.z * .5 + .5;
   float lightDepth = textureLod(s_rsmDepthShadow, uv, 0).x;
 
-  float constantFactor = 0.001;
-  float angleFactor = 0.0015 * (1.0 - dot(-shadingUniforms.sunDir.xyz, normal));
-  lightDepth += angleFactor + constantFactor;
+  // Analytically compute slope-scaled bias
+  const float maxBias = 0.0018;
+  const float quantize = 2.0 / (1 << 23);
+  ivec2 res = textureSize(s_rsmDepthShadow, 0);
+  float b = 1.0 / max(res.x, res.y) / 2.0;
+  float NoD = clamp(-dot(shadingUniforms.sunDir.xyz, normal), 0.0, 1.0);
+  float bias = quantize + b * length(cross(-shadingUniforms.sunDir.xyz, normal)) / NoD;
+  bias = min(bias, maxBias);
+
+  lightDepth += bias;
   
   float lightOcclusion = 0.0;
   if (lightDepth >= viewDepth)

@@ -63,8 +63,14 @@ float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
     return 0;
   }
 
-  float constantFactor = 0.0002;
-  float angleFactor = 0.001 * (1.0 - dot(-shadingUniforms.sunDir.xyz, normal));
+  // Analytically compute slope-scaled bias
+  const float maxBias = 0.0008;
+  const float quantize = 2.0 / (1 << 23);
+  ivec2 res = textureSize(s_rsmDepth, 0);
+  float b = 1.0 / max(res.x, res.y) / 2.0;
+  float NoD = clamp(-dot(shadingUniforms.sunDir.xyz, normal), 0.0, 1.0);
+  float bias = quantize + b * length(cross(-shadingUniforms.sunDir.xyz, normal)) / NoD;
+  bias = min(bias, maxBias);
 
   float lightOcclusion = 0.0;
 
@@ -79,7 +85,7 @@ float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
     vec2 offset = 0.002 * vec2(r * cos(theta), r * sin(theta));
     float lightDepth = textureLod(s_rsmDepth, uv + offset, 0).x;
 
-    lightDepth += angleFactor + constantFactor;
+    lightDepth += bias;
     
     if (lightDepth >= viewDepth)
     {
