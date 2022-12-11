@@ -99,6 +99,10 @@ namespace RSM
       uint32_t _padding00;
     };
 
+    static constexpr uint32_t SMALL_RSM_SIZE = 256;
+    int inverseResolutionScale;
+    uint32_t internalWidth;
+    uint32_t internalHeight;
     glm::mat4 viewProjPrevious{1};
     glm::uint seedX;
     glm::uint seedY;
@@ -114,6 +118,7 @@ namespace RSM
     Fwog::ComputePipeline bilateral5x5Pipeline;
     Fwog::ComputePipeline variancePipeline;
     Fwog::ComputePipeline modulatePipeline;
+    Fwog::ComputePipeline blitPipeline;
     Fwog::Texture indirectUnfilteredTex;
     Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
     Fwog::Texture indirectFilteredTex;
@@ -122,6 +127,14 @@ namespace RSM
     Fwog::Texture momentsTex;
     Fwog::Texture momentsHistoryTex;
     Fwog::Texture varianceTex;
+    Fwog::Texture illuminationUpscaled;
+    Fwog::Texture rsmFluxSmall;
+    Fwog::Texture rsmNormalSmall;
+    Fwog::Texture rsmDepthSmall;
     std::optional<Fwog::Texture> noiseTex;
+    std::optional<Fwog::Texture> gNormalSmall;
+    std::optional<Fwog::Texture> gDepthSmall;
+    std::optional<Fwog::Texture> gNormalPrevSmall;
+    std::optional<Fwog::Texture> gDepthPrevSmall;
   };
 } // namespace RSM

@@ -375,7 +375,7 @@ namespace Fwog
     RenderAttachment attachmentSource{.texture = &source};
     RenderInfo renderInfoSource{.colorAttachments = {&attachmentSource, 1}};
     auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(renderInfoSource);
-    RenderAttachment attachmentDest{.texture = &source};
+    RenderAttachment attachmentDest{.texture = &target};
     RenderInfo renderInfoDest{.colorAttachments = {&attachmentDest, 1}};
     auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(renderInfoDest);
     glBlitNamedFramebuffer(fboSource,
