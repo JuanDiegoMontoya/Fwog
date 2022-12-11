@@ -172,6 +172,7 @@ private:
 
   // scene parameters
   float sunPosition = -1.127f;
+  float sunPosition2 = 0;
   float sunStrength = 5;
   glm::vec3 sunColor = {1, 1, 1};
 
@@ -304,7 +305,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   std::swap(frame.gNormal, frame.gNormalPrev);
 
   shadingUniforms = ShadingUniforms{
-    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
+    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0}),
     .sunStrength = glm::vec4{sunStrength * sunColor, 0},
   };
 
@@ -519,6 +520,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
 
   ImGui::SliderFloat("Sun Angle", &sunPosition, -2.7f, 0.5f);
+  ImGui::SliderFloat("Sun Angle 2", &sunPosition2, -3.142f, 3.142f);
   ImGui::ColorEdit3("Sun Color", &sunColor[0], ImGuiColorEditFlags_Float);
   ImGui::SliderFloat("Sun Strength", &sunStrength, 0, 20);
 

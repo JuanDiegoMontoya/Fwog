@@ -243,6 +243,7 @@ private:
 
   // scene parameters
   float sunPosition = 0;
+  float sunPosition2 = 0;
 
   // transient variables
   double illuminationTime = 0;
@@ -356,7 +357,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   std::swap(frame.gNormal, frame.gNormalPrev);
 
   shadingUniforms = ShadingUniforms{
-    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
+    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0}),
     .sunStrength = glm::vec4{2, 2, 2, 0},
   };
 
@@ -531,6 +532,7 @@ void DeferredApplication::OnGui(double dt)
   ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
 
   ImGui::SliderFloat("Sun Angle", &sunPosition, -1.2f, 2.1f);
+  ImGui::SliderFloat("Sun Angle 2", &sunPosition2, -3.142f, 3.142f);
 
   ImGui::Separator();
 
