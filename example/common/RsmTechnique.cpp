@@ -477,7 +477,7 @@ namespace RSM
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
         }
-        else if (inverseResolutionScale != 1)
+        else
         {
           Fwog::BlitTexture(indirectFilteredTex,
                             illuminationOutTex,
@@ -544,7 +544,7 @@ namespace RSM
   void RsmTechnique::DrawGui()
   {
     ImGui::Checkbox("Use Filtered RSM", &rsmFiltered);
-    ImGui::SliderFloat("rMax", &rsmUniforms.rMax, 0.02f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+    ImGui::SliderFloat("rMax", &rMax, 0.02f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
     ImGui::PushButtonRepeat(true);
 
     if (!rsmFiltered)
