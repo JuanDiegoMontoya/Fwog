@@ -238,7 +238,7 @@ namespace RSM
     {
       rsmUniforms.targetDim = {illuminationUpscaled.Extent().width, illuminationUpscaled.Extent().height};
     }
-    rsmUniformBuffer.SubData(rsmUniforms, 0);
+    rsmUniformBuffer.SubDataTyped(rsmUniforms);
 
     cameraUniformBuffer.SubDataTyped(cameraUniforms);
 
@@ -404,7 +404,7 @@ namespace RSM
             Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
-            for (int i = 1; i < 5; i++)
+            for (int i = 1; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
             {
               filterUniforms.stepWidth = (1 << i) * spatialFilterStep;
 
@@ -427,41 +427,40 @@ namespace RSM
           {
             filterUniforms.direction = {0, 0};
 
-            // The output of the first filter pass gets stored in the history
-            filterUniforms.stepWidth = 1 * spatialFilterStep;
-            filterUniformBuffer.SubDataTyped(filterUniforms);
-            Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
-            Fwog::Cmd::BindImage(0, indirectUnfilteredTexPrev, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+            for (int i = 0; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
+            {
+              filterUniforms.stepWidth = (1 << i) * spatialFilterStep;
+              filterUniformBuffer.SubDataTyped(filterUniforms);
 
-            filterUniforms.stepWidth = 2 * spatialFilterStep;
-            filterUniformBuffer.SubDataTyped(filterUniforms);
-            Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTexPrev, nearestSampler);
-            Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+              // The output of the first filter pass gets stored in the history
+              const Fwog::Texture* in{};
+              const Fwog::Texture* out{};
+              if (i == 0)
+              {
+                in = &indirectFilteredTex;
+                out = &indirectUnfilteredTexPrev;
+              }
+              else if (i == 1)
+              {
+                in = &indirectUnfilteredTexPrev;
+                out = &indirectUnfilteredTex;
+              }
+              else if (i % 2 == 0)
+              {
+                in = &indirectUnfilteredTex;
+                out = &indirectFilteredTex;
+              }
+              else
+              {
+                in = &indirectFilteredTex;
+                out = &indirectUnfilteredTex;
+              }
 
-            filterUniforms.stepWidth = 4 * spatialFilterStep;
-            filterUniformBuffer.SubDataTyped(filterUniforms);
-            Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
-            Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
-
-            filterUniforms.stepWidth = 8 * spatialFilterStep;
-            filterUniformBuffer.SubDataTyped(filterUniforms);
-            Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
-            Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
-
-            filterUniforms.stepWidth = 16 * spatialFilterStep;
-            filterUniformBuffer.SubDataTyped(filterUniforms);
-            Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
-            Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+              Fwog::Cmd::BindSampledImage(0, *in, nearestSampler);
+              Fwog::Cmd::BindImage(0, *out, 0);
+              Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
+            }
           }
         }
 
@@ -471,7 +470,17 @@ namespace RSM
           Fwog::ScopedDebugMarker marker2("Modulate Albedo");
           const auto numGroupsA = (illuminationOutTex.Extent() + localSize - 1) / localSize;
           Fwog::Cmd::BindComputePipeline(modulatePipeline);
-          Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
+          if (useSeparableFilter)
+          {
+            Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
+          }
+          else
+          {
+            Fwog::Cmd::BindSampledImage(
+              0,
+              (5 - int(std::log2f(float(inverseResolutionScale)))) % 2 == 0 ? indirectUnfilteredTex : indirectFilteredTex,
+              nearestSampler);
+          }
           Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
           Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
