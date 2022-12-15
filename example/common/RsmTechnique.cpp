@@ -92,6 +92,12 @@ static Fwog::ComputePipeline CreateModulatePipeline()
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
+static Fwog::ComputePipeline CreateModulateUpscalePipeline()
+{
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/ModulateUpscale.comp.glsl"));
+  return Fwog::ComputePipeline({.shader = &cs});
+}
+
 static Fwog::ComputePipeline CreateBlitPipeline()
 {
   auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/BlitTexture.comp.glsl"));
@@ -117,6 +123,7 @@ namespace RSM
       bilateral5x5Pipeline(CreateBilateral5x5Pipeline()),
       variancePipeline(CreateVariancePipeline()),
       modulatePipeline(CreateModulatePipeline()),
+      modulateUpscalePipeline(CreateModulateUpscalePipeline()),
       blitPipeline(CreateBlitPipeline()),
       indirectUnfilteredTex(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectUnfilteredTexPrev(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16G16B16A16_FLOAT)),
@@ -368,6 +375,16 @@ namespace RSM
         //  Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         //}
 
+        FilterUniforms filterUniforms = {
+          .proj = cameraUniforms.proj,
+          .invViewProj = cameraUniforms.invViewProj,
+          .viewPos = cameraUniforms.cameraPos,
+          .targetDim = {indirectUnfilteredTex.Extent().width, indirectFilteredTex.Extent().height},
+          .phiLuminance = phiLuminance,
+          .phiNormal = phiNormal,
+          .phiDepth = phiDepth,
+        };
+
         {
           Fwog::ScopedDebugMarker marker2("Filter");
           Fwog::Cmd::BindComputePipeline(bilateral5x5Pipeline);
@@ -376,15 +393,6 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(3, momentsTex, nearestSampler);
           Fwog::Cmd::BindSampledImage(4, historyLengthTex, nearestSampler);
           Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
-          FilterUniforms filterUniforms = {
-            .proj = cameraUniforms.proj,
-            .invViewProj = cameraUniforms.invViewProj,
-            .viewPos = cameraUniforms.cameraPos,
-            .targetDim = {indirectUnfilteredTex.Extent().width, indirectFilteredTex.Extent().height},
-            .phiLuminance = phiLuminance,
-            .phiNormal = phiNormal,
-            .phiDepth = phiDepth,
-          };
 
           if (useSeparableFilter)
           {
@@ -467,24 +475,45 @@ namespace RSM
         auto& illuminationOutTex = inverseResolutionScale == 1 ? indirectFilteredTexPingPong : illuminationUpscaled;
         if (!rsmFilteredSkipAlbedoModulation)
         {
-          Fwog::ScopedDebugMarker marker2("Modulate Albedo");
-          const auto numGroupsA = (illuminationOutTex.Extent() + localSize - 1) / localSize;
-          Fwog::Cmd::BindComputePipeline(modulatePipeline);
-          if (useSeparableFilter)
+          // No upscale required
+          if (inverseResolutionScale == 1)
           {
+            Fwog::ScopedDebugMarker marker2("Modulate Albedo");
+            const auto numGroupsA = (illuminationOutTex.Extent() + localSize - 1) / localSize;
+            Fwog::Cmd::BindComputePipeline(modulatePipeline);
             Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
+            Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
+            Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
+            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
           }
-          else
+          else // Use bilateral upscale
           {
-            Fwog::Cmd::BindSampledImage(
-              0,
-              (5 - int(std::log2f(float(inverseResolutionScale)))) % 2 == 0 ? indirectUnfilteredTex : indirectFilteredTex,
-              nearestSampler);
+            Fwog::ScopedDebugMarker marker2("Modulate Albedo (Upscale)");
+            const auto numGroupsA = (illuminationOutTex.Extent() + localSize - 1) / localSize;
+            Fwog::Cmd::BindComputePipeline(modulateUpscalePipeline);
+
+            if (!useSeparableFilter && (5 - int(std::log2f(float(inverseResolutionScale)))) % 2 == 0)
+            {
+              Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
+            }
+            else
+            {
+              Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
+            }
+
+            Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
+            Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
+            Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
+            Fwog::Cmd::BindSampledImage(4, gNormalSmall.value(), nearestSampler);
+            Fwog::Cmd::BindSampledImage(5, gDepthSmall.value(), nearestSampler);
+            filterUniforms.targetDim = {illuminationOutTex.Extent().width, illuminationOutTex.Extent().height};
+            filterUniformBuffer.SubDataTyped(filterUniforms);
+            Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
+            Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
+            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
           }
-          Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
-          Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
-          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
         }
         else
         {
@@ -494,7 +523,7 @@ namespace RSM
                             {},
                             indirectFilteredTex.Extent(),
                             illuminationOutTex.Extent(),
-                            Fwog::Filter::LINEAR);
+                            Fwog::Filter::NEAREST);
         }
       }
       else // Unfiltered RSM: the original paper

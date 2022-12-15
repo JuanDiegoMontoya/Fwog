@@ -118,6 +118,7 @@ namespace RSM
     Fwog::ComputePipeline bilateral5x5Pipeline;
     Fwog::ComputePipeline variancePipeline;
     Fwog::ComputePipeline modulatePipeline;
+    Fwog::ComputePipeline modulateUpscalePipeline;
     Fwog::ComputePipeline blitPipeline;
     Fwog::Texture indirectUnfilteredTex;
     Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
