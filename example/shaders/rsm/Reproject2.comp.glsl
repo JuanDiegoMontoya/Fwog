@@ -3,6 +3,8 @@
 
 #define DEBUG 0
 
+#define KERNEL_3x3
+#include "Kernels.h.glsl"
 #include "Common.h.glsl"
 
 layout(binding = 0) uniform sampler2D s_indirectCurrent;
@@ -35,6 +37,19 @@ layout(binding = 0, std140) uniform ReprojectionUniforms
 bool InBounds(ivec2 pos)
 {
   return all(lessThan(pos, uniforms.targetDim)) && all(greaterThanEqual(pos, ivec2(0)));
+}
+
+void Accumulate(vec3 prevColor, vec3 curColor, vec2 prevMoments, vec2 curMoments, ivec2 gid)
+{
+  uint historyLength = min(1 + imageLoad(i_historyLength, gid).x, 100);
+  imageStore(i_historyLength, gid, uvec4(historyLength));
+  float alphaIlluminance = max(uniforms.alphaIlluminance, 1.0 / historyLength);
+  float alphaMoments = max(uniforms.alphaMoments, 1.0 / historyLength);
+
+  vec3 outColor = mix(prevColor, curColor, alphaIlluminance);
+  imageStore(i_outIndirect, gid, vec4(outColor, 0.0));
+  vec2 outMoments = mix(prevMoments, curMoments, alphaMoments);
+  imageStore(i_outMoments, gid, vec4(outMoments, 0.0, 0.0));
 }
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -85,13 +100,13 @@ void main()
       }
 
       float depthPrev = texelFetch(s_gDepthPrev, pos, 0).x;
-      if (DepthWeight(depthPrev, depthCur, normalCur, rayDir, uniforms.proj, uniforms.phiDepth) < 0.5)
+      if (DepthWeight(depthPrev, depthCur, normalCur, rayDir, uniforms.proj, uniforms.phiDepth) < 0.75)
       {
         continue;
       }
 
       vec3 normalPrev = texelFetch(s_gNormalPrev, pos, 0).xyz;
-      if (NormalWeight(normalPrev, normalCur, uniforms.phiNormal) < 0.5)
+      if (NormalWeight(normalPrev, normalCur, uniforms.phiNormal) < 0.75)
       {
         continue;
       }
@@ -110,28 +125,70 @@ void main()
 
   if (validCount > 0)
   {
+    // Use weighted bilinear filter if any of its samples 
     float factor = max(0.01, Bilerp(valid[0][0], valid[0][1], valid[1][0], valid[1][1], weight));
     vec3 prevColor = Bilerp(colors[0][0], colors[0][1], colors[1][0], colors[1][1], weight) / factor;
     vec2 prevMoments = Bilerp(moments[0][0], moments[0][1], moments[1][0], moments[1][1], weight) / factor;
-    uint historyLength = min(1 + imageLoad(i_historyLength, gid).x, 255);
-    imageStore(i_historyLength, gid, uvec4(historyLength));
-    float alphaIlluminance = max(uniforms.alphaIlluminance, 1.0 / historyLength);
-    float alphaMoments = max(uniforms.alphaMoments, 1.0 / historyLength);
 
-    vec3 outColor = mix(prevColor, curColor, alphaIlluminance);
-    imageStore(i_outIndirect, gid, vec4(outColor, 0.0));
-    vec2 outMoments = mix(prevMoments, curMoments, alphaMoments);
-    imageStore(i_outMoments, gid, vec4(outMoments, 0.0, 0.0));
-  } 
-  else // Disocclusion ocurred
+    Accumulate(prevColor, curColor, prevMoments, curMoments, gid);
+  }
+  else
   {
-    imageStore(i_outIndirect, gid, vec4(curColor, 0.0));
-    imageStore(i_outMoments, gid, vec4(curMoments, 0.0, 0.0));
-    imageStore(i_historyLength, gid, uvec4(0));
+    // Search for valid samples in a 3x3 area with a bilateral filter
+    ivec2 centerPos = ivec2(reprojectedUV.xy * uniforms.targetDim);
+    vec3 accumIlluminance = vec3(0);
+    vec2 accumMoments = vec2(0);
+    float accumWeight = 0;
 
-#if DEBUG
-    imageStore(i_outIndirect, gid, vec4(1, 0, 0, 0));
-    return;
-#endif
+    for (int col = 0; col < kWidth; col++)
+    {
+      for (int row = 0; row < kWidth; row++)
+      {
+        ivec2 offset = ivec2(row - kRadius, col - kRadius);
+        ivec2 id = centerPos + offset;
+        
+        if (!InBounds(id))
+        {
+          continue;
+        }
+
+        float kernelWeight = kernel[row][col];
+
+        vec3 oColor = texelFetch(s_indirectPrevious, id, 0).rgb;
+        vec2 oMoments = texelFetch(s_momentsPrev, id, 0).xy;
+        vec3 oNormal = texelFetch(s_gNormalPrev, id, 0).xyz;
+        float oDepth = texelFetch(s_gDepthPrev, id, 0).x;
+        float phiDepth = offset == ivec2(0) ? 1.0 : length(vec2(offset));
+        phiDepth *= uniforms.phiDepth;
+
+        float normalWeight = NormalWeight(oNormal, normalCur, uniforms.phiNormal);
+        float depthWeight = DepthWeight(oDepth, depthCur, normalCur, rayDir, uniforms.proj, phiDepth);
+        
+        float weight = normalWeight * depthWeight;
+        accumIlluminance += oColor * weight * kernelWeight;
+        accumMoments += oMoments * weight * kernelWeight;
+        accumWeight += weight * kernelWeight;
+      }
+    }
+
+    if (accumWeight >= 0.15)
+    {
+      // Consider bilateral filter a success if accumulated weight is above a threshold
+      vec3 prevColor = accumIlluminance / accumWeight;
+      vec2 prevMoments = accumMoments / accumWeight;
+      Accumulate(prevColor, curColor, prevMoments, curMoments, gid);
+    }
+    else
+    {
+      // Disocclusion ocurred
+      imageStore(i_outIndirect, gid, vec4(curColor, 0.0));
+      imageStore(i_outMoments, gid, vec4(curMoments, 0.0, 0.0));
+      imageStore(i_historyLength, gid, uvec4(0));
+
+  #if DEBUG
+      imageStore(i_outIndirect, gid, vec4(1, 0, 0, 0));
+      return;
+  #endif
+    }
   }
 }
