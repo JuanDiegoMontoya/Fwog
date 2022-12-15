@@ -2,7 +2,7 @@
 #include "Common.h.glsl"
 
 // Input
-layout(binding = 0) uniform sampler2D s_diffuseIrradiance;
+layout(binding = 0) uniform sampler2D s_illuminance;
 layout(binding = 1) uniform sampler2D s_gBufferNormal;
 layout(binding = 2) uniform sampler2D s_gBufferDepth;
 layout(binding = 3) uniform sampler2D s_moments;
@@ -22,9 +22,9 @@ layout(binding = 0, std140) uniform FilterUniforms
 }uniforms;
 
 // Output
-layout(binding = 0) uniform writeonly restrict image2D i_target;
+layout(binding = 0) uniform writeonly restrict image2D i_filteredIlluminance;
 
-void AddFilterContribution(inout vec3 accumDiffuseIndirect,
+void AddFilterContribution(inout vec3 accumIlluminance,
                            inout float accumWeight,
                            vec3 cColor,
                            float cLuminance,
@@ -39,7 +39,7 @@ void AddFilterContribution(inout vec3 accumDiffuseIndirect,
                            ivec2 id,
                            ivec2 gid)
 {
-  vec3 oColor = texelFetch(s_diffuseIrradiance, id, 0).rgb;
+  vec3 oColor = texelFetch(s_illuminance, id, 0).rgb;
   float oLuminance = Luminance(oColor);
   vec3 oNormal = texelFetch(s_gBufferNormal, id, 0).xyz;
   float oDepth = texelFetch(s_gBufferDepth, id, 0).x;
@@ -50,9 +50,9 @@ void AddFilterContribution(inout vec3 accumDiffuseIndirect,
   float depthWeight = DepthWeight(oDepth, cDepth, cNormal, rayDir, uniforms.proj, phiDepth);
 //variance = 1;
   float luminanceWeight = LuminanceWeight(oLuminance, cLuminance, variance, uniforms.phiLuminance);
-luminanceWeight = 1;
+luminanceWeight = 1; // Disable luminance weight
   float weight = normalWeight * depthWeight * luminanceWeight;
-  accumDiffuseIndirect += oColor * weight * kernelWeight;
+  accumIlluminance += oColor * weight * kernelWeight;
   accumWeight += weight * kernelWeight;
 }
 
@@ -90,7 +90,7 @@ void main()
     return;
   }
 
-  vec3 cColor = texelFetch(s_diffuseIrradiance, gid, 0).rgb;
+  vec3 cColor = texelFetch(s_illuminance, gid, 0).rgb;
   vec3 cNormal = texelFetch(s_gBufferNormal, gid, 0).xyz;
   float cDepth = texelFetch(s_gBufferDepth, gid, 0).x;
 
@@ -103,9 +103,10 @@ void main()
   vec3 point = UnprojectUV(0.1, uv, uniforms.invViewProj);
   vec3 rayDir = normalize(point - uniforms.viewPos);
 
-  vec3 accumDiffuseIndirect = vec3(0);
+  vec3 accumIlluminance = vec3(0);
   float accumWeight = 0;
 
+  // Increase the blur width on recently disoccluded areas
   uint historyLength = 1 + texelFetch(s_historyLength, gid, 0).x;
   ivec2 stepFactor = ivec2(max(1.0, 4.0 / historyLength));
 
@@ -126,7 +127,7 @@ void main()
         }
 
         float kernelWeight = kernel[row][col];
-        AddFilterContribution(accumDiffuseIndirect,
+        AddFilterContribution(accumIlluminance,
                               accumWeight,
                               cColor,
                               cLuminance,
@@ -145,6 +146,7 @@ void main()
   }
   else
   {
+    // Separable bilateral filter. Cheaper, but worse quality on edges
     for (int i = 0; i < kWidth; i++)
     {
       ivec2 kernelStep = stepFactor * ivec2(uniforms.stepWidth);
@@ -158,7 +160,7 @@ void main()
       }
 
       float kernelWeight = kernel1D[i];
-      AddFilterContribution(accumDiffuseIndirect,
+      AddFilterContribution(accumIlluminance,
                             accumWeight,
                             cColor,
                             cLuminance,
@@ -175,5 +177,5 @@ void main()
     }
   }
 
-  imageStore(i_target, gid, vec4(accumDiffuseIndirect / accumWeight, 0.0));
+  imageStore(i_filteredIlluminance, gid, vec4(accumIlluminance / accumWeight, 0.0));
 }

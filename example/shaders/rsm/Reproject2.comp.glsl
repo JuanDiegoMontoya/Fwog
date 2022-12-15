@@ -41,7 +41,7 @@ bool InBounds(ivec2 pos)
 
 void Accumulate(vec3 prevColor, vec3 curColor, vec2 prevMoments, vec2 curMoments, ivec2 gid)
 {
-  uint historyLength = min(1 + imageLoad(i_historyLength, gid).x, 100);
+  uint historyLength = min(1 + imageLoad(i_historyLength, gid).x, 255);
   imageStore(i_historyLength, gid, uvec4(historyLength));
   float alphaIlluminance = max(uniforms.alphaIlluminance, 1.0 / historyLength);
   float alphaMoments = max(uniforms.alphaMoments, 1.0 / historyLength);
@@ -145,19 +145,19 @@ void main()
       for (int row = 0; row < kWidth; row++)
       {
         ivec2 offset = ivec2(row - kRadius, col - kRadius);
-        ivec2 id = centerPos + offset;
+        ivec2 pos = centerPos + offset;
         
-        if (!InBounds(id))
+        if (!InBounds(pos))
         {
           continue;
         }
 
         float kernelWeight = kernel[row][col];
 
-        vec3 oColor = texelFetch(s_indirectPrevious, id, 0).rgb;
-        vec2 oMoments = texelFetch(s_momentsPrev, id, 0).xy;
-        vec3 oNormal = texelFetch(s_gNormalPrev, id, 0).xyz;
-        float oDepth = texelFetch(s_gDepthPrev, id, 0).x;
+        vec3 oColor = texelFetch(s_indirectPrevious, pos, 0).rgb;
+        vec2 oMoments = texelFetch(s_momentsPrev, pos, 0).xy;
+        vec3 oNormal = texelFetch(s_gNormalPrev, pos, 0).xyz;
+        float oDepth = texelFetch(s_gDepthPrev, pos, 0).x;
         float phiDepth = offset == ivec2(0) ? 1.0 : length(vec2(offset));
         phiDepth *= uniforms.phiDepth;
 

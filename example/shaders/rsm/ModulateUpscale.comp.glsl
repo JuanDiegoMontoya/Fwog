@@ -59,18 +59,18 @@ void main()
     for (int row = 0; row < kWidth; row++)
     {
       ivec2 offset = ivec2(row - kRadius, col - kRadius);
-      ivec2 id = sourcePos + offset;
+      ivec2 pos = sourcePos + offset;
       
-      if (any(greaterThanEqual(id, sourceDim)) || any(lessThan(id, ivec2(0))))
+      if (any(greaterThanEqual(pos, sourceDim)) || any(lessThan(pos, ivec2(0))))
       {
         continue;
       }
 
       float kernelWeight = kernel[row][col];
 
-      vec3 oColor = texelFetch(s_diffuseIrradiance, id, 0).rgb;
-      vec3 oNormal = texelFetch(s_gNormalSmall, id, 0).xyz;
-      float oDepth = texelFetch(s_gDepthSmall, id, 0).x;
+      vec3 oColor = texelFetch(s_diffuseIrradiance, pos, 0).rgb;
+      vec3 oNormal = texelFetch(s_gNormalSmall, pos, 0).xyz;
+      float oDepth = texelFetch(s_gDepthSmall, pos, 0).x;
 
       float normalWeight = NormalWeight(oNormal, cNormal, uniforms.phiNormal);
       float depthWeight = DepthWeight(oDepth, cDepth, cNormal, rayDir, uniforms.proj, uniforms.phiDepth);
