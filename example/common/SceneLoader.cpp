@@ -373,6 +373,10 @@ namespace Utility
         samplerState.minFilter = ConvertGlFilterMode(baseColorSampler.minFilter);
         samplerState.magFilter = ConvertGlFilterMode(baseColorSampler.magFilter);
         samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
+        if (GetGlMipmapFilter(baseColorSampler.minFilter) != Fwog::Filter::NONE)
+        {
+          samplerState.anisotropy = Fwog::SampleCount::SAMPLES_16;
+        }
       }
 
       auto sampler = Fwog::Sampler(samplerState);
@@ -386,8 +390,7 @@ namespace Utility
       auto textureData = Fwog::CreateTexture2DMip(
         dims,
         Fwog::Format::R8G8B8A8_UNORM,
-        //ceil(log2(glm::max(dims.width, dims.height))),
-        1,
+        uint32_t(1 + floor(log2(glm::max(dims.width, dims.height)))),
         image.name);
 
       Fwog::TextureUpdateInfo updateInfo
@@ -401,7 +404,7 @@ namespace Utility
         .pixels = image.image.data()
       };
       textureData.SubImage(updateInfo);
-      //textureData->GenMipmaps();
+      textureData.GenMipmaps();
 
       textureSamplers.emplace_back(CombinedTextureSampler({ std::move(textureData), std::move(sampler) }));
     }
