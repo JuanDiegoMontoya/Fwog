@@ -17,7 +17,7 @@ target_include_directories(03_gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(03_gltf_viewer PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(03_gltf_viewer copy_shaders copy_models copy_textures)
 
-add_executable(04_volumetric "04_volumetric.cpp" common/common.cpp common/common.h common/SceneLoader.cpp common/SceneLoader.h)
+add_executable(04_volumetric "04_volumetric.cpp" common/Application.cpp common/Application.h common/SceneLoader.cpp common/SceneLoader.h)
 target_include_directories(04_volumetric PUBLIC ${tinygltf_SOURCE_DIR} vendor)
 target_link_libraries(04_volumetric PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(04_volumetric copy_shaders copy_models copy_textures)
