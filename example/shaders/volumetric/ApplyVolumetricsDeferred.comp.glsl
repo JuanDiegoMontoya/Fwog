@@ -10,6 +10,48 @@ layout(binding = 2) uniform sampler3D s_volume;
 layout(binding = 3) uniform sampler2D s_blueNoise;
 layout(binding = 0) uniform writeonly image2D i_target;
 
+// Ported from here: https://gist.github.com/Fewes/59d2c831672040452aa77da6eaab2234
+vec4 textureTricubic(sampler3D volume, vec3 coord)
+{
+  vec3 texSize = textureSize(volume, 0);
+
+  vec3 coord_grid = coord * texSize - 0.5;
+  vec3 index = floor(coord_grid);
+  vec3 fraction = coord_grid - index;
+  vec3 one_frac = 1.0 - fraction;
+
+  vec3 w0 = 1.0 / 6.0 * one_frac*one_frac*one_frac;
+  vec3 w1 = 2.0 / 3.0 - 0.5 * fraction*fraction*(2.0-fraction);
+  vec3 w2 = 2.0 / 3.0 - 0.5 * one_frac*one_frac*(2.0-one_frac);
+  vec3 w3 = 1.0 / 6.0 * fraction*fraction*fraction;
+
+  vec3 g0 = w0 + w1;
+  vec3 g1 = w2 + w3;
+  vec3 mult = 1.0 / texSize;
+  vec3 h0 = mult * ((w1 / g0) - 0.5 + index);
+  vec3 h1 = mult * ((w3 / g1) + 1.5 + index);
+
+  vec4 tex000 = textureLod(volume, h0, 0.0);
+  vec4 tex100 = textureLod(volume, vec3(h1.x, h0.y, h0.z), 0.0);
+  tex000 = mix(tex100, tex000, g0.x);
+
+  vec4 tex010 = textureLod(volume, vec3(h0.x, h1.y, h0.z), 0.0);
+  vec4 tex110 = textureLod(volume, vec3(h1.x, h1.y, h0.z), 0.0);
+  tex010 = mix(tex110, tex010, g0.x);
+  tex000 = mix(tex010, tex000, g0.y);
+
+  vec4 tex001 = textureLod(volume, vec3(h0.x, h0.y, h1.z), 0.0);
+  vec4 tex101 = textureLod(volume, vec3(h1.x, h0.y, h1.z), 0.0);
+  tex001 = mix(tex101, tex001, g0.x);
+
+  vec4 tex011 = textureLod(volume, vec3(h0.x, h1.y, h1.z), 0.0);
+  vec4 tex111 = textureLod(volume, h1, 0.0);
+  tex011 = mix(tex111, tex011, g0.x);
+  tex001 = mix(tex011, tex001, g0.y);
+
+  return mix(tex001, tex000, g0.z);
+}
+
 layout(local_size_x = 16, local_size_y = 16) in;
 void main()
 {
@@ -39,7 +81,7 @@ void main()
   volumeUV += offset / vec3(textureSize(s_volume, 0).xyz);
 
   vec3 baseColor = texelFetch(s_color, gid, 0).xyz;
-  vec4 scatteringInfo = textureLod(s_volume, volumeUV, 0.0);
+  vec4 scatteringInfo = textureTricubic(s_volume, volumeUV);
   vec3 inScattering = scatteringInfo.rgb;
   float transmittance = scatteringInfo.a;
 
