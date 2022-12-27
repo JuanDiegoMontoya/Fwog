@@ -100,7 +100,7 @@ struct
   Fwog::Extent3D volumeExtent = {160, 90, 256};
   bool volumeUseScatteringTexture = true;
   float volumeAnisotropyG = 0.2f;
-  float volumeNoiseOffsetScale = 1.0f;
+  float volumeNoiseOffsetScale = 0.0f;
   bool frog = false;
   float volumetricGroundFogDensity = .15f;
 
@@ -264,18 +264,22 @@ public:
       data.push_back({red, green, blue});
     }
 
-    scatteringTexture = Fwog::Texture(Fwog::TextureCreateInfo{.imageType = Fwog::ImageType::TEX_1D,
+    scatteringTexture = Fwog::Texture(Fwog::TextureCreateInfo{
+      .imageType = Fwog::ImageType::TEX_1D,
                                                               .format = Fwog::Format::R16G16B16_FLOAT,
                                                               .extent = {static_cast<uint32_t>(data.size())},
                                                               .mipLevels = 1,
                                                               .arrayLayers = 1,
-                                                              .sampleCount = Fwog::SampleCount::SAMPLES_1});
+      .sampleCount = Fwog::SampleCount::SAMPLES_1,
+    });
 
-    scatteringTexture->SubImage({.dimension = Fwog::UploadDimension::ONE,
+    scatteringTexture->SubImage({
+      .dimension = Fwog::UploadDimension::ONE,
                                  .size = {static_cast<uint32_t>(data.size())},
                                  .format = Fwog::UploadFormat::RGB,
                                  .type = Fwog::UploadType::FLOAT,
-                                 .pixels = data.data()});
+      .pixels = data.data(),
+    });
   }
 
   void UpdateUniforms(const View& view,
@@ -291,7 +295,8 @@ public:
                       float isotropyG,
                       float noiseOffsetScale,
                       bool frog,
-                      float groundFogDensity)
+                      float groundFogDensity,
+                      glm::vec3 sunColor)
   {
     glm::mat4 projVolume = glm::perspectiveZO(fovy, aspectRatio, volumeNearPlane, volumeFarPlane);
     glm::mat4 viewMat = view.GetViewMatrix();
@@ -313,6 +318,9 @@ public:
       float noiseOffsetScale;
       uint32_t frog;
       float groundFogDensity;
+      uint32_t _padding00;
+      uint32_t _padding01;
+      glm::vec3 sunColor;
     } uniforms;
 
     uniforms = {.viewPos = view.position,
@@ -328,7 +336,8 @@ public:
                 .isotropyG = isotropyG,
                 .noiseOffsetScale = noiseOffsetScale,
                 .frog = frog,
-                .groundFogDensity = groundFogDensity};
+                .groundFogDensity = groundFogDensity,
+                .sunColor = sunColor};
 
     if (!uniformBuffer)
     {
@@ -477,7 +486,6 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
                                              bool binary)
   : Application(createInfo),
     densityVolume({
-
       .imageType = Fwog::ImageType::TEX_3D,
       .format = Fwog::Format::R16G16B16A16_FLOAT,
       .extent = config.volumeExtent,
@@ -795,7 +803,8 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
                               config.volumeAnisotropyG,
                               config.volumeNoiseOffsetScale,
                               config.frog,
-                              config.volumetricGroundFogDensity);
+                              config.volumetricGroundFogDensity,
+                              sunColor * sunStrength);
 
     volumetric.AccumulateDensity(densityVolume, esmTex, esmUniformBuffer, lightBuffer.value());
 
