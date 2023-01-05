@@ -63,7 +63,7 @@ static Fwog::ComputePipeline CreateRsmIndirectFilteredPipeline()
 
 static Fwog::ComputePipeline CreateRsmReprojectPipeline()
 {
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/Reproject2.comp.glsl"));
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/Reproject.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
