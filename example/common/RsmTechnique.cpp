@@ -67,22 +67,9 @@ static Fwog::ComputePipeline CreateRsmReprojectPipeline()
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
-static Fwog::ComputePipeline CreateBilateral3x3Pipeline()
-{
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/Bilateral3x3.comp.glsl"));
-  return Fwog::ComputePipeline({.shader = &cs});
-}
-
 static Fwog::ComputePipeline CreateBilateral5x5Pipeline()
 {
   auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/Bilateral5x5.comp.glsl"));
-  return Fwog::ComputePipeline({.shader = &cs});
-}
-
-static Fwog::ComputePipeline CreateVariancePipeline()
-{
-  auto cs =
-    Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/ComputeVariance5x5.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
@@ -119,9 +106,7 @@ namespace RSM
       rsmIndirectPipeline(CreateRsmIndirectPipeline()),
       rsmIndirectFilteredPipeline(CreateRsmIndirectFilteredPipeline()),
       rsmReprojectPipeline(CreateRsmReprojectPipeline()),
-      bilateral3x3Pipeline(CreateBilateral3x3Pipeline()),
       bilateral5x5Pipeline(CreateBilateral5x5Pipeline()),
-      variancePipeline(CreateVariancePipeline()),
       modulatePipeline(CreateModulatePipeline()),
       modulateUpscalePipeline(CreateModulateUpscalePipeline()),
       blitPipeline(CreateBlitPipeline()),
@@ -130,9 +115,6 @@ namespace RSM
       indirectFilteredTex(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16G16B16A16_FLOAT)),
       indirectFilteredTexPingPong(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16G16B16A16_FLOAT)),
       historyLengthTex(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R8_UINT)),
-      momentsTex(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16G16_FLOAT)),
-      momentsHistoryTex(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16G16_FLOAT)),
-      varianceTex(Fwog::CreateTexture2D({internalWidth, internalHeight}, Fwog::Format::R16_FLOAT)),
       illuminationUpscaled(Fwog::CreateTexture2D({width, height}, Fwog::Format::R16G16B16A16_FLOAT)),
       rsmFluxSmall(Fwog::CreateTexture2D({SMALL_RSM_SIZE, SMALL_RSM_SIZE}, Fwog::Format::R11G11B10_FLOAT)),
       rsmNormalSmall(Fwog::CreateTexture2D({SMALL_RSM_SIZE, SMALL_RSM_SIZE}, Fwog::Format::R8G8B8A8_SNORM)),
@@ -172,20 +154,6 @@ namespace RSM
     });
 
     indirectUnfilteredTex.ClearImage({
-      .size = indirectUnfilteredTex.Extent(),
-      .format = Fwog::UploadFormat::RGBA,
-      .type = Fwog::UploadType::UBYTE,
-      .data = nullptr,
-    });
-
-    momentsTex.ClearImage({
-      .size = indirectUnfilteredTex.Extent(),
-      .format = Fwog::UploadFormat::RGBA,
-      .type = Fwog::UploadType::UBYTE,
-      .data = nullptr,
-    });
-
-    momentsHistoryTex.ClearImage({
       .size = indirectUnfilteredTex.Extent(),
       .format = Fwog::UploadFormat::RGBA,
       .type = Fwog::UploadType::UBYTE,
@@ -248,9 +216,6 @@ namespace RSM
     rsmUniformBuffer.SubDataTyped(rsmUniforms);
 
     cameraUniformBuffer.SubDataTyped(cameraUniforms);
-
-    // std::swap(indirectUnfilteredTex, indirectUnfilteredTexPrev);
-    std::swap(momentsTex, momentsHistoryTex);
 
     Fwog::BeginCompute();
     {
@@ -341,7 +306,6 @@ namespace RSM
             .temporalWeightFactor = spatialFilterStep,
             .targetDim = {indirectUnfilteredTex.Extent().width, indirectUnfilteredTex.Extent().height},
             .alphaIlluminance = alphaIlluminance,
-            .alphaMoments = alphaMoments,
             .phiDepth = phiDepth,
             .phiNormal = phiNormal,
           };
@@ -354,33 +318,19 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(3, gDepthPrevSmall ? gDepthPrevSmall.value() : gDepthPrev, linearSampler);
           Fwog::Cmd::BindSampledImage(4, gNormalSmall ? gNormalSmall.value() : gNormal, nearestSampler);
           Fwog::Cmd::BindSampledImage(5, gNormalPrevSmall ? gNormalPrevSmall.value() : gNormalPrev, linearSampler);
-          Fwog::Cmd::BindSampledImage(6, momentsHistoryTex, linearSampler);
           Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
-          Fwog::Cmd::BindImage(1, momentsTex, 0);
-          Fwog::Cmd::BindImage(2, historyLengthTex, 0);
+          Fwog::Cmd::BindImage(1, historyLengthTex, 0);
           Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
           Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
                                    Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         }
 
-        //// Compute the spatial variance of the luminance
-        //{
-        //  Fwog::ScopedDebugMarker marker2("Variance");
-        //  Fwog::Cmd::BindComputePipeline(variancePipeline);
-        //  Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
-        //  Fwog::Cmd::BindSampledImage(1, historyLengthTex, nearestSampler);
-        //  Fwog::Cmd::BindImage(0, momentsTex, 0);
-        //  Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
-        //  Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
-        //}
-
         FilterUniforms filterUniforms = {
           .proj = cameraUniforms.proj,
           .invViewProj = cameraUniforms.invViewProj,
           .viewPos = cameraUniforms.cameraPos,
           .targetDim = {indirectUnfilteredTex.Extent().width, indirectFilteredTex.Extent().height},
-          .phiLuminance = phiLuminance,
           .phiNormal = phiNormal,
           .phiDepth = phiDepth,
         };
@@ -390,8 +340,7 @@ namespace RSM
           Fwog::Cmd::BindComputePipeline(bilateral5x5Pipeline);
           Fwog::Cmd::BindSampledImage(1, gNormalSmall ? gNormalSmall.value() : gNormal, nearestSampler);
           Fwog::Cmd::BindSampledImage(2, gDepthSmall ? gDepthSmall.value() : gDepth, nearestSampler);
-          Fwog::Cmd::BindSampledImage(3, momentsTex, nearestSampler);
-          Fwog::Cmd::BindSampledImage(4, historyLengthTex, nearestSampler);
+          Fwog::Cmd::BindSampledImage(3, historyLengthTex, nearestSampler);
           Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
 
           if (useSeparableFilter)
@@ -609,8 +558,6 @@ namespace RSM
 
       float epsilon = 1e-2f;
       ImGui::SliderFloat("Alpha Illuminance", &alphaIlluminance, epsilon, 1);
-      ImGui::SliderFloat("Alpha Moments", &alphaMoments, epsilon, 1);
-      ImGui::SliderFloat("Phi Luminance", &phiLuminance, epsilon, 1);
       ImGui::SliderFloat("Phi Normal", &phiNormal, epsilon, 1);
       ImGui::SliderFloat("Phi Depth", &phiDepth, epsilon, 1);
       ImGui::SliderFloat("Spatial Filter Step", &spatialFilterStep, 0, 1);

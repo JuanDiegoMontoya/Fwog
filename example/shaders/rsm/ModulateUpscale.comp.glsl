@@ -20,8 +20,7 @@ layout(binding = 0, std140) uniform FilterUniforms
   vec3 viewPos;
   float stepWidth;
   ivec2 targetDim;
-  ivec2 direction; // either (1, 0) or (0, 1)
-  float phiLuminance;
+  ivec2 direction;
   float phiNormal;
   float phiDepth;
 }uniforms;

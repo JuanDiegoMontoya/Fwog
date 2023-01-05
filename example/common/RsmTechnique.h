@@ -46,8 +46,6 @@ namespace RSM
     float rMax = 0.2f;
     float spatialFilterStep = 1.0f;
     float alphaIlluminance = 0.05f;
-    float alphaMoments = 0.05f;
-    float phiLuminance = 1.0f;
     float phiNormal = 0.3f;
     float phiDepth = 0.2f;
     bool rsmFiltered = false;
@@ -78,11 +76,11 @@ namespace RSM
       float temporalWeightFactor;
       glm::ivec2 targetDim;
       float alphaIlluminance;
-      float alphaMoments;
       float phiDepth;
       float phiNormal;
       uint32_t _padding00;
       uint32_t _padding01;
+      uint32_t _padding02;
     };
 
     struct FilterUniforms
@@ -93,13 +91,13 @@ namespace RSM
       float stepWidth;
       glm::ivec2 targetDim;
       glm::ivec2 direction;
-      float phiLuminance;
       float phiNormal;
       float phiDepth;
       uint32_t _padding00;
+      uint32_t _padding01;
     };
 
-    static constexpr uint32_t SMALL_RSM_SIZE = 256;
+    static constexpr uint32_t SMALL_RSM_SIZE = 512;
     int inverseResolutionScale;
     uint32_t internalWidth;
     uint32_t internalHeight;
@@ -114,9 +112,7 @@ namespace RSM
     Fwog::ComputePipeline rsmIndirectPipeline;
     Fwog::ComputePipeline rsmIndirectFilteredPipeline;
     Fwog::ComputePipeline rsmReprojectPipeline;
-    Fwog::ComputePipeline bilateral3x3Pipeline;
     Fwog::ComputePipeline bilateral5x5Pipeline;
-    Fwog::ComputePipeline variancePipeline;
     Fwog::ComputePipeline modulatePipeline;
     Fwog::ComputePipeline modulateUpscalePipeline;
     Fwog::ComputePipeline blitPipeline;
@@ -125,9 +121,6 @@ namespace RSM
     Fwog::Texture indirectFilteredTex;
     Fwog::Texture indirectFilteredTexPingPong;
     Fwog::Texture historyLengthTex;
-    Fwog::Texture momentsTex;
-    Fwog::Texture momentsHistoryTex;
-    Fwog::Texture varianceTex;
     Fwog::Texture illuminationUpscaled;
     Fwog::Texture rsmFluxSmall;
     Fwog::Texture rsmNormalSmall;
