@@ -37,6 +37,23 @@
 #define STB_INCLUDE_LINE_GLSL
 #include <stb_include.h>
 
+/* 04_volumetric
+ *
+ * A renderer with volumetric fog effects. The volumetric effect is computed in a volume texture, 
+ * independent of the screen resolution, then applied in a separate pass. The technique is largely
+ * based on a presentation by Bart Wronski titled "Volumetric Fog".
+ *
+ * The app has the same options as 03_gltf_viewer.
+ *
+ * Options
+ * Filename (string) : name of the glTF file you wish to view.
+ * Scale (real)      : uniform scale factor in case the model is tiny or huge. Default: 1.0
+ * Binary (int)      : whether the input file is binary glTF. Default: false
+ *
+ * If no options are specified, the default scene will be loaded.
+ *
+ */
+
 // not needed because SceneLoader implements stb_include
 // #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -244,7 +261,7 @@ public:
     applyDeferredPipeline = Fwog::ComputePipeline({.shader = &applyShader});
 
     // Load the normalized MiePlot generated scattering data.
-    // This texture is used if a compile-time switch is set in marchVolume.comp.glsl.
+    // This texture is used if a flag is set in marchVolume.comp.glsl.
     std::ifstream file{"textures/fog_mie_data.txt"};
 
     std::vector<glm::vec3> data;
