@@ -232,17 +232,17 @@ namespace Fwog
     SINT,
     FLOAT,
     UBYTE_3_3_2,
-    UBYTE_2_3_3,
+    UBYTE_2_3_3_REV,
     USHORT_5_6_5,
     USHORT_5_6_5_REV,
     USHORT_4_4_4_4,
     USHORT_4_4_4_4_REV,
     USHORT_5_5_5_1,
-    USHORT_5_5_5_1_REV,
+    USHORT_1_5_5_5_REV,
     UINT_8_8_8_8,
     UINT_8_8_8_8_REV,
     UINT_10_10_10_2,
-    UINT_10_10_10_2_REV,
+    UINT_2_10_10_10_REV,
   };
 
   enum class Filter : uint8_t
