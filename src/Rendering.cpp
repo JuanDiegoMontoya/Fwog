@@ -39,39 +39,36 @@ namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
   // since only one rendering instance can be active at a time, we store some state here
-  namespace
-  {
-    constexpr int MAX_COLOR_ATTACHMENTS = 8;
-    bool isComputeActive = false;
-    bool isRendering = false;
-    bool isIndexBufferBound = false;
-    bool isRenderingToSwapchain = false;
-    bool isScopedDebugGroupPushed = false;
-    bool isPipelineDebugGroupPushed = false;
+  constexpr int MAX_COLOR_ATTACHMENTS = 8;
+  bool isComputeActive = false;
+  bool isRendering = false;
+  bool isIndexBufferBound = false;
+  bool isRenderingToSwapchain = false;
+  bool isScopedDebugGroupPushed = false;
+  bool isPipelineDebugGroupPushed = false;
 
-    // TODO: way to reset this pointer in case the user wants to do their own OpenGL operations (invalidate the cache).
-    // A shared_ptr is needed as the user can delete pipelines at any time, but we need to ensure it stays alive until
-    // the next pipeline is bound.
-    std::shared_ptr<const detail::GraphicsPipelineInfoOwning> sLastGraphicsPipeline{};
-    const RenderInfo* sLastRenderInfo{};
+  // TODO: way to reset this pointer in case the user wants to do their own OpenGL operations (invalidate the cache).
+  // A shared_ptr is needed as the user can delete pipelines at any time, but we need to ensure it stays alive until
+  // the next pipeline is bound.
+  std::shared_ptr<const detail::GraphicsPipelineInfoOwning> sLastGraphicsPipeline{};
+  const RenderInfo* sLastRenderInfo{};
 
-    // these can be set at the start of rendering, so they need to be tracked separately from the other pipeline state
-    std::array<ColorComponentFlags, MAX_COLOR_ATTACHMENTS> sLastColorMask = {};
-    bool sLastDepthMask = true;
-    uint32_t sLastStencilMask[2] = {static_cast<uint32_t>(-1), static_cast<uint32_t>(-1)};
-    bool sInitViewport = true;
-    Viewport sLastViewport = {};
-    Rect2D sLastScissor = {};
-    bool sScissorEnabled = false;
+  // these can be set at the start of rendering, so they need to be tracked separately from the other pipeline state
+  std::array<ColorComponentFlags, MAX_COLOR_ATTACHMENTS> sLastColorMask = {};
+  bool sLastDepthMask = true;
+  uint32_t sLastStencilMask[2] = {static_cast<uint32_t>(-1), static_cast<uint32_t>(-1)};
+  bool sInitViewport = true;
+  Viewport sLastViewport = {};
+  Rect2D sLastScissor = {};
+  bool sScissorEnabled = false;
 
-    PrimitiveTopology sTopology{};
-    IndexType sIndexType{};
-    GLuint sVao = 0;
-    GLuint sFbo = 0;
+  PrimitiveTopology sTopology{};
+  IndexType sIndexType{};
+  GLuint sVao = 0;
+  GLuint sFbo = 0;
 
-    detail::FramebufferCache sFboCache;
-    detail::VertexArrayCache sVaoCache;
-  } // namespace
+  detail::FramebufferCache sFboCache;
+  detail::VertexArrayCache sVaoCache;
 
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
   {
@@ -159,19 +156,7 @@ namespace Fwog
       isScopedDebugGroupPushed = true;
     }
 
-    std::vector<const Texture*> colorAttachments;
-    colorAttachments.reserve(ri.colorAttachments.size());
-    for (const auto& attachment : ri.colorAttachments)
-    {
-      colorAttachments.push_back(attachment.texture);
-    }
-    detail::RenderAttachments attachments{
-        .colorAttachments = colorAttachments,
-        .depthAttachment = ri.depthAttachment ? ri.depthAttachment->texture : nullptr,
-        .stencilAttachment = ri.stencilAttachment ? ri.stencilAttachment->texture : nullptr,
-    };
-
-    sFbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
+    sFbo = sFboCache.CreateOrGetCachedFramebuffer(ri);
     glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
 
     for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
@@ -387,12 +372,12 @@ namespace Fwog
                    Filter filter,
                    AspectMask aspect)
   {
-    detail::RenderAttachments sourceAttachments;
-    detail::RenderAttachments destAttachments;
-    sourceAttachments.colorAttachments.push_back(&source);
-    destAttachments.colorAttachments.push_back(&target);
-    auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(sourceAttachments);
-    auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(destAttachments);
+    RenderAttachment attachmentSource{.texture = &source};
+    RenderInfo renderInfoSource{.colorAttachments = {&attachmentSource, 1}};
+    auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(renderInfoSource);
+    RenderAttachment attachmentDest{.texture = &target};
+    RenderInfo renderInfoDest{.colorAttachments = {&attachmentDest, 1}};
+    auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(renderInfoDest);
     glBlitNamedFramebuffer(fboSource,
                            fboDest,
                            sourceOffset.x,
@@ -415,9 +400,9 @@ namespace Fwog
                               Filter filter,
                               AspectMask aspect)
   {
-    detail::RenderAttachments attachments;
-    attachments.colorAttachments.push_back(&source);
-    auto fbo = sFboCache.CreateOrGetCachedFramebuffer(attachments);
+    RenderAttachment attachment{.texture = &source};
+    RenderInfo renderInfo{.colorAttachments = {&attachment, 1}};
+    auto fbo = sFboCache.CreateOrGetCachedFramebuffer(renderInfo);
     glBlitNamedFramebuffer(fbo,
                            0,
                            sourceOffset.x,

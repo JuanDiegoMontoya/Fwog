@@ -44,6 +44,21 @@ namespace Fwog
     bool clearOnLoad = false;
   };
 
+  // TODO: use these structs
+  //struct RenderColorAttachment
+  //{
+  //  const Texture* texture = nullptr;
+  //  bool clearOnLoad = false;
+  //  ClearColorValue clearValue;
+  //};
+  //
+  //struct RenderDepthStencilAttachment
+  //{
+  //  const Texture* texture = nullptr;
+  //  bool clearOnLoad = false;
+  //  ClearDepthStencilValue clearValue;
+  //};
+
   struct Viewport
   {
     Rect2D drawRect = {};  // glViewport
@@ -66,11 +81,11 @@ namespace Fwog
     int32_t clearStencilValue = 0;
   };
 
-  // describes the render targets that may be used in a draw
+  // Describes the render targets that may be used in a draw
   struct RenderInfo
   {
     std::string_view name;
-    // if null, the viewport size will be automatically deduced based on the render targets
+    // If null, the viewport size will be the minimum the render targets' size, and the offset will be 0
     const Viewport* viewport = nullptr;
     std::span<const RenderAttachment> colorAttachments;
     const RenderAttachment* depthAttachment = nullptr;

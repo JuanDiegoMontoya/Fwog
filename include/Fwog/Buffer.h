@@ -6,25 +6,27 @@
 
 namespace Fwog
 {
+  // clang-format off
+  
   // used to constrain types accepted by Buffer
   class TriviallyCopyableByteSpan : public std::span<const std::byte>
   {
   public:
     template<typename T>
     requires std::is_trivially_copyable_v<T> TriviallyCopyableByteSpan(const T& t)
-        : std::span<const std::byte>(std::as_bytes(std::span{&t, static_cast<size_t>(1)}))
+      : std::span<const std::byte>(std::as_bytes(std::span{&t, static_cast<size_t>(1)}))
     {
     }
 
     template<typename T>
     requires std::is_trivially_copyable_v<T> TriviallyCopyableByteSpan(std::span<const T> t)
-        : std::span<const std::byte>(std::as_bytes(t))
+      : std::span<const std::byte>(std::as_bytes(t))
     {
     }
 
     template<typename T>
     requires std::is_trivially_copyable_v<T> TriviallyCopyableByteSpan(std::span<T> t)
-        : std::span<const std::byte>(std::as_bytes(t))
+      : std::span<const std::byte>(std::as_bytes(t))
     {
     }
   };
@@ -105,19 +107,25 @@ namespace Fwog
   public:
     explicit TypedBuffer(BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
                          BufferMapFlags mapFlags = BufferMapFlag::NONE)
-        : Buffer(sizeof(T), storageFlags, mapFlags)
+      : Buffer(sizeof(T), storageFlags, mapFlags)
     {
     }
     explicit TypedBuffer(size_t count,
                          BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
                          BufferMapFlags mapFlags = BufferMapFlag::NONE)
-        : Buffer(sizeof(T) * count, storageFlags, mapFlags)
+      : Buffer(sizeof(T) * count, storageFlags, mapFlags)
     {
     }
     explicit TypedBuffer(std::span<const T> data,
                          BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
                          BufferMapFlags mapFlags = BufferMapFlag::NONE)
-        : Buffer(data, storageFlags, mapFlags)
+      : Buffer(data, storageFlags, mapFlags)
+    {
+    }
+    explicit TypedBuffer(const T& data,
+                         BufferStorageFlags storageFlags = BufferStorageFlag::NONE,
+                         BufferMapFlags mapFlags = BufferMapFlag::NONE)
+      : Buffer(&data, sizeof(T), storageFlags, mapFlags)
     {
     }
 
@@ -143,4 +151,6 @@ namespace Fwog
 
   private:
   };
+
+  // clang-format on
 } // namespace Fwog

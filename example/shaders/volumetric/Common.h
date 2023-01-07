@@ -46,11 +46,12 @@ layout(binding = 0, std140) uniform UNIFORMS
   float noiseOffsetScale;
   uint frog;
   float groundFogDensity;
+  vec3 sunColor;
 }uniforms;
 
 #define M_PI 3.1415926
 
-// Henyey-Greenstein phase function for isotropic in-scattering
+// Henyey-Greenstein phase function for anisotropic in-scattering
 float phaseHG(float g, float cosTheta)
 {
   return (1.0 - g * g) / (4.0 * M_PI * pow(1.0 + g * g - 2.0 * g * cosTheta, 1.5));

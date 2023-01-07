@@ -21,6 +21,8 @@ namespace Fwog
     uint32_t mipLevels = 0;
     uint32_t arrayLayers = 0;
     SampleCount sampleCount = {};
+
+    bool operator==(const TextureCreateInfo&) const noexcept = default;
   };
 
   struct TextureViewCreateInfo
@@ -82,7 +84,9 @@ namespace Fwog
     Texture& operator=(Texture&& old) noexcept;
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
-    ~Texture();
+    virtual ~Texture();
+
+    bool operator==(const Texture&) const noexcept = default;
 
     void SubImage(const TextureUpdateInfo& info);
     void ClearImage(const TextureClearInfo& info);
@@ -112,6 +116,21 @@ namespace Fwog
     TextureCreateInfo createInfo_{};
     uint64_t bindlessHandle_ = 0;
   };
+
+  // TODO: implement
+  //class ColorTexture : public Texture
+  //{
+  //public:
+  //  // Should this constructor take a version of TextureCreateInfo that uses a more constrained format enum?
+  //  explicit ColorTexture()
+  //};
+
+  //class DepthStencilTexture : public Texture
+  //{
+  //public:
+  //  // See comment for above class' constructor
+  //  explicit DepthStencilTexture()
+  //};
 
   class TextureView : public Texture
   {
