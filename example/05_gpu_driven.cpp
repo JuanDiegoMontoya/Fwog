@@ -133,7 +133,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
     .name = "Generic material",
     .vertexShader = &vs,
     .fragmentShader = &fs,
-    .vertexInputState = sceneInputBindingDescs,
+    .vertexInputState = {sceneInputBindingDescs},
     .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::LESS},
   });
 }

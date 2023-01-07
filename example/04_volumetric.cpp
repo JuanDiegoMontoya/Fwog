@@ -155,7 +155,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
   return Fwog::GraphicsPipeline({
     .vertexShader = &vs,
     .fragmentShader = &fs,
-    .vertexInputState = sceneInputBindingDescs,
+    .vertexInputState = {sceneInputBindingDescs},
     .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER},
   });
 }
@@ -166,7 +166,7 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
 
   return Fwog::GraphicsPipeline({
     .vertexShader = &vs,
-    .vertexInputState = sceneInputBindingDescs,
+    .vertexInputState = {sceneInputBindingDescs},
     .rasterizationState =
       {
         .depthBiasEnable = true,
