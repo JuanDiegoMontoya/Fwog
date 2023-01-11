@@ -87,6 +87,7 @@ namespace Fwog::detail
     case Format::R10G10B10A2_UINT:   return GL_RGB10_A2UI;
     case Format::R12G12B12A12_UNORM: return GL_RGBA12;
     case Format::R16G16B16A16_UNORM: return GL_RGBA16;
+    case Format::R16G16B16A16_SNORM: return GL_RGBA16_SNORM;
     case Format::R8G8B8_SRGB:        return GL_SRGB8;
     case Format::R8G8B8A8_SRGB:      return GL_SRGB8_ALPHA8;
     case Format::R16_FLOAT:          return GL_R16F;
@@ -168,7 +169,7 @@ namespace Fwog::detail
     case UploadType::SINT:                return GL_INT;
     case UploadType::FLOAT:               return GL_FLOAT;
     case UploadType::UBYTE_3_3_2:         return GL_UNSIGNED_BYTE_3_3_2;
-    case UploadType::UBYTE_2_3_3_REV:         return GL_UNSIGNED_BYTE_2_3_3_REV;
+    case UploadType::UBYTE_2_3_3_REV:     return GL_UNSIGNED_BYTE_2_3_3_REV;
     case UploadType::USHORT_5_6_5:        return GL_UNSIGNED_SHORT_5_6_5;
     case UploadType::USHORT_5_6_5_REV:    return GL_UNSIGNED_SHORT_5_6_5_REV;
     case UploadType::USHORT_4_4_4_4:      return GL_UNSIGNED_SHORT_4_4_4_4;
@@ -339,6 +340,7 @@ namespace Fwog::detail
     case Format::R16_SNORM:
     case Format::R16G16_SNORM:
     case Format::R16G16B16_SNORM:
+    case Format::R16G16B16A16_SNORM:
     case Format::R16_SINT:
     case Format::R16G16_SINT:
     case Format::R16G16B16_SINT:
