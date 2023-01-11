@@ -20,7 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Dependencies
-      run: sudo apt-get install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+      run: sudo apt-get update && sudo apt-get install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 
     - name: Install gcc-${{ matrix.gccversion }}
       run: sudo apt-get install gcc-${{ matrix.gccversion }} g++-${{ matrix.gccversion }}
