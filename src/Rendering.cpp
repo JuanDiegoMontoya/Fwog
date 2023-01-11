@@ -35,6 +35,54 @@ static size_t GetIndexSize(Fwog::IndexType indexType)
   }
 }
 
+static bool IsValidImageFormat(Fwog::Format format)
+{
+  switch (format)
+  {
+  case Fwog::Format::R32G32B32A32_FLOAT:
+  case Fwog::Format::R16G16B16A16_FLOAT:
+  case Fwog::Format::R32G32_FLOAT:
+  case Fwog::Format::R16G16_FLOAT:
+  case Fwog::Format::R11G11B10_FLOAT:
+  case Fwog::Format::R32_FLOAT:
+  case Fwog::Format::R16_FLOAT:
+  case Fwog::Format::R32G32B32A32_UINT:
+  case Fwog::Format::R16G16B16A16_UINT:
+  case Fwog::Format::R10G10B10A2_UINT:
+  case Fwog::Format::R8G8B8A8_UINT:
+  case Fwog::Format::R32G32_UINT:
+  case Fwog::Format::R16G16_UINT:
+  case Fwog::Format::R8G8_UINT:
+  case Fwog::Format::R32_UINT:
+  case Fwog::Format::R16_UINT:
+  case Fwog::Format::R8_UINT:
+  case Fwog::Format::R32G32B32_SINT:
+  case Fwog::Format::R16G16B16A16_SINT:
+  case Fwog::Format::R8G8B8A8_SINT:
+  case Fwog::Format::R32G32_SINT:
+  case Fwog::Format::R16G16_SINT:
+  case Fwog::Format::R8G8_SINT:
+  case Fwog::Format::R32_SINT:
+  case Fwog::Format::R16_SINT:
+  case Fwog::Format::R8_SINT:
+  case Fwog::Format::R16G16B16A16_UNORM:
+  case Fwog::Format::R10G10B10A2_UNORM:
+  case Fwog::Format::R8G8B8A8_UNORM:
+  case Fwog::Format::R16G16_UNORM:
+  case Fwog::Format::R8G8_UNORM:
+  case Fwog::Format::R16_UNORM:
+  case Fwog::Format::R8_UNORM:
+  case Fwog::Format::R16G16B16A16_SNORM:
+  case Fwog::Format::R8G8B8A8_SNORM:
+  case Fwog::Format::R16G16_SNORM:
+  case Fwog::Format::R8G8_SNORM:
+  case Fwog::Format::R16_SNORM:
+  case Fwog::Format::R8_SNORM:
+    return true;
+  default: return false;
+  }
+}
+
 namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
@@ -880,6 +928,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering || isComputeActive);
       FWOG_ASSERT(level < texture.CreateInfo().mipLevels);
+      FWOG_ASSERT(IsValidImageFormat(texture.CreateInfo().format));
 
       glBindImageTexture(index,
                          texture.Handle(),
