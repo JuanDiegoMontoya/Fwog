@@ -32,32 +32,22 @@ namespace Fwog
   struct ClearDepthStencilValue
   {
     float depth{};
-    int32_t stencil;
+    int32_t stencil{};
   };
 
-  using ClearValue = std::variant<ClearColorValue, ClearDepthStencilValue>;
-
-  struct RenderAttachment
+  struct RenderColorAttachment
   {
     const Texture* texture = nullptr;
-    ClearValue clearValue;
     bool clearOnLoad = false;
+    ClearColorValue clearValue;
   };
-
-  // TODO: use these structs
-  //struct RenderColorAttachment
-  //{
-  //  const Texture* texture = nullptr;
-  //  bool clearOnLoad = false;
-  //  ClearColorValue clearValue;
-  //};
-  //
-  //struct RenderDepthStencilAttachment
-  //{
-  //  const Texture* texture = nullptr;
-  //  bool clearOnLoad = false;
-  //  ClearDepthStencilValue clearValue;
-  //};
+  
+  struct RenderDepthStencilAttachment
+  {
+    const Texture* texture = nullptr;
+    bool clearOnLoad = false;
+    ClearDepthStencilValue clearValue;
+  };
 
   struct Viewport
   {
@@ -87,9 +77,9 @@ namespace Fwog
     std::string_view name;
     // If null, the viewport size will be the minimum the render targets' size, and the offset will be 0
     const Viewport* viewport = nullptr;
-    std::span<const RenderAttachment> colorAttachments;
-    const RenderAttachment* depthAttachment = nullptr;
-    const RenderAttachment* stencilAttachment = nullptr;
+    std::span<const RenderColorAttachment> colorAttachments;
+    const RenderDepthStencilAttachment* depthAttachment = nullptr;
+    const RenderDepthStencilAttachment* stencilAttachment = nullptr;
   };
 
   // begin or end a scope of rendering to a set of render targets

@@ -83,6 +83,62 @@ static bool IsValidImageFormat(Fwog::Format format)
   }
 }
 
+static bool IsDepthFormat(Fwog::Format format)
+{
+  switch (format)
+  {
+  case Fwog::Format::D32_FLOAT:
+  case Fwog::Format::D32_UNORM:
+  case Fwog::Format::D24_UNORM:
+  case Fwog::Format::D16_UNORM:
+  case Fwog::Format::D32_FLOAT_S8_UINT:
+  case Fwog::Format::D24_UNORM_S8_UINT:
+    return true;
+  default: return false;
+  }
+}
+
+static bool IsStencilFormat(Fwog::Format format)
+{
+  switch (format)
+  {
+  case Fwog::Format::D32_FLOAT_S8_UINT:
+  case Fwog::Format::D24_UNORM_S8_UINT: return true;
+  default: return false;
+  }
+}
+
+static bool IsColorFormat(Fwog::Format format)
+{
+  return !IsDepthFormat(format) && !IsStencilFormat(format);
+}
+
+static uint32_t MakeSingleTextureFbo(const Fwog::Texture& texture, Fwog::detail::FramebufferCache& fboCache)
+{
+  auto format = texture.CreateInfo().format;
+
+  auto depthStencil = Fwog::RenderDepthStencilAttachment{.texture = &texture};
+  auto color = Fwog::RenderColorAttachment{.texture = &texture};
+  Fwog::RenderInfo renderInfo;
+
+  if (IsDepthFormat(format))
+  {
+    renderInfo.depthAttachment = &depthStencil;
+  }
+
+  if (IsStencilFormat(format))
+  {
+    renderInfo.stencilAttachment = &depthStencil;
+  }
+
+  if (IsColorFormat(format))
+  {
+    renderInfo.colorAttachments = {&color, 1};
+  }
+
+  return fboCache.CreateOrGetCachedFramebuffer(renderInfo);
+}
+
 namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
@@ -212,8 +268,6 @@ namespace Fwog
       const auto& attachment = ri.colorAttachments[i];
       if (attachment.clearOnLoad)
       {
-        FWOG_ASSERT(std::holds_alternative<ClearColorValue>(attachment.clearValue));
-
         if (sLastColorMask[i] != ColorComponentFlag::RGBA_BITS)
         {
           glColorMaski(i, true, true, true, true);
@@ -223,8 +277,7 @@ namespace Fwog
         auto format = attachment.texture->CreateInfo().format;
         auto baseTypeClass = detail::FormatToBaseTypeClass(format);
 
-        // avoid std::get because it can throw
-        auto& ccv = *std::get_if<ClearColorValue>(&attachment.clearValue);
+        auto& ccv = attachment.clearValue;
         
         switch (baseTypeClass)
         {
@@ -249,8 +302,6 @@ namespace Fwog
         ri.stencilAttachment->clearOnLoad)
     {
       // clear depth and stencil simultaneously
-      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.depthAttachment->clearValue));
-      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.stencilAttachment->clearValue));
       if (sLastDepthMask == false)
       {
         glDepthMask(true);
@@ -263,8 +314,8 @@ namespace Fwog
         sLastStencilMask[1] = true;
       }
 
-      auto& clearDepth = *std::get_if<ClearDepthStencilValue>(&ri.depthAttachment->clearValue);
-      auto& clearStencil = *std::get_if<ClearDepthStencilValue>(&ri.stencilAttachment->clearValue);
+      auto& clearDepth = ri.depthAttachment->clearValue;
+      auto& clearStencil = ri.stencilAttachment->clearValue;
 
       glClearNamedFramebufferfi(sFbo,
                                 GL_DEPTH_STENCIL,
@@ -276,22 +327,18 @@ namespace Fwog
              (!ri.stencilAttachment || !ri.stencilAttachment->clearOnLoad))
     {
       // clear just depth
-      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.depthAttachment->clearValue));
       if (sLastDepthMask == false)
       {
         glDepthMask(true);
         sLastDepthMask = true;
       }
 
-      auto& clearDepth = *std::get_if<ClearDepthStencilValue>(&ri.depthAttachment->clearValue);
-
-      glClearNamedFramebufferfv(sFbo, GL_DEPTH, 0, &clearDepth.depth);
+      glClearNamedFramebufferfv(sFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depth);
     }
     else if ((ri.stencilAttachment && ri.stencilAttachment->clearOnLoad) &&
              (!ri.depthAttachment || !ri.depthAttachment->clearOnLoad))
     {
       // clear just stencil
-      FWOG_ASSERT(std::holds_alternative<ClearDepthStencilValue>(ri.stencilAttachment->clearValue));
       if (sLastStencilMask[0] == false || sLastStencilMask[1] == false)
       {
         glStencilMask(true);
@@ -299,9 +346,7 @@ namespace Fwog
         sLastStencilMask[1] = true;
       }
 
-      auto& clearStencil = *std::get_if<ClearDepthStencilValue>(&ri.stencilAttachment->clearValue);
-
-      glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &clearStencil.stencil);
+      glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.stencil);
     }
 
     Viewport viewport;
@@ -420,14 +465,10 @@ namespace Fwog
                    Filter filter,
                    AspectMask aspect)
   {
-    RenderAttachment attachmentSource{.texture = &source};
-    RenderInfo renderInfoSource{.colorAttachments = {&attachmentSource, 1}};
-    auto fboSource = sFboCache.CreateOrGetCachedFramebuffer(renderInfoSource);
-    RenderAttachment attachmentDest{.texture = &target};
-    RenderInfo renderInfoDest{.colorAttachments = {&attachmentDest, 1}};
-    auto fboDest = sFboCache.CreateOrGetCachedFramebuffer(renderInfoDest);
+    auto fboSource = MakeSingleTextureFbo(source, sFboCache);
+    auto fboTarget = MakeSingleTextureFbo(target, sFboCache);
     glBlitNamedFramebuffer(fboSource,
-                           fboDest,
+                           fboTarget,
                            sourceOffset.x,
                            sourceOffset.y,
                            sourceExtent.width,
@@ -448,9 +489,8 @@ namespace Fwog
                               Filter filter,
                               AspectMask aspect)
   {
-    RenderAttachment attachment{.texture = &source};
-    RenderInfo renderInfo{.colorAttachments = {&attachment, 1}};
-    auto fbo = sFboCache.CreateOrGetCachedFramebuffer(renderInfo);
+    auto fbo = MakeSingleTextureFbo(source, sFboCache);
+
     glBlitNamedFramebuffer(fbo,
                            0,
                            sourceOffset.x,
