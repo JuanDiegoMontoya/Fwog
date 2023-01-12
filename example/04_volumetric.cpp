@@ -1,10 +1,3 @@
-/* volumetric.cpp
- *
- * Volumetric fog viewer.
- *
- * Takes the same command line arguments as the gltf_viewer example.
- */
-
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "common/Application.h"
 
@@ -393,7 +386,7 @@ public:
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
     Fwog::BeginCompute();
-    Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(*marchVolumePipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
     Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
@@ -415,7 +408,7 @@ public:
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
     Fwog::BeginCompute();
-    Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(*applyDeferredPipeline);
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
     Fwog::Cmd::BindSampledImage(0, gbufferColor, sampler);
@@ -732,7 +725,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
         auto dispatchDim = (esmTex.Extent() + 7) / 8;
         Fwog::Cmd::Dispatch(dispatchDim.width, dispatchDim.height, 1);
 
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
       }
 
       // blur
@@ -759,7 +752,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
           esmBlurUniformBuffer.SubData(esmBlurUniforms, 0);
           Fwog::Cmd::BindSampledImage(0, esmTex, linearSampler);
           Fwog::Cmd::BindImage(0, esmTexPingPong, 0);
-          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(dispatchSize1.width, dispatchSize1.height, 1);
 
           esmBlurUniforms.direction = {1, 0};
@@ -767,7 +760,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
           esmBlurUniformBuffer.SubData(esmBlurUniforms, 0);
           Fwog::Cmd::BindSampledImage(0, esmTexPingPong, linearSampler);
           Fwog::Cmd::BindImage(0, esmTex, 0);
-          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
           Fwog::Cmd::Dispatch(dispatchSize2.width, dispatchSize2.height, 1);
         }
       }
@@ -784,7 +777,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::RenderInfo shadingRenderingInfo{.colorAttachments = {&shadingAttachment, 1}};
     Fwog::BeginRendering(shadingRenderingInfo);
     Fwog::ScopedDebugMarker marker("Shading");
-    Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
     Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
     Fwog::Cmd::BindSampledImage(0, frame.gAlbedo.value(), nearestSampler);
     Fwog::Cmd::BindSampledImage(1, frame.gNormal.value(), nearestSampler);
@@ -843,7 +836,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindImage(0, frame.shadingTexLdr.value(), 0);
     Fwog::Extent2D numGroups = (frame.shadingTexLdr->Extent() + 7) / 8;
     Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
-    Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
     Fwog::EndCompute();
   }
 
@@ -864,7 +857,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
     Fwog::ScopedDebugMarker marker("Copy to Swapchain");
 
-    Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
 
     Fwog::Texture* tex = &frame.shadingTexLdr.value();
     if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)

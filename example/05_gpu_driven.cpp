@@ -329,8 +329,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
       .stencilAttachment = nullptr,
     });
 
-    Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::COMMAND_BUFFER_BIT |
-                             Fwog::MemoryBarrierAccessBit::SHADER_STORAGE_BIT);
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::COMMAND_BUFFER_BIT | Fwog::MemoryBarrierBit::SHADER_STORAGE_BIT);
 
     Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
     Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value(), 0, meshUniformBuffer->Size());

@@ -288,8 +288,8 @@ namespace RSM
           Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
           Fwog::Cmd::BindSampledImage(7, *noiseTex, nearestSampler);
           rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
-          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
-                                   Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT |
+                                   Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         }
@@ -321,8 +321,8 @@ namespace RSM
           Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
           Fwog::Cmd::BindImage(1, historyLengthTex, 0);
           Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
-          Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT |
-                                   Fwog::MemoryBarrierAccessBit::IMAGE_ACCESS_BIT);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT |
+                                   Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
         }
 
@@ -351,14 +351,14 @@ namespace RSM
             filterUniformBuffer.SubDataTyped(filterUniforms);
             Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
             Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
             filterUniforms.direction = {1, 0};
             filterUniformBuffer.SubDataTyped(filterUniforms);
             Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
             Fwog::Cmd::BindImage(0, indirectUnfilteredTexPrev, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
             for (int i = 1; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
@@ -369,14 +369,14 @@ namespace RSM
               filterUniformBuffer.SubDataTyped(filterUniforms);
               Fwog::Cmd::BindSampledImage(0, i == 1 ? indirectUnfilteredTexPrev : indirectFilteredTex, nearestSampler);
               Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-              Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
               Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
               filterUniforms.direction = {1, 0};
               filterUniformBuffer.SubDataTyped(filterUniforms);
               Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
               Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
-              Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
               Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
             }
           }
@@ -415,7 +415,7 @@ namespace RSM
 
               Fwog::Cmd::BindSampledImage(0, *in, nearestSampler);
               Fwog::Cmd::BindImage(0, *out, 0);
-              Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+              Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
               Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
             }
           }
@@ -433,7 +433,7 @@ namespace RSM
             Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
             Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
             Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
           }
           else // Use bilateral upscale
@@ -460,7 +460,7 @@ namespace RSM
             filterUniformBuffer.SubDataTyped(filterUniforms);
             Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
             Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
-            Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
           }
         }
@@ -493,25 +493,25 @@ namespace RSM
         // Quarter resolution indirect illumination pass
         uint32_t currentPass = 0;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
         Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
         // Reconstruction pass 1
         currentPass = 1;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
         Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
         // Reconstruction pass 2
         currentPass = 2;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
         Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
 
         // Reconstruction pass 3
         currentPass = 3;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
-        Fwog::Cmd::MemoryBarrier(Fwog::MemoryBarrierAccessBit::TEXTURE_FETCH_BIT);
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
         Fwog::Cmd::Dispatch(numGroups.x, numGroups.y, 1);
       }
     }
