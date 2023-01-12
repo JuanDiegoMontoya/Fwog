@@ -490,6 +490,11 @@ namespace Fwog
                        extent.depth);
   }
 
+  void MemoryBarrier(MemoryBarrierBits accessBits)
+  {
+    glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
+  }
+
   namespace Cmd
   {
     void BindGraphicsPipeline(const GraphicsPipeline& pipeline)
@@ -952,13 +957,6 @@ namespace Fwog
 
       glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, commandBuffer.Handle());
       glDispatchComputeIndirect(static_cast<GLintptr>(commandBufferOffset));
-    }
-
-    void MemoryBarrier(MemoryBarrierAccessBits accessBits)
-    {
-      FWOG_ASSERT(isRendering || isComputeActive);
-
-      glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
     }
   } // namespace Cmd
 } // namespace Fwog

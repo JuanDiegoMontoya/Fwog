@@ -126,6 +126,8 @@ namespace Fwog
                    Offset3D sourceOffset,
                    Offset3D targetOffset,
                    Extent3D extent);
+  
+  void MemoryBarrier(MemoryBarrierBits accessBits);
 
   // Cmd:: functions can only be called within a rendering scope
   namespace Cmd
@@ -207,7 +209,6 @@ namespace Fwog
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset);
-    void MemoryBarrier(MemoryBarrierAccessBits accessBits);
 
     // clang-format on
   } // namespace Cmd

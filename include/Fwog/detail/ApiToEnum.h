@@ -72,5 +72,5 @@ namespace Fwog::detail
 
   GLenum StencilOpToGL(StencilOp op);
 
-  GLbitfield BarrierBitsToGL(MemoryBarrierAccessBits bits);
+  GLbitfield BarrierBitsToGL(MemoryBarrierBits bits);
 } // namespace Fwog::detail

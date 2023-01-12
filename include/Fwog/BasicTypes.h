@@ -394,7 +394,7 @@ namespace Fwog
     UNSIGNED_INT,
   };
 
-  enum class MemoryBarrierAccessBit : uint32_t
+  enum class MemoryBarrierBit : uint32_t
   {
     NONE = 0,
     VERTEX_BUFFER_BIT  = 1 << 0,  // GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT
@@ -412,7 +412,7 @@ namespace Fwog
     ALL_BITS = static_cast<uint32_t>(-1),
     // TODO: add more bits as necessary
   };
-  FWOG_DECLARE_FLAG_TYPE(MemoryBarrierAccessBits, MemoryBarrierAccessBit, uint32_t)
+  FWOG_DECLARE_FLAG_TYPE(MemoryBarrierBits, MemoryBarrierBit, uint32_t)
 
   enum class StencilOp : uint32_t
   {
