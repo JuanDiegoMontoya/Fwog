@@ -634,22 +634,22 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   // geometry buffer pass
   {
-    Fwog::RenderAttachment gAlbedoAttachment{
+    Fwog::RenderColorAttachment gAlbedoAttachment{
       .texture = &frame.gAlbedo.value(),
-      .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
       .clearOnLoad = true,
+      .clearValue = {.1f, .3f, .5f, 0.0f},
     };
-    Fwog::RenderAttachment gNormalAttachment{
+    Fwog::RenderColorAttachment gNormalAttachment{
       .texture = &frame.gNormal.value(),
-      .clearValue = Fwog::ClearColorValue{0.f, 0.f, 0.f, 0.f},
       .clearOnLoad = false,
+      .clearValue = {0.f, 0.f, 0.f, 0.f},
     };
-    Fwog::RenderAttachment gDepthAttachment{
+    Fwog::RenderDepthStencilAttachment gDepthAttachment{
       .texture = &frame.gDepth.value(),
-      .clearValue = Fwog::ClearDepthStencilValue{.depth = 0.0f},
       .clearOnLoad = true,
+      .clearValue = {.depth = 0.0f},
     };
-    Fwog::RenderAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
+    Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
     Fwog::RenderInfo gbufferRenderInfo{
       .colorAttachments = cgAttachments,
       .depthAttachment = &gDepthAttachment,
@@ -683,10 +683,10 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   // shadow map scene pass
   {
-    Fwog::RenderAttachment depthAttachment{
+    Fwog::RenderDepthStencilAttachment depthAttachment{
       .texture = &shadowDepth,
-      .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
       .clearOnLoad = true,
+      .clearValue = {.depth = 1.0f},
     };
 
     Fwog::RenderInfo shadowRenderInfo{.depthAttachment = &depthAttachment, .stencilAttachment = nullptr};
@@ -772,7 +772,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   // shading pass (full screen tri)
   {
-    Fwog::RenderAttachment shadingAttachment{.texture = &frame.shadingTexHdr.value(), .clearOnLoad = false};
+    Fwog::RenderColorAttachment shadingAttachment{.texture = &frame.shadingTexHdr.value()};
 
     Fwog::RenderInfo shadingRenderingInfo{.colorAttachments = {&shadingAttachment, 1}};
     Fwog::BeginRendering(shadingRenderingInfo);

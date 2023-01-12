@@ -309,18 +309,18 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
   globalUniformsBuffer.SubDataTyped(mainCameraUniforms);
 
-  Fwog::RenderAttachment gDepthAttachment{
+  Fwog::RenderDepthStencilAttachment gDepthAttachment{
     .texture = &frame.gDepth.value(),
-    .clearValue = Fwog::ClearDepthStencilValue{.depth = 1.0f},
     .clearOnLoad = true,
+    .clearValue = {.depth = 1.0f},
   };
 
   // Scene pass. Draw everything that was marked visible in the previous frame's culling pass.
   {
-    Fwog::RenderAttachment gColorAttachment{
+    Fwog::RenderColorAttachment gColorAttachment{
       .texture = &frame.gAlbedo.value(),
-      .clearValue = Fwog::ClearColorValue{.1f, .3f, .5f, 0.0f},
       .clearOnLoad = true,
+      .clearValue = {.1f, .3f, .5f, 0.0f},
     };
     Fwog::BeginRendering({
       .name = "Scene",
