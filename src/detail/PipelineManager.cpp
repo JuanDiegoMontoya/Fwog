@@ -1,4 +1,3 @@
-#include <Fwog/Common.h>
 #include <Fwog/Exception.h>
 #include <Fwog/Shader.h>
 #include <Fwog/detail/Hash.h>

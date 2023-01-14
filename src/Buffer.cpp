@@ -1,5 +1,4 @@
 #include <Fwog/Buffer.h>
-#include <Fwog/Common.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <utility>
 

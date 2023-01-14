@@ -1,5 +1,4 @@
 #include "Fwog/detail/SamplerCache.h"
-#include "Fwog/Common.h"
 #include "Fwog/detail/ApiToEnum.h"
 #include "Fwog/detail/Hash.h"
 #include "glad/gl.h"

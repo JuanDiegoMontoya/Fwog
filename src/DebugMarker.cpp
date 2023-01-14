@@ -1,4 +1,3 @@
-#include <Fwog/Common.h>
 #include <Fwog/DebugMarker.h>
 
 namespace Fwog

@@ -1,4 +1,5 @@
 #pragma once
+#include <Fwog/Config.h>
 #include <Fwog/BasicTypes.h>
 #include <cstdint>
 #include <string_view>

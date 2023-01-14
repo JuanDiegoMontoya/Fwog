@@ -1,4 +1,3 @@
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "common/Application.h"
 
 #include <array>
@@ -533,8 +532,6 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
   mainCamera.position = {0, 1.5, 2};
   mainCamera.yaw = -glm::half_pi<float>();
 
-  glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-
   if (!filename)
   {
     Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.5}, true);
@@ -632,6 +629,11 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
                                 glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
   shadingUniformsBuffer.SubData(shadingUniforms, 0);
 
+  auto sceneViewport = Fwog::Viewport{
+    .drawRect = {.extent=frame.gAlbedo->Extent()},
+    .depthRange = Fwog::ClipDepthRange::ZeroToOne,
+  };
+
   // geometry buffer pass
   {
     Fwog::RenderColorAttachment gAlbedoAttachment{
@@ -651,6 +653,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     };
     Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
     Fwog::RenderInfo gbufferRenderInfo{
+      .viewport = &sceneViewport,
       .colorAttachments = cgAttachments,
       .depthAttachment = &gDepthAttachment,
       .stencilAttachment = nullptr,
@@ -689,7 +692,15 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
       .clearValue = {.depth = 1.0f},
     };
 
-    Fwog::RenderInfo shadowRenderInfo{.depthAttachment = &depthAttachment, .stencilAttachment = nullptr};
+    auto shadowViewport = Fwog::Viewport{
+      .drawRect = {.extent = shadowDepth.Extent()},
+      .depthRange = Fwog::ClipDepthRange::ZeroToOne,
+    };
+    Fwog::RenderInfo shadowRenderInfo{
+      .viewport = &shadowViewport,
+      .depthAttachment = &depthAttachment,
+      .stencilAttachment = nullptr
+    };
     Fwog::BeginRendering(shadowRenderInfo);
     Fwog::ScopedDebugMarker marker("Shadow Scene");
     Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);

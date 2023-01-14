@@ -1,4 +1,5 @@
 #pragma once
+#include <Fwog/Config.h>
 #include <exception>
 #include <string>
 #include <utility>

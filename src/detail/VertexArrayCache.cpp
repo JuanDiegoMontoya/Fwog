@@ -1,5 +1,4 @@
 #include "Fwog/detail/VertexArrayCache.h"
-#include "Fwog/Common.h"
 #include "Fwog/Pipeline.h"
 #include "Fwog/detail/ApiToEnum.h"
 #include "Fwog/detail/Hash.h"

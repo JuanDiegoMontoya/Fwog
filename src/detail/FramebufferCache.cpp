@@ -1,7 +1,6 @@
 #include "Fwog/detail/FramebufferCache.h"
 #include "Fwog/Texture.h"
 #include "Fwog/detail/Hash.h"
-#include "Fwog/Common.h"
 
 namespace Fwog::detail
 {

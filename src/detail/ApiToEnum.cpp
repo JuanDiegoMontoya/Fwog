@@ -1,4 +1,3 @@
-#include <Fwog/Common.h>
 #include <Fwog/detail/ApiToEnum.h>
 
 namespace Fwog::detail
@@ -306,6 +305,13 @@ namespace Fwog::detail
     default: FWOG_UNREACHABLE; return 0;
     }
   }
+
+GLenum DepthRangeToGL(ClipDepthRange depthRange)
+{
+  if (depthRange == ClipDepthRange::NegativeOneToOne)
+    return GL_NEGATIVE_ONE_TO_ONE;
+  return GL_ZERO_TO_ONE;
+}
 
   GLenum FormatToTypeGL(Format format)
   {

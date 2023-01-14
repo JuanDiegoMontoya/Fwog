@@ -1,5 +1,5 @@
+#include <Fwog/Config.h>
 #include <Fwog/Buffer.h>
-#include <Fwog/Common.h>
 #include <Fwog/Pipeline.h>
 #include <Fwog/Rendering.h>
 #include <Fwog/Texture.h>
@@ -234,6 +234,10 @@ namespace Fwog
     {
       glDepthRangef(ri.viewport.minDepth, ri.viewport.maxDepth);
     }
+    if (sInitViewport || ri.viewport.depthRange != sLastViewport.depthRange)
+    {
+      glClipControl(GL_LOWER_LEFT, detail::DepthRangeToGL(ri.viewport.depthRange));
+    }
 
     sLastViewport = renderInfo.viewport;
     sInitViewport = false;
@@ -349,7 +353,7 @@ namespace Fwog
       glClearNamedFramebufferiv(sFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.stencil);
     }
 
-    Viewport viewport;
+    Viewport viewport{};
     if (ri.viewport)
     {
       viewport = *ri.viewport;
@@ -393,6 +397,10 @@ namespace Fwog
     if (sInitViewport || viewport.minDepth != sLastViewport.minDepth || viewport.maxDepth != sLastViewport.maxDepth)
     {
       glDepthRangef(viewport.minDepth, viewport.maxDepth);
+    }
+    if (sInitViewport || viewport.depthRange != sLastViewport.depthRange)
+    {
+      glClipControl(GL_LOWER_LEFT, detail::DepthRangeToGL(viewport.depthRange));
     }
 
     sLastViewport = viewport;

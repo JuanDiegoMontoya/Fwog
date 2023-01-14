@@ -1,4 +1,3 @@
-#include <Fwog/Common.h>
 #include <Fwog/Timer.h>
 #include <numeric>
 

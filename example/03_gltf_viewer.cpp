@@ -33,7 +33,7 @@
  *
  * A simple model viewer for glTF scene files. This example build upon 02_deferred, which implements deferred rendering
  * and reflective shadow maps (RSM). Also implemented in this example are point lights.
- * 
+ *
  * The app has three optional arguments that must appear in order.
  * If a later option is used, the previous options must be use used as well.
  *
@@ -43,7 +43,7 @@
  * Binary (int)      : whether the input file is binary glTF. Default: false
  *
  * If no options are specified, the default scene will be loaded.
- * 
+ *
  * TODO: add clustered light culling
  */
 
@@ -235,13 +235,35 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
   cursorIsActive = true;
 
   cameraSpeed = 2.5f;
-  mainCamera.position.y = 2;
+  mainCamera.position.y = 1;
+  //mainCamera.position.x = -4.5f;
+  sunPosition = -1.433f;
 
   if (!filename)
   {
-    Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
-    // Utility::LoadModelFromFile(scene, "models/rock_terrain_3/scene.gltf", glm::mat4{.5}, false);
-    // Utility::LoadModelFromFile(scene, "models/Sponza/glTF/Sponza.gltf", glm::mat4{.5}, false);
+    // Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
+    //Utility::LoadModelFromFile(scene, "models/rock_terrain_3/scene.gltf", glm::mat4{.5}, false);
+    
+    //Utility::LoadModelFromFile(scene, "models/Sponza/glTF/Sponza.gltf", glm::mat4{.5}, false);
+
+    //Utility::LoadModelFromFile(scene, "models/SM_Deccer_Cubes_Textured_Embedded.gltf", glm::mat4{1}, false);
+
+    //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/San_Miguel/san-miguel.glb", glm::mat4{.20f}, true);
+    
+    //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/path_tracing_nightmare.glb", glm::mat4{.25}, true);
+
+    //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/aaa/scene2.glb", glm::mat4{.25}, true);
+    
+    Utility::LoadModelFromFile(
+       scene,
+       "H:/Repositories/glTF-Sample-Models/downloaded schtuff/Main/NewSponza_Main_Blender_glTF.gltf",
+       glm::mat4{.4f},
+       false);
+    Utility::LoadModelFromFile(
+       scene,
+       "H:/Repositories/glTF-Sample-Models/downloaded schtuff/PKG_A_Curtains/NewSponza_Curtains_glTF.gltf",
+       glm::mat4{.4f},
+       false);
   }
   else
   {
@@ -402,7 +424,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     Fwog::BeginRendering({
       .name = "RSM Scene",
       .colorAttachments = crAttachments,
-                                   .depthAttachment = &rdepthAttachment,
+      .depthAttachment = &rdepthAttachment,
       .stencilAttachment = nullptr,
     });
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
@@ -445,16 +467,16 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       illuminationTime = *t / 10e5;
     }
     Fwog::TimerScoped scopedTimer(timer);
-  frame.rsm->ComputeIndirectLighting(shadingUniforms.sunViewProj,
-                                     rsmCameraUniforms,
-                                     frame.gAlbedo.value(),
-                                     frame.gNormal.value(),
-                                     frame.gDepth.value(),
-                                     rsmFlux,
-                                     rsmNormal,
-                                     rsmDepth,
-                                     frame.gDepthPrev.value(),
-                                     frame.gNormalPrev.value());
+    frame.rsm->ComputeIndirectLighting(shadingUniforms.sunViewProj,
+                                       rsmCameraUniforms,
+                                       frame.gAlbedo.value(),
+                                       frame.gNormal.value(),
+                                       frame.gDepth.value(),
+                                       rsmFlux,
+                                       rsmNormal,
+                                       rsmDepth,
+                                       frame.gDepthPrev.value(),
+                                       frame.gNormalPrev.value());
   }
 
   // clear cluster indices atomic counter

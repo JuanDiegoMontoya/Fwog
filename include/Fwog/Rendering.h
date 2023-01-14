@@ -1,4 +1,5 @@
 #pragma once
+#include <Fwog/Config.h>
 #include <Fwog/BasicTypes.h>
 #include <array>
 #include <span>
@@ -48,12 +49,18 @@ namespace Fwog
     bool clearOnLoad = false;
     ClearDepthStencilValue clearValue;
   };
-
+  
   struct Viewport
   {
     Rect2D drawRect = {};  // glViewport
     float minDepth = 0.0f; // glDepthRangef
     float maxDepth = 1.0f; // glDepthRangef
+    ClipDepthRange depthRange = // glClipControl
+#ifdef FWOG_DEFAULT_CLIP_DEPTH_RANGE_NEGATIVE_ONE_TO_ONE
+      Fwog::ClipDepthRange::NegativeOneToOne;
+#else
+      Fwog::ClipDepthRange::ZeroToOne;
+#endif
 
     bool operator==(const Viewport&) const noexcept = default;
   };

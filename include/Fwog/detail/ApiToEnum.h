@@ -34,6 +34,7 @@ namespace Fwog::detail
   GLenum LogicOpToGL(LogicOp op);
   GLenum BlendFactorToGL(BlendFactor factor);
   GLenum BlendOpToGL(BlendOp op);
+  GLenum DepthRangeToGL(ClipDepthRange depthRange);
 
   // arguments for glVertexArrayAttrib*Format
   enum class GlFormatClass

@@ -449,5 +449,11 @@ namespace Fwog
     uint32_t groupCountY;
     uint32_t groupCountZ;
   };
+
+  enum class ClipDepthRange
+  {
+    NegativeOneToOne, // OpenGL default
+    ZeroToOne         // D3D and Vulkan
+  };
   // clang-format on
 } // namespace Fwog

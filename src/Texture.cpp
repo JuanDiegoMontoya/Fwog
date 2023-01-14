@@ -1,4 +1,3 @@
-#include <Fwog/Common.h>
 #include <Fwog/Texture.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <Fwog/detail/SamplerCache.h>

@@ -25,7 +25,6 @@ set(fwog_source_files
 )
 
 set(fwog_header_files
-	include/Fwog/Common.h
 	include/Fwog/BasicTypes.h
 	include/Fwog/Buffer.h
 	include/Fwog/DebugMarker.h
@@ -43,6 +42,7 @@ set(fwog_header_files
 	include/Fwog/detail/Hash.h
 	include/Fwog/detail/SamplerCache.h
 	include/Fwog/detail/VertexArrayCache.h
+	include/Fwog/Config.h
 )
 
 add_library(fwog ${fwog_source_files} ${fwog_header_files})
