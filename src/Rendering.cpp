@@ -139,6 +139,25 @@ static uint32_t MakeSingleTextureFbo(const Fwog::Texture& texture, Fwog::detail:
   return fboCache.CreateOrGetCachedFramebuffer(renderInfo);
 }
 
+static void SetViewportInternal(const Fwog::Viewport& viewport, const Fwog::Viewport& sLastViewport, bool sInitViewport)
+{
+  if (sInitViewport || viewport.drawRect != sLastViewport.drawRect)
+  {
+    glViewport(viewport.drawRect.offset.x,
+               viewport.drawRect.offset.y,
+               viewport.drawRect.extent.width,
+               viewport.drawRect.extent.height);
+  }
+  if (sInitViewport || viewport.minDepth != sLastViewport.minDepth || viewport.maxDepth != sLastViewport.maxDepth)
+  {
+    glDepthRangef(viewport.minDepth, viewport.maxDepth);
+  }
+  if (sInitViewport || viewport.depthRange != sLastViewport.depthRange)
+  {
+    glClipControl(GL_LOWER_LEFT, Fwog::detail::DepthRangeToGL(viewport.depthRange));
+  }
+}
+
 namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
@@ -222,22 +241,8 @@ namespace Fwog
       }
       glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
     }
-    if (sInitViewport || ri.viewport.drawRect != sLastViewport.drawRect)
-    {
-      glViewport(ri.viewport.drawRect.offset.x,
-                 ri.viewport.drawRect.offset.y,
-                 ri.viewport.drawRect.extent.width,
-                 ri.viewport.drawRect.extent.height);
-    }
-    if (sInitViewport || ri.viewport.minDepth != sLastViewport.minDepth ||
-        ri.viewport.maxDepth != sLastViewport.maxDepth)
-    {
-      glDepthRangef(ri.viewport.minDepth, ri.viewport.maxDepth);
-    }
-    if (sInitViewport || ri.viewport.depthRange != sLastViewport.depthRange)
-    {
-      glClipControl(GL_LOWER_LEFT, detail::DepthRangeToGL(ri.viewport.depthRange));
-    }
+
+    SetViewportInternal(renderInfo.viewport, sLastViewport, sInitViewport);
 
     sLastViewport = renderInfo.viewport;
     sInitViewport = false;
@@ -387,21 +392,7 @@ namespace Fwog
       viewport.drawRect = drawRect;
     }
 
-    if (sInitViewport || viewport.drawRect != sLastViewport.drawRect)
-    {
-      glViewport(viewport.drawRect.offset.x,
-                 viewport.drawRect.offset.y,
-                 viewport.drawRect.extent.width,
-                 viewport.drawRect.extent.height);
-    }
-    if (sInitViewport || viewport.minDepth != sLastViewport.minDepth || viewport.maxDepth != sLastViewport.maxDepth)
-    {
-      glDepthRangef(viewport.minDepth, viewport.maxDepth);
-    }
-    if (sInitViewport || viewport.depthRange != sLastViewport.depthRange)
-    {
-      glClipControl(GL_LOWER_LEFT, detail::DepthRangeToGL(viewport.depthRange));
-    }
+    SetViewportInternal(viewport, sLastViewport, sInitViewport);
 
     sLastViewport = viewport;
     sInitViewport = false;
@@ -809,16 +800,7 @@ namespace Fwog
     {
       FWOG_ASSERT(isRendering);
 
-      if (viewport == sLastViewport)
-      {
-        return;
-      }
-
-      glViewport(viewport.drawRect.offset.x,
-                 viewport.drawRect.offset.y,
-                 viewport.drawRect.extent.width,
-                 viewport.drawRect.extent.height);
-      glDepthRangef(viewport.minDepth, viewport.maxDepth);
+      SetViewportInternal(viewport, sLastViewport, false);
 
       sLastViewport = viewport;
     }
