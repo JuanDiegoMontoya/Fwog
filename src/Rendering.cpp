@@ -169,6 +169,7 @@ namespace Fwog
   bool isRenderingToSwapchain = false;
   bool isScopedDebugGroupPushed = false;
   bool isPipelineDebugGroupPushed = false;
+  bool srgbWasDisabled = false;
 
   // TODO: way to reset this pointer in case the user wants to do their own OpenGL operations (invalidate the cache).
   // A shared_ptr is needed as the user can delete pipelines at any time, but we need to ensure it stays alive until
@@ -240,6 +241,13 @@ namespace Fwog
         sLastStencilMask[1] = true;
       }
       glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
+    }
+
+    // Framebuffer sRGB can only be disabled in this exact function
+    if (!renderInfo.enableSrgb)
+    {
+      glDisable(GL_FRAMEBUFFER_SRGB);
+      srgbWasDisabled = true;
     }
 
     SetViewportInternal(renderInfo.viewport, sLastViewport, sInitViewport);
@@ -422,6 +430,11 @@ namespace Fwog
       glDisable(GL_SCISSOR_TEST);
       sScissorEnabled = false;
     }
+
+    if (srgbWasDisabled)
+    {
+      glEnable(GL_FRAMEBUFFER_SRGB);
+    }
   }
 
   void BeginCompute(std::string_view name)
@@ -562,6 +575,13 @@ namespace Fwog
                          static_cast<GLsizei>(pipelineState->name.size()),
                          pipelineState->name.data());
         isPipelineDebugGroupPushed = true;
+      }
+
+      // Always enable this.
+      // The user can create a context with a non-sRGB framebuffer or create a non-sRGB view of an sRGB texture.
+      if (!sLastGraphicsPipeline)
+      {
+        glEnable(GL_FRAMEBUFFER_SRGB);
       }
 
       //////////////////////////////////////////////////////////////// shader program

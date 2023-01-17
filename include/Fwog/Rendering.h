@@ -76,6 +76,10 @@ namespace Fwog
     float clearDepthValue = 0.0f;
     bool clearStencilOnLoad = false;
     int32_t clearStencilValue = 0;
+
+    // Allows control over automatic linear->sRGB conversion for rendering to the swapchain,
+    // because OpenGL does not expose the swapchain as an image we can interact with.
+    bool enableSrgb = true;
   };
 
   // Describes the render targets that may be used in a draw
