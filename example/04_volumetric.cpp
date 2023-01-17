@@ -864,6 +864,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::SwapchainRenderInfo swapchainRenderingInfo{
       .viewport = {.drawRect{.extent = {windowWidth, windowHeight}}},
+      .enableSrgb = false,
     };
     Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
     Fwog::ScopedDebugMarker marker("Copy to Swapchain");
