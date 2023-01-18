@@ -158,6 +158,47 @@ static void SetViewportInternal(const Fwog::Viewport& viewport, const Fwog::View
   }
 }
 
+#ifdef FWOG_DEBUG
+static void ZeroResourceBindings()
+{
+  static bool sFirstRun = true;
+  static GLint sMaxImageUnits{};
+  static GLint sMaxShaderStorageBlocks{};
+  static GLint sMaxUniformBlocks{};
+  static GLint sMaxCombinedTextureImageUnits{};
+
+  if (sFirstRun)
+  {
+    sFirstRun = false;
+    glGetIntegerv(GL_MAX_IMAGE_UNITS, &sMaxImageUnits);
+    glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &sMaxShaderStorageBlocks);
+    glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &sMaxUniformBlocks);
+    glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &sMaxCombinedTextureImageUnits);
+  }
+
+  for (int i = 0; i < sMaxImageUnits; i++)
+  {
+    glBindImageTexture(i, 0, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+  }
+
+  for (int i = 0; i < sMaxShaderStorageBlocks; i++)
+  {
+    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, 0, 0, 0);
+  }
+
+  for (int i = 0; i < sMaxUniformBlocks; i++)
+  {
+    glBindBufferRange(GL_UNIFORM_BUFFER, i, 0, 0, 0);
+  }
+
+  for (int i = 0; i < sMaxCombinedTextureImageUnits; i++)
+  {
+    glBindTextureUnit(i, 0);
+    glBindSampler(i, 0);
+  }
+}
+#endif
+
 namespace Fwog
 {
   // rendering cannot be suspended/resumed, nor done on multiple threads
@@ -201,6 +242,10 @@ namespace Fwog
     isRendering = true;
     isRenderingToSwapchain = true;
     sLastRenderInfo = nullptr;
+
+#ifdef FWOG_DEBUG
+    ZeroResourceBindings();
+#endif
 
     const auto& ri = renderInfo;
     GLbitfield clearBuffers = 0;
@@ -261,6 +306,10 @@ namespace Fwog
     FWOG_ASSERT(!isRendering && "Cannot call BeginRendering when rendering");
     FWOG_ASSERT(!isComputeActive && "Cannot nest compute and rendering");
     isRendering = true;
+
+#ifdef FWOG_DEBUG
+    ZeroResourceBindings();
+#endif
 
     // if (sLastRenderInfo == &renderInfo)
     //{
@@ -442,6 +491,10 @@ namespace Fwog
     FWOG_ASSERT(!isComputeActive);
     FWOG_ASSERT(!isRendering && "Cannot nest compute and rendering");
     isComputeActive = true;
+
+#ifdef FWOG_DEBUG
+    ZeroResourceBindings();
+#endif
 
     if (!name.empty())
     {

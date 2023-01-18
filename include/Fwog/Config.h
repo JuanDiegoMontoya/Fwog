@@ -1,8 +1,12 @@
 #pragma once
 #include <cassert>
 
+#if (!defined(FWOG_DEBUG) && !defined(NDEBUG)) || defined(FWOG_FORCE_DEBUG)
+  #define FWOG_DEBUG
+#endif
+
 #ifndef FWOG_ASSERT
-  #define FWOG_ASSERT(x)   assert(x)
+  #define FWOG_ASSERT(x) assert(x)
 #endif
 
 #ifndef FWOG_UNREACHABLE
