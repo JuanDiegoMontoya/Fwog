@@ -36,8 +36,8 @@ namespace Fwog::detail
     for (uint32_t i = 0; i < inputState.vertexBindingDescriptions.size(); i++)
     {
       const auto& desc = inputState.vertexBindingDescriptions[i];
-      glEnableVertexArrayAttrib(vao, i);
-      glVertexArrayAttribBinding(vao, i, desc.binding);
+      glEnableVertexArrayAttrib(vao, desc.location);
+      glVertexArrayAttribBinding(vao, desc.location, desc.binding);
 
       auto type = detail::FormatToTypeGL(desc.format);
       auto size = detail::FormatToSizeGL(desc.format);
@@ -45,9 +45,9 @@ namespace Fwog::detail
       auto internalType = detail::FormatToFormatClass(desc.format);
       switch (internalType)
       {
-      case detail::GlFormatClass::FLOAT: glVertexArrayAttribFormat(vao, i, size, type, normalized, desc.offset); break;
-      case detail::GlFormatClass::INT: glVertexArrayAttribIFormat(vao, i, size, type, desc.offset); break;
-      case detail::GlFormatClass::LONG: glVertexArrayAttribLFormat(vao, i, size, type, desc.offset); break;
+      case detail::GlFormatClass::FLOAT: glVertexArrayAttribFormat(vao, desc.location, size, type, normalized, desc.offset); break;
+      case detail::GlFormatClass::INT: glVertexArrayAttribIFormat(vao, desc.location, size, type, desc.offset); break;
+      case detail::GlFormatClass::LONG: glVertexArrayAttribLFormat(vao, desc.location, size, type, desc.offset); break;
       default: FWOG_UNREACHABLE;
       }
     }
