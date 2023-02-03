@@ -1,17 +1,18 @@
 #include "Application.h"
 
-#include <exception>
-#include <iostream>
-#include <sstream>
-#include <fstream>
+#include <Fwog/Context.h>
+#include <Fwog/DebugMarker.h>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include <Fwog/DebugMarker.h>
-
 #include <glm/gtc/constants.hpp>
+
+#include <exception>
+#include <iostream>
+#include <sstream>
+#include <fstream>
 
 // Use the high-performance GPU (if available) on Windows laptops
 // https://docs.nvidia.com/gameworks/content/technologies/desktop/optimus.htm
@@ -184,6 +185,8 @@ Application::Application(const CreateInfo& createInfo)
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 
+  Fwog::Initialize();
+
   // Initialize ImGui and a backend for it.
   // Because we allow the GLFW backend to install callbacks, it will automatically call our own that we provided.
   ImGui::CreateContext();
@@ -198,6 +201,7 @@ Application::~Application()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
 
+  Fwog::Terminate();
   glfwTerminate();
 }
 

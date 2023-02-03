@@ -22,6 +22,7 @@ set(fwog_source_files
 	src/detail/FramebufferCache.cpp
 	src/detail/SamplerCache.cpp
 	src/detail/VertexArrayCache.cpp
+	src/Context.cpp
 )
 
 set(fwog_header_files
@@ -43,6 +44,8 @@ set(fwog_header_files
 	include/Fwog/detail/SamplerCache.h
 	include/Fwog/detail/VertexArrayCache.h
 	include/Fwog/Config.h
+	include/Fwog/Context.h
+	include/Fwog/detail/ContextState.h
 )
 
 add_library(fwog ${fwog_source_files} ${fwog_header_files})

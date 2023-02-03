@@ -30,11 +30,18 @@ namespace Fwog::detail
   {
   public:
     uint32_t CreateOrGetCachedFramebuffer(const RenderInfo& renderInfo);
+    
     std::size_t Size() const
     {
       return framebufferCacheKey_.size();
     }
+
     void Clear();
+
+    ~FramebufferCache()
+    {
+      Clear();
+    }
 
     void RemoveTexture(const Texture& texture);
 

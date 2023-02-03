@@ -1,7 +1,6 @@
 #include <Fwog/Texture.h>
 #include <Fwog/detail/ApiToEnum.h>
-#include <Fwog/detail/SamplerCache.h>
-#include <Fwog/detail/FramebufferCache.h>
+#include <Fwog/detail/ContextState.h>
 #include <array>
 #include <utility>
 
@@ -9,15 +8,6 @@
 
 namespace Fwog
 {
-  // static objects
-  // TODO: move initialization
-  namespace
-  {
-    detail::SamplerCache sSamplerCache;
-  }
-
-  extern detail::FramebufferCache sFboCache;
-
   namespace // detail
   {
     void subImage(uint32_t texture, const TextureUpdateInfo& info)
@@ -177,7 +167,7 @@ namespace Fwog
     }
     glDeleteTextures(1, &id_);
     // Ensure that the texture is no longer referenced in the FBO cache
-    sFboCache.RemoveTexture(*this);
+    Fwog::detail::context->fboCache.RemoveTexture(*this);
   }
 
   TextureView Texture::CreateMipView(uint32_t level) const
@@ -291,7 +281,7 @@ namespace Fwog
   TextureView::~TextureView() {}
 
   Sampler::Sampler(const SamplerState& samplerState)
-      : Sampler(sSamplerCache.CreateOrGetCachedTextureSampler(samplerState))
+    : Sampler(Fwog::detail::context->samplerCache.CreateOrGetCachedTextureSampler(samplerState))
   {
   }
 
