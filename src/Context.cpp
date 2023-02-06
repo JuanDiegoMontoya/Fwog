@@ -124,6 +124,7 @@ namespace Fwog
     FWOG_ASSERT(Fwog::detail::context == nullptr && "Fwog has already been initialized");
     Fwog::detail::context = new Fwog::detail::ContextState;
     QueryGlDeviceProperties(Fwog::detail::context->properties);
+    glDisable(GL_DITHER);
   }
 
   void Terminate()
@@ -164,6 +165,7 @@ namespace Fwog
     context->lastScissor = {};
     
     glEnable(GL_FRAMEBUFFER_SRGB);
+    glDisable(GL_DITHER);
   }
 
   const DeviceProperties& GetDeviceProperties()
