@@ -1,6 +1,14 @@
 #include "common/Application.h"
 #include "common/RsmTechnique.h"
 
+#include <Fwog/BasicTypes.h>
+#include <Fwog/Buffer.h>
+#include <Fwog/Pipeline.h>
+#include <Fwog/Rendering.h>
+#include <Fwog/Shader.h>
+#include <Fwog/Texture.h>
+#include <Fwog/Timer.h>
+
 #include <array>
 #include <optional>
 #include <tuple>
@@ -11,14 +19,6 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-
-#include <Fwog/BasicTypes.h>
-#include <Fwog/Buffer.h>
-#include <Fwog/Pipeline.h>
-#include <Fwog/Rendering.h>
-#include <Fwog/Shader.h>
-#include <Fwog/Texture.h>
-#include <Fwog/Timer.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
