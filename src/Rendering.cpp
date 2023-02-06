@@ -22,9 +22,9 @@ static void GLEnableOrDisable(GLenum state, GLboolean value)
     glDisable(state);
 }
 
-static size_t GetIndexSize(Fwog::IndexType currentIndexType)
+static size_t GetIndexSize(Fwog::IndexType indexType)
 {
-  switch (currentIndexType)
+  switch (indexType)
   {
   case Fwog::IndexType::UNSIGNED_BYTE: return 1;
   case Fwog::IndexType::UNSIGNED_SHORT: return 2;
@@ -154,33 +154,6 @@ static void SetViewportInternal(const Fwog::Viewport& viewport, const Fwog::View
   }
 }
 
-#ifdef FWOG_DEBUG
-static void ZeroResourceBindings()
-{
-  auto& limits = Fwog::detail::context->properties.limits;
-  for (int i = 0; i < limits.maxImageUnits; i++)
-  {
-    glBindImageTexture(i, 0, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
-  }
-
-  for (int i = 0; i < limits.maxCombinedShaderStorageBlocks; i++)
-  {
-    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, 0, 0, 0);
-  }
-
-  for (int i = 0; i < limits.maxCombinedUniformBlocks; i++)
-  {
-    glBindBufferRange(GL_UNIFORM_BUFFER, i, 0, 0, 0);
-  }
-
-  for (int i = 0; i < limits.maxCombinedTextureImageUnits; i++)
-  {
-    glBindTextureUnit(i, 0);
-    glBindSampler(i, 0);
-  }
-}
-#endif
-
 namespace Fwog
 {
   using namespace Fwog::detail;
@@ -194,7 +167,7 @@ namespace Fwog
     context->lastRenderInfo = nullptr;
 
 #ifdef FWOG_DEBUG
-    ZeroResourceBindings();
+    detail::ZeroResourceBindings();
 #endif
 
     const auto& ri = renderInfo;
@@ -258,7 +231,7 @@ namespace Fwog
     context->isRendering = true;
 
 #ifdef FWOG_DEBUG
-    ZeroResourceBindings();
+    detail::ZeroResourceBindings();
 #endif
 
     // if (lastRenderInfo == &renderInfo)
@@ -438,7 +411,7 @@ namespace Fwog
     context->isComputeActive = true;
 
 #ifdef FWOG_DEBUG
-    ZeroResourceBindings();
+    detail::ZeroResourceBindings();
 #endif
 
     if (!name.empty())

@@ -3,6 +3,33 @@
 
 namespace Fwog
 {
+  namespace detail
+  {
+    void ZeroResourceBindings()
+    {
+      auto& limits = Fwog::detail::context->properties.limits;
+      for (int i = 0; i < limits.maxImageUnits; i++)
+      {
+        glBindImageTexture(i, 0, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+      }
+
+      for (int i = 0; i < limits.maxCombinedShaderStorageBlocks; i++)
+      {
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, 0, 0, 0);
+      }
+
+      for (int i = 0; i < limits.maxCombinedUniformBlocks; i++)
+      {
+        glBindBufferRange(GL_UNIFORM_BUFFER, i, 0, 0, 0);
+      }
+
+      for (int i = 0; i < limits.maxCombinedTextureImageUnits; i++)
+      {
+        glBindTextureUnit(i, 0);
+        glBindSampler(i, 0);
+      }
+    }
+  }
   static void QueryGlDeviceProperties(Fwog::DeviceProperties& properties)
   {
     properties.vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
@@ -94,14 +121,49 @@ namespace Fwog
 
   void Initialize()
   {
+    FWOG_ASSERT(Fwog::detail::context == nullptr && "Fwog has already been initialized");
     Fwog::detail::context = new Fwog::detail::ContextState;
     QueryGlDeviceProperties(Fwog::detail::context->properties);
   }
 
   void Terminate()
   {
+    FWOG_ASSERT(Fwog::detail::context && "Fwog has already been terminated");
     delete Fwog::detail::context;
     Fwog::detail::context = nullptr;
+  }
+
+  void InvalidatePipelineState()
+  {
+    auto* context = Fwog::detail::context;
+
+    FWOG_ASSERT(!context->isComputeActive && !context->isRendering);
+
+#ifdef FWOG_DEBUG
+    detail::ZeroResourceBindings();
+#endif
+
+    for (int i = 0; i < detail::MAX_COLOR_ATTACHMENTS; i++)
+    {
+      ColorComponentFlags& flags = context->lastColorMask[i];
+      flags = ColorComponentFlag::RGBA_BITS;
+      glColorMaski(i, true, true, true, true);
+    }
+
+    context->lastDepthMask = false;
+    glDepthMask(false);
+
+    context->lastStencilMask[0] = 0;
+    context->lastStencilMask[1] = 0;
+    glStencilMask(false);
+    
+    context->currentFbo = 0;
+    context->currentVao = 0;
+    context->lastGraphicsPipeline.reset();
+    context->initViewport = true;
+    context->lastScissor = {};
+    
+    glEnable(GL_FRAMEBUFFER_SRGB);
   }
 
   const DeviceProperties& GetDeviceProperties()

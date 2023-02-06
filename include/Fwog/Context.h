@@ -85,9 +85,18 @@ namespace Fwog
     DeviceFeatures features;
   };
 
+  // Call at program start to initialize Fwog's internal state.
+  // Must be called after a context has been acquired.
   void Initialize();
 
+  // Call at program exit or before Initialize is called again.
   void Terminate();
 
+  // Call when OpenGL context state has been changed outside of Fwog (e.g., when using raw OpenGL or using an external 
+  // library that calls OpenGL). This invalidates assumptions Fwog has made about the pipeline state for the purpose
+  // of state deduplication.
+  void InvalidatePipelineState();
+
+  // Instead of querying for device limits with glGet, you can call this to get (mostly) the same info in a nicer package.
   const DeviceProperties& GetDeviceProperties();
 } // namespace Fwog

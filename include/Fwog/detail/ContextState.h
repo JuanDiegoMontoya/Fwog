@@ -16,21 +16,36 @@ namespace Fwog::detail
   {
     DeviceProperties properties;
 
+    // Used for scope error checking
     bool isComputeActive = false;
     bool isRendering = false;
+
+    // Used for error checking for indexed draws
     bool isIndexBufferBound = false;
+
+    // Currently unused
     bool isRenderingToSwapchain = false;
+
+    // True during a render or compute scope that has a name.
     bool isScopedDebugGroupPushed = false;
+
+    // True when a pipeline with a name is bound during a render or compute scope.
     bool isPipelineDebugGroupPushed = false;
+
+    // True during SwapchainRendering scopes that disable sRGB.
+    // This is needed since regular Rendering scopes always have framebuffer sRGB enabled
+    // (the user uses framebuffer attachments to decide if they want the linear->sRGB conversion).
     bool srgbWasDisabled = false;
 
-    // TODO: way to reset this pointer in case the user wants to do their own OpenGL operations (invalidate the cache).
+    // Stores a pointer to the previously bound graphics pipeline state. This is used for state deduplication.
     // A shared_ptr is needed as the user can delete pipelines at any time, but we need to ensure it stays alive until
     // the next pipeline is bound.
     std::shared_ptr<const detail::GraphicsPipelineInfoOwning> lastGraphicsPipeline{};
+
+    // Currently unused (and probably shouldn't be used)
     const RenderInfo* lastRenderInfo{};
 
-    // these can be set at the start of rendering, so they need to be tracked separately from the other pipeline state
+    // These can be set at the start of rendering, so they need to be tracked separately from the other pipeline state.
     std::array<ColorComponentFlags, MAX_COLOR_ATTACHMENTS> lastColorMask = {};
     bool lastDepthMask = true;
     uint32_t lastStencilMask[2] = {static_cast<uint32_t>(-1), static_cast<uint32_t>(-1)};
@@ -39,13 +54,20 @@ namespace Fwog::detail
     Rect2D lastScissor = {};
     bool scissorEnabled = false;
 
-    PrimitiveTopology currentTopology{};
-    IndexType currentIndexType{};
+    // Potentially used for state deduplication.
     GLuint currentVao = 0;
     GLuint currentFbo = 0;
+
+    // These persist until another Pipeline is bound.
+    // They are not used for state deduplication, as they are arguments for GL draw calls.
+    PrimitiveTopology currentTopology{};
+    IndexType currentIndexType{};
 
     detail::FramebufferCache fboCache;
     detail::VertexArrayCache vaoCache;
     detail::SamplerCache samplerCache;
   } inline* context = nullptr;
+
+  // Clears all resource bindings. This is called 
+  void ZeroResourceBindings();
 } // namespace Fwog::detail
