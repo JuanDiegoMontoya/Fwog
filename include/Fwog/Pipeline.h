@@ -148,6 +148,11 @@ namespace Fwog
 
     bool operator==(const ComputePipeline&) const = default;
     
+    [[nodiscard]] Extent3D WorkgroupSize() const
+    {
+      return workgroupSize_;
+    }
+
     [[nodiscard]] uint64_t Handle() const
     {
       return id_;
@@ -155,6 +160,7 @@ namespace Fwog
 
   private:
     uint64_t id_;
+    Extent3D workgroupSize_;
   };
 
   // clang-format on
