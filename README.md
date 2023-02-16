@@ -51,7 +51,7 @@ $ cmake ..
 
 ### Programming
 
-After you have created a window and OpenGL context (e.g., with GLFW) and loaded OpenGL function pointers (e.g., with GLAD), you can call `Fwog::Initialize()`. This initializes some internal structures used by Fwog for tracking state. Remember to eventually call `Fwog::Terminate()` before the program closes and while the context is still active.
+After you have created a window and OpenGL context (e.g., with GLFW) and loaded OpenGL function pointers (e.g., with Glad), you can call `Fwog::Initialize()`. This initializes some internal structures used by Fwog for tracking state. Remember to eventually call `Fwog::Terminate()` before the program closes and while the context is still active.
 
 Instead of having a bunch of hidden global state, Fwog, like Vulkan and D3D12, uses the notion of pipelines to encapsulate it in a single object. To create a pipeline, we first need a shader.
 
