@@ -72,18 +72,10 @@ private:
 
   Fwog::Buffer vertexPosBuffer;
   Fwog::Buffer vertexColorBuffer;
-
-  // Since pipelines have complicated construction, we use a std::optional here to
-  // delay its initialization so it can be constructed in the body of the function.
-  std::optional<Fwog::GraphicsPipeline> pipeline;
+  Fwog::GraphicsPipeline pipeline;
 };
 
-TriangleApplication::TriangleApplication(const Application::CreateInfo& createInfo)
-  : Application(createInfo),
-    // Load the triangle's vertices (3 * vec2 position, 3 * 8 bit colors).
-    // The colors will be specified as a UNORM integer format so they are treated as [0, 1] floats in the shader.
-    vertexPosBuffer(triPositions),
-    vertexColorBuffer(triColors)
+static Fwog::GraphicsPipeline CreatePipeline()
 {
   // Specify our two vertex attributes: position and color.
   // Positions are 2x float, so we will use R32G32_FLOAT like we would in Vulkan.
@@ -95,15 +87,15 @@ TriangleApplication::TriangleApplication(const Application::CreateInfo& createIn
   };
   // Colors are 3x uint8, so we will use R8G8B8.
   // To treat them as normalized floats in [0, 1], we make sure it's a _UNORM format.
-  // Note that means we do not need to specify whether the data is normalized like we would with glVertexAttribPointer.
+  // This means we do not need to specify whether the data is normalized like we would with glVertexAttribPointer.
   auto descColor = Fwog::VertexInputBindingDescription{
     .location = 1,
     .binding = 1,
     .format = Fwog::Format::R8G8B8_UNORM,
     .offset = 0,
   };
-  // Create an initializer list or array (or anything implicitly convertable to std::span) of our input binding
-  // descriptions to send to the pipeline.
+  // Create an initializer list or array (or anything implicitly convertable to std::span) 
+  // of our input binding descriptions to send to the pipeline.
   auto inputDescs = {descPos, descColor};
 
   // We compile our shaders here. Just provide the shader source string and you are good to go!
@@ -114,17 +106,27 @@ TriangleApplication::TriangleApplication(const Application::CreateInfo& createIn
   auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
 
   // The graphics pipeline contains all the state necessary for rendering.
-  // It is self-contained and immutable.
+  // It is self-contained, immutable, and isolated from other pipelines' state (state leaking cannot happen).
   // Here we give it our two shaders and the input binding descriptions.
   // We could specify a lot more state if we wanted, but for this simple example the defaults will suffice.
   // Note that compiling a pipeline will link its non-null shaders together.
   // If linking fails, a PipelineCompilationException containing the linker error will be thrown.
-  // Similar to before, we will let the exception propagate up.
-  pipeline.emplace(Fwog::GraphicsPipelineInfo{
+  // Similar to before, we will let possible exceptions propagate up.
+  return Fwog::GraphicsPipeline{{
     .vertexShader = &vertexShader,
     .fragmentShader = &fragmentShader,
     .vertexInputState = {inputDescs},
-  });
+  }};
+}
+
+TriangleApplication::TriangleApplication(const Application::CreateInfo& createInfo)
+  : Application(createInfo),
+    // Load the triangle's vertices (3 * vec2 position, 3 * 8 bit colors).
+    // The colors will be specified as a UNORM integer format so they are treated as [0, 1] floats in the shader.
+    vertexPosBuffer(triPositions),
+    vertexColorBuffer(triColors),
+    pipeline(CreatePipeline())
+{
 }
 
 // OnRender is automatically called every frame when we run the app
@@ -143,7 +145,7 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
   // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
   // Pipelines must be bound before we can issue drawing-related calls.
   // This is where, under the hood, the actual GL program is bound and all the pipeline state is set.
-  Fwog::Cmd::BindGraphicsPipeline(*pipeline);
+  Fwog::Cmd::BindGraphicsPipeline(pipeline);
 
   // Vertex buffers are bound at draw time, similar to Vulkan or with glBindVertexBuffer.
   Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
