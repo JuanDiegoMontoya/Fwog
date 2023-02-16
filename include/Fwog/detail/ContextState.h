@@ -68,6 +68,8 @@ namespace Fwog::detail
     detail::SamplerCache samplerCache;
   } inline* context = nullptr;
 
-  // Clears all resource bindings. This is called 
+  // Clears all resource bindings.
+  // This is called at the beginning of rendering/compute scopes 
+  // or when the pipeline state has been invalidated, but only in debug mode.
   void ZeroResourceBindings();
 } // namespace Fwog::detail
