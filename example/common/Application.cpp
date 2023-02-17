@@ -2,6 +2,7 @@
 
 #include <Fwog/Context.h>
 #include <Fwog/DebugMarker.h>
+#include <Fwog/detail/ContextState.h>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -109,14 +110,19 @@ public:
     }
   }
 
-  static void WindowResizeCallback(GLFWwindow* window, int newWidth, int newHeight)
+  static void WindowResizeCallback(GLFWwindow* window, int, int)
   {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+    int newWidth{};
+    int newHeight{};
+    glfwGetFramebufferSize(window, &newWidth, &newHeight);
     app->windowWidth = static_cast<uint32_t>(newWidth);
     app->windowHeight = static_cast<uint32_t>(newHeight);
+
     if (newWidth > 0 && newHeight > 0)
     {
       app->OnWindowResize(app->windowWidth, app->windowHeight);
+      app->Draw(0);
     }
   }
 };
@@ -205,6 +211,38 @@ Application::~Application()
   glfwTerminate();
 }
 
+void Application::Draw(double dt)
+{
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
+  // Start a new ImGui frame
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+
+  if (windowWidth > 0 && windowHeight > 0)
+  {
+    OnRender(dt);
+    OnGui(dt);
+  }
+
+  // Updates ImGui.
+  // A frame marker is inserted to distinguish ImGui rendering from the application's in a debugger.
+  {
+    ImGui::Render();
+    auto* drawData = ImGui::GetDrawData();
+    if (drawData->CmdListsCount > 0)
+    {
+      auto marker = Fwog::ScopedDebugMarker("Draw GUI");
+      glDisable(GL_FRAMEBUFFER_SRGB);
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+      ImGui_ImplOpenGL3_RenderDrawData(drawData);
+    }
+  }
+
+  glfwSwapBuffers(window);
+}
+
 void Application::Run()
 {
   glfwSetInputMode(window, GLFW_CURSOR, cursorIsActive ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
@@ -248,11 +286,6 @@ void Application::Run()
       previousCursorPos.y = 0;
     }
 
-    // Start a new ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
     // Update the main mainCamera.
     // WASD can be used to move the camera forwards, backwards, and side-to-side.
     // The mouse can be used to orient the camera.
@@ -279,32 +312,9 @@ void Application::Run()
       mainCamera.pitch = glm::clamp(mainCamera.pitch, -glm::half_pi<float>() + 1e-4f, glm::half_pi<float>() - 1e-4f);
     }
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
     // Call the application's overriden functions each frame.
     OnUpdate(dt);
 
-    if (windowWidth > 0 && windowHeight > 0)
-    {
-      OnRender(dt);
-      OnGui(dt);
-    }
-
-    // Updates ImGui.
-    // A frame marker is inserted to distinguish ImGui rendering from the application's in a debugger.
-    {
-      ImGui::Render();
-      auto* drawData = ImGui::GetDrawData();
-      if (drawData->CmdListsCount > 0)
-      {
-        auto marker = Fwog::ScopedDebugMarker("Draw GUI");
-        glDisable(GL_FRAMEBUFFER_SRGB);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        ImGui_ImplOpenGL3_RenderDrawData(drawData);
-      }
-      ImGui::EndFrame();
-    }
-
-    glfwSwapBuffers(window);
+    Draw(dt);
   }
 }

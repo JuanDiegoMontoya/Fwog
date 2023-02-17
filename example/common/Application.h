@@ -70,6 +70,9 @@ protected:
 
 private:
   friend class ApplicationAccess;
+
+  void Draw(double dt);
+
   glm::dvec2 previousCursorPos{};
   glm::dvec2 cursorFrameOffset{};
   bool cursorJustEnteredWindow = true;
