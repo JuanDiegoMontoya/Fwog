@@ -82,23 +82,22 @@ namespace Fwog::detail
         if (texp == ci)
         {
           framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
-          framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
+          auto fboIt = framebufferCacheValue_.begin() + i;
+          glDeleteFramebuffers(1, &*fboIt);
+          framebufferCacheValue_.erase(fboIt);
           i--;
+          break;
         }
       }
 
-      if (texp == attachments.depthAttachment)
+      if (texp == attachments.depthAttachment || texp == attachments.stencilAttachment)
       {
         framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
-        framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
+        auto fboIt = framebufferCacheValue_.begin() + i;
+        glDeleteFramebuffers(1, &*fboIt);
+        framebufferCacheValue_.erase(fboIt);
         i--;
-      }
-
-      if (texp == attachments.stencilAttachment)
-      {
-        framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
-        framebufferCacheValue_.erase(framebufferCacheValue_.begin() + i);
-        i--;
+        continue;
       }
     }
   }

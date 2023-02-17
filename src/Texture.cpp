@@ -161,6 +161,11 @@ namespace Fwog
 
   Texture::~Texture()
   {
+    if (id_ == 0)
+    {
+      return;
+    }
+
     if (bindlessHandle_ != 0)
     {
       glMakeTextureHandleNonResidentARB(bindlessHandle_);
