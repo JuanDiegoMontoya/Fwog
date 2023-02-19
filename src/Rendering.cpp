@@ -928,12 +928,22 @@ namespace Fwog
     {
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
 
+      if (size == WHOLE_BUFFER)
+      {
+        size = buffer.Size() - offset;
+      }
+
       glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer.Handle(), offset, size);
     }
 
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
+
+      if (size == WHOLE_BUFFER)
+      {
+        size = buffer.Size() - offset;
+      }
 
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
