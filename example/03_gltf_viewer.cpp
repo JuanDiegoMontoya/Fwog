@@ -67,6 +67,8 @@ struct ShadingUniforms
   glm::mat4 sunViewProj;
   glm::vec4 sunDir;
   glm::vec4 sunStrength;
+  glm::mat4 sunView;
+  glm::mat4 sunProj;
 };
 
 struct alignas(16) Light
