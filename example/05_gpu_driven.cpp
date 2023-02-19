@@ -331,11 +331,11 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
 
     Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::COMMAND_BUFFER_BIT | Fwog::MemoryBarrierBit::SHADER_STORAGE_BIT);
 
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value(), 0, meshUniformBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value(), 0, materialsBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value(), 0, boundingBoxesBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value(), 0, objectIndicesBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
 
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
     Fwog::Cmd::BindVertexBuffer(0, vertexBuffer.value(), 0, sizeof(Utility::Vertex));
@@ -365,12 +365,12 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
     // culling), or the instance counts are reset to 0.
     drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
 
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value(), 0, meshUniformBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value(), 0, materialsBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value(), 0, boundingBoxesBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value(), 0, objectIndicesBuffer->Size());
-    Fwog::Cmd::BindStorageBuffer(4, drawCommandsBuffer.value(), 0, drawCommandsBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
+    Fwog::Cmd::BindStorageBuffer(4, drawCommandsBuffer.value());
 
     // Draw visible bounding boxes.
     Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);

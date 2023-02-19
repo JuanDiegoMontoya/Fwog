@@ -407,8 +407,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
     Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
     Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(1, *objectBuffer);
     Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), sceneInstanceCount, 0, 0, 0);
   }
   Fwog::EndRendering();
@@ -442,9 +442,9 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
     Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
     Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(1, *objectBuffer, 0, objectBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(1, *objectBuffer);
     Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), sceneInstanceCount, 0, 0, 0);
   }
   Fwog::EndRendering();
@@ -502,8 +502,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindSampledImage(2, *frame.gDepth, nearestSampler);
     Fwog::Cmd::BindSampledImage(3, frame.rsm->GetIndirectLighting(), nearestSampler);
     Fwog::Cmd::BindSampledImage(4, rsmDepth, nearestSampler);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
     Fwog::Cmd::Draw(3, 1, 0, 0);
 
     const Fwog::Texture* tex{};

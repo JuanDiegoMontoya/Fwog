@@ -351,8 +351,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   glm::vec3 eye = glm::vec3{shadingUniforms.sunDir * -5.f};
   float eyeWidth = 7.0f;
   // shadingUniforms.viewPos = glm::vec4(camera.position, 0);
-  shadingUniforms.sunViewProj = glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f) *
-                                glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
+  shadingUniforms.sunProj = glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f);
+  shadingUniforms.sunView = glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
+  shadingUniforms.sunViewProj = shadingUniforms.sunProj * shadingUniforms.sunView;
   shadingUniformsBuffer.SubData(shadingUniforms, 0);
 
   // Render scene geometry to the g-buffer
@@ -380,10 +381,10 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       .stencilAttachment = nullptr,
     });
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer, 0, materialUniformsBuffer.Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer);
 
-    Fwog::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
+    Fwog::Cmd::BindStorageBuffer(1, *meshUniformBuffer);
     for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
     {
       const auto& mesh = scene.meshes[i];
@@ -428,11 +429,11 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       .stencilAttachment = nullptr,
     });
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer, 0, materialUniformsBuffer.Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer);
 
-    Fwog::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0, meshUniformBuffer->Size());
+    Fwog::Cmd::BindStorageBuffer(1, *meshUniformBuffer, 0);
     for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
     {
       const auto& mesh = scene.meshes[i];
@@ -511,9 +512,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindSampledImage(2, *frame.gDepth, nearestSampler);
     Fwog::Cmd::BindSampledImage(3, frame.rsm->GetIndirectLighting(), nearestSampler);
     Fwog::Cmd::BindSampledImage(4, rsmDepth, nearestSampler);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(0, *lightBuffer, 0, lightBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(0, *lightBuffer);
     Fwog::Cmd::Draw(3, 1, 0, 0);
 
     const Fwog::Texture* tex{};

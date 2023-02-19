@@ -366,9 +366,9 @@ public:
 
     Fwog::BeginCompute();
     Fwog::Cmd::BindComputePipeline(*accumulateDensityPipeline);
-    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
-    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer, 0, esmUniformBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(0, lightBuffer, 0, lightBuffer.Size());
+    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
+    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer);
+    Fwog::Cmd::BindStorageBuffer(0, lightBuffer);
     Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
     Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
     Fwog::Cmd::BindImage(0, densityVolume, 0);
@@ -409,7 +409,7 @@ public:
     Fwog::BeginCompute();
     Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(*applyDeferredPipeline);
-    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
     Fwog::Cmd::BindSampledImage(0, gbufferColor, sampler);
     Fwog::Cmd::BindSampledImage(1, gbufferDepth, sampler);
     Fwog::Cmd::BindSampledImage(2, sourceVolume, sampler);
@@ -661,10 +661,10 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::BeginRendering(gbufferRenderInfo);
     Fwog::ScopedDebugMarker marker("Geometry");
     Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer, 0, materialUniformsBuffer.Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer);
 
-    Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value(), 0, meshUniformBuffer->Size());
+    Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
     for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
     {
       const auto& mesh = scene.meshes[i];
@@ -704,8 +704,8 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::BeginRendering(shadowRenderInfo);
     Fwog::ScopedDebugMarker marker("Shadow Scene");
     Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value(), 0, meshUniformBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
     {
@@ -732,7 +732,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
         Fwog::Cmd::BindComputePipeline(copyToEsmPipeline);
         Fwog::Cmd::BindSampledImage(0, shadowDepth, nearestMirrorSampler);
         Fwog::Cmd::BindImage(0, esmTex, 0);
-        Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer, 0, esmUniformBuffer.Size());
+        Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer);
         auto dispatchDim = (esmTex.Extent() + 7) / 8;
         Fwog::Cmd::Dispatch(dispatchDim.width, dispatchDim.height, 1);
 
@@ -754,7 +754,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
         const auto dispatchSize1 = (esmExtent2 + 7) / 8;
         const auto dispatchSize2 = (esmExtent1 + 7) / 8;
 
-        Fwog::Cmd::BindUniformBuffer(0, esmBlurUniformBuffer, 0, esmBlurUniformBuffer.Size());
+        Fwog::Cmd::BindUniformBuffer(0, esmBlurUniformBuffer);
 
         for (size_t i = 0; i < config.esmBlurPasses; i++)
         {
@@ -794,9 +794,9 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindSampledImage(1, frame.gNormal.value(), nearestSampler);
     Fwog::Cmd::BindSampledImage(2, frame.gDepth.value(), nearestSampler);
     Fwog::Cmd::BindSampledImage(3, shadowDepth, shadowSampler);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer, 0, globalUniformsBuffer.Size());
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer, 0, shadingUniformsBuffer.Size());
-    Fwog::Cmd::BindStorageBuffer(0, lightBuffer.value(), 0, lightBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+    Fwog::Cmd::BindStorageBuffer(0, lightBuffer.value());
     Fwog::Cmd::Draw(3, 1, 0, 0);
     Fwog::EndRendering();
   }

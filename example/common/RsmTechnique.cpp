@@ -228,8 +228,8 @@ namespace RSM
       Fwog::Cmd::BindSampledImage(4, rsmFluxSmall, nearestSamplerClamped);
       Fwog::Cmd::BindSampledImage(5, rsmNormalSmall, nearestSampler);
       Fwog::Cmd::BindSampledImage(6, rsmDepthSmall, nearestSampler);
-      Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer, 0, cameraUniformBuffer.Size());
-      Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer, 0, rsmUniformBuffer.Size());
+      Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer);
+      Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer);
 
       if (rsmFiltered)
       {
@@ -328,7 +328,7 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(5, gNormalPrevSmall ? gNormalPrevSmall.value() : gNormalPrev, linearSampler);
           Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
           Fwog::Cmd::BindImage(1, historyLengthTex, 0);
-          Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer, 0, reprojectionUniformBuffer.Size());
+          Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
         }
@@ -352,7 +352,7 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(1, gNormalSmall ? gNormalSmall.value() : gNormal, nearestSampler);
           Fwog::Cmd::BindSampledImage(2, gDepthSmall ? gDepthSmall.value() : gDepth, nearestSampler);
           Fwog::Cmd::BindSampledImage(3, historyLengthTex, nearestSampler);
-          Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
+          Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
 
           if (useSeparableFilter)
           {
@@ -475,7 +475,7 @@ namespace RSM
             Fwog::Cmd::BindSampledImage(5, gDepthSmall.value(), nearestSampler);
             filterUniforms.targetDim = {illuminationOutTex.Extent().width, illuminationOutTex.Extent().height};
             filterUniformBuffer.SubDataTyped(filterUniforms);
-            Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer, 0, filterUniformBuffer.Size());
+            Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
             Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
             Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
