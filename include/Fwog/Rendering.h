@@ -130,6 +130,9 @@ namespace Fwog
   
   void MemoryBarrier(MemoryBarrierBits accessBits);
 
+  // Convenience for allowing easy whole buffer binding
+  constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
+
   // Cmd:: functions can only be called within a rendering scope
   namespace Cmd
   {
@@ -195,9 +198,6 @@ namespace Fwog
 
     // 'descriptor' binding
     // valid in render and compute scopes
-
-    // Convenience for allowing easy whole buffer binding
-    constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
     
     // glBindBufferRange
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
