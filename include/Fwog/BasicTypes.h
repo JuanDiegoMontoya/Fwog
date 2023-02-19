@@ -24,6 +24,13 @@ namespace Fwog
     Extent2D operator<<(uint32_t val) const { return *this << Extent2D{ val, val }; }
   };
 
+  inline Extent2D operator+(uint32_t val, Extent2D ext) { return ext + val; }
+  inline Extent2D operator-(uint32_t val, Extent2D ext) { return ext - val; }
+  inline Extent2D operator*(uint32_t val, Extent2D ext) { return ext * val; }
+  inline Extent2D operator/(uint32_t val, Extent2D ext) { return ext / val; }
+  inline Extent2D operator>>(uint32_t val, Extent2D ext) { return ext >> val; }
+  inline Extent2D operator<<(uint32_t val, Extent2D ext) { return ext << val; }
+
   struct Extent3D
   {
     uint32_t width{};
@@ -46,6 +53,13 @@ namespace Fwog
     Extent3D operator<<(uint32_t val) const { return *this << Extent3D{ val, val, val }; }
   };
 
+  inline Extent3D operator+(uint32_t val, Extent3D ext) { return ext + val; }
+  inline Extent3D operator-(uint32_t val, Extent3D ext) { return ext - val; }
+  inline Extent3D operator*(uint32_t val, Extent3D ext) { return ext * val; }
+  inline Extent3D operator/(uint32_t val, Extent3D ext) { return ext / val; }
+  inline Extent3D operator>>(uint32_t val, Extent3D ext) { return ext >> val; }
+  inline Extent3D operator<<(uint32_t val, Extent3D ext) { return ext << val; }
+
   struct Offset2D
   {
     uint32_t x{};
@@ -65,6 +79,13 @@ namespace Fwog
     Offset2D operator>>(uint32_t val) const { return *this >> Offset2D{ val, val }; }
     Offset2D operator<<(uint32_t val) const { return *this << Offset2D{ val, val }; }
   };
+
+  inline Offset2D operator+(uint32_t val, Offset2D ext) { return ext + val; }
+  inline Offset2D operator-(uint32_t val, Offset2D ext) { return ext - val; }
+  inline Offset2D operator*(uint32_t val, Offset2D ext) { return ext * val; }
+  inline Offset2D operator/(uint32_t val, Offset2D ext) { return ext / val; }
+  inline Offset2D operator>>(uint32_t val, Offset2D ext) { return ext >> val; }
+  inline Offset2D operator<<(uint32_t val, Offset2D ext) { return ext << val; }
 
   struct Offset3D
   {
@@ -87,6 +108,13 @@ namespace Fwog
     Offset3D operator>>(uint32_t val) const { return *this >> Offset3D{ val, val, val }; }
     Offset3D operator<<(uint32_t val) const { return *this << Offset3D{ val, val, val }; }
   };
+
+  inline Offset3D operator+(uint32_t val, Offset3D ext) { return ext + val; }
+  inline Offset3D operator-(uint32_t val, Offset3D ext) { return ext - val; }
+  inline Offset3D operator*(uint32_t val, Offset3D ext) { return ext * val; }
+  inline Offset3D operator/(uint32_t val, Offset3D ext) { return ext / val; }
+  inline Offset3D operator>>(uint32_t val, Offset3D ext) { return ext >> val; }
+  inline Offset3D operator<<(uint32_t val, Offset3D ext) { return ext << val; }
 
   struct Rect2D
   {
