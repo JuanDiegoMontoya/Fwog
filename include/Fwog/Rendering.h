@@ -128,7 +128,9 @@ namespace Fwog
                    Offset3D targetOffset,
                    Extent3D extent);
   
-  void MemoryBarrier(MemoryBarrierBits accessBits);
+  void MemoryBarrier(MemoryBarrierBits accessBits); // glMemoryBarrier
+
+  void TextureBarrier(); // glTextureBarrier
 
   // Convenience for allowing easy whole buffer binding
   constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);

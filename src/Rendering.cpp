@@ -518,6 +518,11 @@ namespace Fwog
     glMemoryBarrier(detail::BarrierBitsToGL(accessBits));
   }
 
+  void TextureBarrier()
+  {
+    glTextureBarrier();
+  }
+
   namespace Cmd
   {
     void BindGraphicsPipeline(const GraphicsPipeline& pipeline)
