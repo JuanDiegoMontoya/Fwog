@@ -128,6 +128,13 @@ vec3 LocalLightIntensity(vec3 fragWorldPos, vec3 N, vec3 V, vec3 albedo)
   return color;
 }
 
+vec3 reinhard_luminance(vec3 v)
+{
+  float l_old = dot(v, vec3(0.2126, 0.7152, 0.0722));
+  float l_new = l_old / (1.0 + l_old);
+  return v * l_new / l_old;
+}
+
 void main()
 {
   vec3 albedo = textureLod(s_gAlbedo, v_uv, 0.0).rgb;
@@ -162,5 +169,6 @@ void main()
 
   // tone mapping (optional)
   //finalColor = finalColor / (1.0 + finalColor);
+  finalColor = reinhard_luminance(finalColor);
   o_color = finalColor;
 }

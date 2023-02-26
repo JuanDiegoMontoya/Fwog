@@ -175,7 +175,7 @@ private:
   // scene parameters
   float sunPosition = -1.127f;
   float sunPosition2 = 0;
-  float sunStrength = 5;
+  float sunStrength = 15;
   glm::vec3 sunColor = {1, 1, 1};
 
   // Resources tied to the swapchain/output size
@@ -312,7 +312,7 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
 {
   // create gbuffer textures and render info
-  frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_UNORM);
+  frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_SRGB);
   frame.gNormal = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepth = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
   frame.gNormalPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);

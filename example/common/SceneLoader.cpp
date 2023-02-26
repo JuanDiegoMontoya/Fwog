@@ -388,7 +388,7 @@ namespace Utility
 
       auto textureData = Fwog::CreateTexture2DMip(
         dims,
-        Fwog::Format::R8G8B8A8_UNORM,
+        Fwog::Format::R8G8B8A8_SRGB, // TODO: Use UNORM. For now, only albedo is supported, so this is fine.
         uint32_t(1 + floor(log2(glm::max(dims.width, dims.height)))),
         image.name);
 

@@ -387,7 +387,7 @@ public:
     Fwog::BeginCompute();
     Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
     Fwog::Cmd::BindComputePipeline(*marchVolumePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer, 0, uniformBuffer->Size());
+    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
     Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
     Fwog::Extent3D numGroups = (targetVolume.Extent() + 15) / 16;
@@ -578,7 +578,7 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
 
 void VolumetricApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
 {
-  frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_UNORM);
+  frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_SRGB);
   frame.gNormal = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepth = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_FLOAT);
   frame.shadingTexHdr = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16A16_FLOAT);
