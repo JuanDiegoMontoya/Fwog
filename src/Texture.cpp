@@ -175,7 +175,7 @@ namespace Fwog
     Fwog::detail::context->fboCache.RemoveTexture(*this);
   }
 
-  TextureView Texture::CreateMipView(uint32_t level) const
+  TextureView Texture::CreateSingleMipView(uint32_t level) const
   {
     TextureViewCreateInfo createInfo{
         .viewType = createInfo_.imageType,
@@ -188,7 +188,7 @@ namespace Fwog
     return TextureView(createInfo, *this);
   }
 
-  TextureView Texture::CreateLayerView(uint32_t layer) const
+  TextureView Texture::CreateSingleLayerView(uint32_t layer) const
   {
     TextureViewCreateInfo createInfo{
         .viewType = createInfo_.imageType,
@@ -197,6 +197,19 @@ namespace Fwog
         .numLevels = createInfo_.mipLevels,
         .minLayer = layer,
         .numLayers = 1,
+    };
+    return TextureView(createInfo, *this);
+  }
+
+  TextureView Texture::CreateFormatView(Format newFormat) const
+  {
+    TextureViewCreateInfo createInfo{
+        .viewType = createInfo_.imageType,
+        .format = newFormat,
+        .minLevel = 0,
+        .numLevels = createInfo_.mipLevels,
+        .minLayer = 0,
+        .numLayers = createInfo_.arrayLayers,
     };
     return TextureView(createInfo, *this);
   }

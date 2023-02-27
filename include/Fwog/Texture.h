@@ -93,9 +93,13 @@ namespace Fwog
     void ClearImage(const TextureClearInfo& info);
     void GenMipmaps();
 
-    // create a view of a single mip or layer of this texture
-    [[nodiscard]] TextureView CreateMipView(uint32_t level) const;
-    [[nodiscard]] TextureView CreateLayerView(uint32_t layer) const;
+    // Create a view of a single mip or layer of this texture
+    [[nodiscard]] TextureView CreateSingleMipView(uint32_t level) const;
+    [[nodiscard]] TextureView CreateSingleLayerView(uint32_t layer) const;
+
+    // Reinterpret the data of this texture. Must be a compatible format as defined by table 8.22 in the spec
+    [[nodiscard]] TextureView CreateFormatView(Format newFormat) const;
+
     [[nodiscard]] uint64_t GetBindlessHandle(Sampler sampler);
 
     [[nodiscard]] const TextureCreateInfo& CreateInfo() const
