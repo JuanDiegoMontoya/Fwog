@@ -7,6 +7,8 @@
 #include <tuple>
 #include <optional>
 #include <chrono>
+#include <algorithm>
+#include <ranges>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -353,9 +355,10 @@ namespace Utility
     return indices;
   }
 
-  std::vector<CombinedTextureSampler> LoadTextureSamplers(const tinygltf::Model& model)
+  std::pair<std::vector<Fwog::Texture>, std::vector<Fwog::Sampler>> LoadTextureSamplers(const tinygltf::Model& model)
   {
-    std::vector<CombinedTextureSampler> textureSamplers;
+    std::vector<Fwog::Texture> textures;
+    std::vector<Fwog::Sampler> samplers;
 
     for (const auto& texture : model.textures)
     {
@@ -388,7 +391,7 @@ namespace Utility
 
       auto textureData = Fwog::CreateTexture2DMip(
         dims,
-        Fwog::Format::R8G8B8A8_SRGB, // TODO: Use UNORM. For now, only albedo is supported, so this is fine.
+        Fwog::Format::R8G8B8A8_UNORM,
         uint32_t(1 + floor(log2(glm::max(dims.width, dims.height)))),
         image.name);
 
@@ -404,14 +407,15 @@ namespace Utility
       };
       textureData.SubImage(updateInfo);
       textureData.GenMipmaps();
-
-      textureSamplers.emplace_back(CombinedTextureSampler({ std::move(textureData), std::move(sampler) }));
+      
+      textures.emplace_back(std::move(textureData));
+      samplers.emplace_back(std::move(sampler));
     }
 
-    return textureSamplers;
+    return std::make_pair(std::move(textures), std::move(samplers));
   }
 
-  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex)
+  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex, std::span<const Fwog::Texture> textures, std::span<const Fwog::Sampler> samplers)
   {
     std::vector<Material> materials;
 
@@ -430,12 +434,16 @@ namespace Utility
       if (baseColorTextureIndex >= 0)
       {
         material.gpuMaterial.flags |= MaterialFlagBit::HAS_BASE_COLOR_TEXTURE;
-        material.baseColorTextureIdx = baseColorTextureIndex;
+        material.albedoTextureSampler = 
+        {
+          textures[baseColorTextureIndex].CreateFormatView(Fwog::Format::R8G8B8A8_SRGB),
+          samplers[baseColorTextureIndex]
+        };
       }
 
       material.gpuMaterial.baseColorFactor = baseColorFactor;
       material.gpuMaterial.alphaCutoff = static_cast<float>(loaderMaterial.alphaCutoff);
-      materials.emplace_back(material);
+      materials.emplace_back(std::move(material));
     }
 
     return materials;
@@ -471,7 +479,8 @@ namespace Utility
   {
     std::vector<CpuMesh> meshes;
     std::vector<Material> materials;
-    std::vector<CombinedTextureSampler> textureSamplers;
+    std::vector<Fwog::Texture> textures;
+    std::vector<Fwog::Sampler> samplers;
   };
 
   std::optional<LoadModelResult> LoadModelFromFileBase(std::string_view fileName, 
@@ -531,17 +540,10 @@ namespace Utility
 
     LoadModelResult scene;
 
-    auto textureSamplers = LoadTextureSamplers(model);
-    for (auto& textureSampler : textureSamplers)
-    {
-      scene.textureSamplers.emplace_back(std::move(textureSampler));
-    }
+    std::tie(scene.textures, scene.samplers) = LoadTextureSamplers(model);
 
-    auto materials = LoadMaterials(model, baseTextureSamplerIndex);
-    for (auto&& material : materials)
-    {
-      scene.materials.emplace_back(material);
-    }
+    auto materials = LoadMaterials(model, baseTextureSamplerIndex, scene.textures, scene.samplers);
+    std::ranges::move(materials, std::back_inserter(scene.materials));
 
     // <node*, global transform>
     std::stack<std::pair<const tinygltf::Node*, glm::mat4>> nodeStack;
@@ -594,8 +596,9 @@ namespace Utility
 
   bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
   {
+    FWOG_ASSERT(scene.textures.size() == scene.samplers.size());
     const auto baseMaterialIndex = static_cast<uint32_t>(scene.materials.size());
-    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.textureSamplers.size());
+    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.textures.size());
 
     auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex, baseTextureSamplerIndex);
 
@@ -614,25 +617,20 @@ namespace Utility
         });
     }
 
-    scene.materials.reserve(scene.materials.size() + loadedScene->materials.size());
-    for (auto& material : loadedScene->materials)
-    {
-      scene.materials.emplace_back(std::move(material));
-    }
+    std::ranges::move(loadedScene->materials, std::back_inserter(scene.materials));
 
-    scene.textureSamplers.reserve(scene.textureSamplers.size() + loadedScene->textureSamplers.size());
-    for (auto& textureSampler : loadedScene->textureSamplers)
-    {
-      scene.textureSamplers.emplace_back(std::move(textureSampler));
-    }
+    std::ranges::move(loadedScene->textures, std::back_inserter(scene.textures));
+
+    std::ranges::move(loadedScene->samplers, std::back_inserter(scene.samplers));
 
     return true;
   }
 
   bool LoadModelFromFileBindless(SceneBindless& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
   {
+    FWOG_ASSERT(scene.textures.size() == scene.samplers.size());
     const auto baseMaterialIndex = static_cast<uint32_t>(scene.materials.size());
-    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.textureSamplers.size());
+    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.materials.size());
 
     auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex, baseTextureSamplerIndex);
 
@@ -659,11 +657,9 @@ namespace Utility
       scene.indices.insert(scene.indices.end(), tempIndices.begin(), tempIndices.end());
     }
 
-    scene.textureSamplers.reserve(scene.textureSamplers.size() + loadedScene->textureSamplers.size());
-    for (auto& textureSampler : loadedScene->textureSamplers)
-    {
-      scene.textureSamplers.emplace_back(std::move(textureSampler));
-    }
+    std::ranges::move(loadedScene->textures, std::back_inserter(scene.textures));
+
+    std::ranges::move(loadedScene->samplers, std::back_inserter(scene.samplers));
 
     scene.materials.reserve(scene.materials.size() + loadedScene->materials.size());
     for (auto& material : loadedScene->materials)
@@ -677,7 +673,7 @@ namespace Utility
       };
       if (material.gpuMaterial.flags & MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
-        auto& [texture, sampler] = scene.textureSamplers[material.baseColorTextureIdx];
+        auto& [texture, sampler] = material.albedoTextureSampler.value();
         bindlessMaterial.baseColorTextureHandle = texture.GetBindlessHandle(sampler);
       }
       scene.materials.emplace_back(bindlessMaterial);

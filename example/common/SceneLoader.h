@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string_view>
+#include <optional>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 #include <glm/vec3.hpp>
@@ -28,7 +29,7 @@ namespace Utility
 
   struct CombinedTextureSampler
   {
-    Fwog::Texture texture;
+    Fwog::TextureView texture;
     Fwog::Sampler sampler;
   };
 
@@ -58,7 +59,7 @@ namespace Utility
   struct Material
   {
     GpuMaterial gpuMaterial{};
-    int baseColorTextureIdx{};
+    std::optional<CombinedTextureSampler> albedoTextureSampler;
   };
 
   struct Mesh
@@ -74,7 +75,8 @@ namespace Utility
   {
     std::vector<Mesh> meshes;
     std::vector<Material> materials;
-    std::vector<CombinedTextureSampler> textureSamplers;
+    std::vector<Fwog::Texture> textures;
+    std::vector<Fwog::Sampler> samplers;
   };
 
   struct MeshBindless
@@ -93,7 +95,8 @@ namespace Utility
     std::vector<Vertex> vertices;
     std::vector<index_t> indices;
     std::vector<GpuMaterialBindless> materials;
-    std::vector<CombinedTextureSampler> textureSamplers;
+    std::vector<Fwog::Texture> textures;
+    std::vector<Fwog::Sampler> samplers;
   };
 
   bool LoadModelFromFile(Scene& scene, 
