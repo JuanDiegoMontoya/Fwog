@@ -71,6 +71,22 @@ struct ShadingUniforms
   glm::mat4 sunProj;
 };
 
+struct ShadowUniforms
+{
+  uint32_t shadowMode = 0; // 0 = PCF, 1 = SMRT
+
+  // PCF stuff
+  uint32_t pcfSamples = 4;
+  float pcfRadius = 0.002f;
+
+  // SMRT stuff
+  uint32_t shadowRays = 7;
+  uint32_t stepsPerRay = 7;
+  float rayStepSize = 0.2f;
+  float heightmapThickness = 0.5f;
+  float sourceAngleRad = 0.05f;
+};
+
 struct alignas(16) Light
 {
   glm::vec4 position;
@@ -167,8 +183,8 @@ private:
   void OnGui(double dt) override;
 
   // constants
-  static constexpr int gShadowmapWidth = 1024;
-  static constexpr int gShadowmapHeight = 1024;
+  static constexpr int gShadowmapWidth = 2048;
+  static constexpr int gShadowmapHeight = 2048;
 
   double illuminationTime = 0;
 
@@ -197,9 +213,11 @@ private:
   Fwog::Texture rsmDepth;
 
   ShadingUniforms shadingUniforms;
+  ShadowUniforms shadowUniforms;
 
   Fwog::TypedBuffer<GlobalUniforms> globalUniformsBuffer;
   Fwog::TypedBuffer<ShadingUniforms> shadingUniformsBuffer;
+  Fwog::TypedBuffer<ShadowUniforms> shadowUniformsBuffer;
   Fwog::TypedBuffer<Utility::GpuMaterial> materialUniformsBuffer;
 
   Fwog::GraphicsPipeline scenePipeline;
@@ -225,6 +243,7 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
     // Create constant-size buffers
     globalUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     shadingUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
+    shadowUniformsBuffer(shadowUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     materialUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     // Create the pipelines used in the application
     scenePipeline(CreateScenePipeline()),
@@ -340,6 +359,12 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   ss.addressModeV = Fwog::AddressMode::REPEAT;
   auto nearestSampler = Fwog::Sampler(ss);
 
+  ss.minFilter = Fwog::Filter::LINEAR;
+  ss.magFilter = Fwog::Filter::LINEAR;
+  ss.compareEnable = true;
+  ss.compareOp = Fwog::CompareOp::LESS;
+  auto shadowSampler = Fwog::Sampler(ss);
+
   auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 100.f);
 
   GlobalUniforms mainCameraUniforms{};
@@ -349,6 +374,8 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
 
   globalUniformsBuffer.SubData(mainCameraUniforms, 0);
+
+  shadowUniformsBuffer.SubDataTyped(shadowUniforms);
 
   glm::vec3 eye = glm::vec3{shadingUniforms.sunDir * -5.f};
   float eyeWidth = 7.0f;
@@ -514,8 +541,10 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindSampledImage(2, *frame.gDepth, nearestSampler);
     Fwog::Cmd::BindSampledImage(3, frame.rsm->GetIndirectLighting(), nearestSampler);
     Fwog::Cmd::BindSampledImage(4, rsmDepth, nearestSampler);
+    Fwog::Cmd::BindSampledImage(5, rsmDepth, shadowSampler);
     Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
     Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(2, shadowUniformsBuffer);
     Fwog::Cmd::BindStorageBuffer(0, *lightBuffer);
     Fwog::Cmd::Draw(3, 1, 0, 0);
 
@@ -552,6 +581,41 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::Separator();
 
   frame.rsm->DrawGui();
+
+  ImGui::Separator();
+
+  ImGui::Text("Shadow");
+
+  auto SliderUint = [](const char* label, uint32_t* v, uint32_t v_min, uint32_t v_max) -> bool
+  {
+    int tempv = static_cast<int>(*v);
+    if (ImGui::SliderInt(label, &tempv, static_cast<int>(v_min), static_cast<int>(v_max)))
+    {
+      *v = static_cast<uint32_t>(tempv);
+      return true;
+    }
+    return false;
+  };
+
+  int shadowMode = shadowUniforms.shadowMode;
+  ImGui::RadioButton("PCF", &shadowMode, 0);
+  ImGui::SameLine();
+  ImGui::RadioButton("SMRT", &shadowMode, 1);
+  shadowUniforms.shadowMode = shadowMode;
+
+  if (shadowMode == 0)
+  {
+    SliderUint("PCF Samples", &shadowUniforms.pcfSamples, 1, 16);
+    ImGui::SliderFloat("PCF Radius", &shadowUniforms.pcfRadius, 0, 0.01f, "%.4f");
+  }
+  else if (shadowMode == 1)
+  {
+    SliderUint("Shadow Rays", &shadowUniforms.shadowRays, 1, 10);
+    SliderUint("Steps Per Ray", &shadowUniforms.stepsPerRay, 1, 10);
+    ImGui::SliderFloat("Ray Step Size", &shadowUniforms.rayStepSize, 0.01f, 1.0f);
+    ImGui::SliderFloat("Heightmap Thickness", &shadowUniforms.heightmapThickness, 0.05f, 1.0f);
+    ImGui::SliderFloat("Light Spread", &shadowUniforms.sourceAngleRad, 0.001f, 0.3f);
+  }
 
   ImGui::BeginTabBar("tabbed");
   if (ImGui::BeginTabItem("G-Buffers"))

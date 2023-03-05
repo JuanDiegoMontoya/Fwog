@@ -5,6 +5,7 @@ layout(binding = 1) uniform sampler2D s_gNormal;
 layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2D s_rsmIndirect;
 layout(binding = 4) uniform sampler2D s_rsmDepth;
+layout(binding = 5) uniform sampler2DShadow s_rsmDepthShadow;
 
 layout(location = 0) in vec2 v_uv;
 
@@ -23,7 +24,25 @@ layout(binding = 1, std140) uniform ShadingUniforms
   mat4 sunViewProj;
   vec4 sunDir;
   vec4 sunStrength;
+  mat4 sunView;
+  mat4 sunProj;
 }shadingUniforms;
+
+layout(binding = 2, std140) uniform ShadowUniforms
+{
+  uint shadowMode; // 0 = PCF, 1 = SMRT
+
+  // PCF
+  uint pcfSamples;
+  float pcfRadius;
+
+  // SMRT
+  uint shadowRays;
+  uint stepsPerRay;
+  float rayStepSize;
+  float heightmapThickness;
+  float sourceAngleRad;
+}shadowUniforms;
 
 struct Light
 {
@@ -55,8 +74,110 @@ vec2 Hammersley(uint i, uint N)
   return vec2(float(i) / float(N), float(bitfieldReverse(i)) * 2.3283064365386963e-10);
 }
 
-float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
+const float M_PI = 3.141592654;
+
+vec3 RandVecInCone(vec2 xi, vec3 N, float angle)
 {
+  float phi = 2.0 * M_PI * xi.x;
+  
+  float theta = xi.y * angle;
+  float cosTheta = cos(theta);
+  float sinTheta = sin(theta);
+
+  vec3 H;
+  H.x = cos(phi) * sinTheta;
+  H.y = sin(phi) * sinTheta;
+  H.z = cosTheta;
+
+  vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+  vec3 tangent = normalize(cross(up, N));
+  vec3 bitangent = cross(N, tangent);
+  mat3 tbn = mat3(tangent, bitangent, N);
+
+  vec3 sampleVec = tbn * H;
+  return normalize(sampleVec);
+}
+
+float ShadowPCF(vec2 uv, float viewDepth, float bias)
+{
+  float lightOcclusion = 0.0;
+
+  for (uint i = 0; i < shadowUniforms.pcfSamples; i++)
+  {
+    vec2 xi = fract(Hammersley(i, shadowUniforms.pcfSamples) + hash(gl_FragCoord.xy));
+    float r = xi.x * xi.x;
+    float theta = xi.y * 2.0 * 3.14159;
+    vec2 offset = shadowUniforms.pcfRadius * vec2(r * cos(theta), r * sin(theta));
+    // float lightDepth = textureLod(s_rsmDepth, uv + offset, 0).x;
+    // lightDepth += bias;
+    // if (lightDepth >= viewDepth)
+    // {
+    //   lightOcclusion += 1.0;
+    // }
+    lightOcclusion += textureLod(s_rsmDepthShadow, vec3(uv + offset, viewDepth - bias), 0);
+  }
+
+  return lightOcclusion / shadowUniforms.pcfSamples;
+}
+
+// Marches a ray in view space until it collides with the height field defined by the shadow map.
+// We assume the height field has a certain thickness so rays can pass behind it
+float MarchShadowRay(vec3 rayLightViewPos, vec3 rayLightViewDir, float bias)
+{
+  for (int stepIdx = 0; stepIdx < shadowUniforms.stepsPerRay; stepIdx++)
+  {
+    rayLightViewPos += rayLightViewDir * shadowUniforms.rayStepSize;
+
+    vec4 rayLightClipPos = shadingUniforms.sunProj * vec4(rayLightViewPos, 1.0);
+    rayLightClipPos.xy /= rayLightClipPos.w; // to NDC
+    rayLightClipPos.xy = rayLightClipPos.xy * 0.5 + 0.5; // to UV
+    float shadowMapWindowZ = /*bias*/ + textureLod(s_rsmDepth, rayLightClipPos.xy, 0.0).x;
+    float shadowMapViewZ = -UnprojectUV(shadowMapWindowZ, rayLightClipPos.xy, inverse(shadingUniforms.sunProj)).z;
+
+    // Positive dDepth: tested position is below the shadow map
+    // Negative dDepth: tested position is above
+    float dDepth = -(rayLightViewPos.z) - shadowMapViewZ;
+
+    // Ray is under the shadow map height field
+    if (dDepth > 0)
+    {
+      // Ray intersected some geometry
+      // OR
+      // The ray hasn't collided with anything on the last step (we're already under the height field, assume infinite thickness so there is at least some shadow)
+      if (dDepth < shadowUniforms.heightmapThickness 
+          || stepIdx == shadowUniforms.stepsPerRay - 1
+          )
+      {
+        return 0.0;
+      }
+    }
+  }
+
+  return 1.0;
+}
+
+float ShadowRayTraced(vec3 fragWorldPos, vec3 lightDir, float bias)
+{
+  float lightOcclusion = 0.0;
+
+  for (int rayIdx = 0; rayIdx < shadowUniforms.shadowRays; rayIdx++)
+  {
+    vec2 xi = Hammersley(rayIdx, shadowUniforms.shadowRays);
+    xi = fract(xi + hash(gl_FragCoord.xy));
+    vec3 newLightDir = RandVecInCone(xi, lightDir, shadowUniforms.sourceAngleRad);
+
+    vec3 rayLightViewDir = (shadingUniforms.sunView * vec4(newLightDir, 0.0)).xyz;
+    vec3 rayLightViewPos = (shadingUniforms.sunView * vec4(fragWorldPos, 1.0)).xyz;
+
+    lightOcclusion += MarchShadowRay(rayLightViewPos, rayLightViewDir, bias);
+  }
+
+  return lightOcclusion / shadowUniforms.shadowRays;
+}
+
+float Shadow(vec3 fragWorldPos, vec3 normal, vec3 lightDir)
+{
+  vec4 clip = shadingUniforms.sunViewProj * vec4(fragWorldPos, 1.0);
   vec2 uv = clip.xy * .5 + .5;
   if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
   {
@@ -72,28 +193,12 @@ float Shadow(vec4 clip, vec3 normal, vec3 lightDir)
   float bias = quantize + b * length(cross(-shadingUniforms.sunDir.xyz, normal)) / NoD;
   bias = min(bias, maxBias);
 
-  float lightOcclusion = 0.0;
-
-  const int SAMPLES = 4;
-  for (int i = 0; i < SAMPLES; i++)
+  switch (shadowUniforms.shadowMode)
   {
-    float viewDepth = clip.z * .5 + .5;
-
-    vec2 xi = fract(Hammersley(i, SAMPLES) + hash(gl_FragCoord.xy));
-    float r = xi.x;
-    float theta = xi.y * 2.0 * 3.14159;
-    vec2 offset = 0.002 * vec2(r * cos(theta), r * sin(theta));
-    float lightDepth = textureLod(s_rsmDepth, uv + offset, 0).x;
-
-    lightDepth += bias;
-    
-    if (lightDepth >= viewDepth)
-    {
-      lightOcclusion += 1.0;
-    }
+    case 0: return ShadowPCF(uv, clip.z * .5 + .5, bias);
+    case 1: return ShadowRayTraced(fragWorldPos, lightDir, bias);
+    default: return 1.0;
   }
-
-  return lightOcclusion / SAMPLES;
 }
 
 float GetSquareFalloffAttenuation(vec3 posToLight, float lightInvRadius)
@@ -153,7 +258,7 @@ void main()
   float cosTheta = max(0.0, dot(incidentDir, normal));
   vec3 diffuse = albedo * cosTheta * shadingUniforms.sunStrength.rgb;
 
-  float shadow = Shadow(shadingUniforms.sunViewProj * vec4(fragWorldPos, 1.0), normal, shadingUniforms.sunDir.xyz);
+  float shadow = Shadow(fragWorldPos, normal, -shadingUniforms.sunDir.xyz);
   
   vec3 viewDir = normalize(cameraPos.xyz - fragWorldPos);
   //vec3 reflectDir = reflect(-incidentDir, normal);
