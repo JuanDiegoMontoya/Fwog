@@ -80,7 +80,7 @@ vec3 RandVecInCone(vec2 xi, vec3 N, float angle)
 {
   float phi = 2.0 * M_PI * xi.x;
   
-  float theta = xi.y * angle;
+  float theta = sqrt(xi.y) * angle;
   float cosTheta = cos(theta);
   float sinTheta = sin(theta);
 
@@ -105,7 +105,7 @@ float ShadowPCF(vec2 uv, float viewDepth, float bias)
   for (uint i = 0; i < shadowUniforms.pcfSamples; i++)
   {
     vec2 xi = fract(Hammersley(i, shadowUniforms.pcfSamples) + hash(gl_FragCoord.xy));
-    float r = xi.x * xi.x;
+    float r = sqrt(xi.x);
     float theta = xi.y * 2.0 * 3.14159;
     vec2 offset = shadowUniforms.pcfRadius * vec2(r * cos(theta), r * sin(theta));
     // float lightDepth = textureLod(s_rsmDepth, uv + offset, 0).x;
