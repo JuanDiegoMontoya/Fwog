@@ -132,11 +132,12 @@ float MarchShadowRay(vec3 rayLightViewPos, vec3 rayLightViewDir, float bias)
     rayLightClipPos.xy /= rayLightClipPos.w; // to NDC
     rayLightClipPos.xy = rayLightClipPos.xy * 0.5 + 0.5; // to UV
     float shadowMapWindowZ = /*bias*/ + textureLod(s_rsmDepth, rayLightClipPos.xy, 0.0).x;
-    float shadowMapViewZ = -UnprojectUV(shadowMapWindowZ, rayLightClipPos.xy, inverse(shadingUniforms.sunProj)).z;
+    // Note: view Z gets *smaller* as we go deeper into the frusum (farther from the camera)
+    float shadowMapViewZ = UnprojectUV(shadowMapWindowZ, rayLightClipPos.xy, inverse(shadingUniforms.sunProj)).z;
 
     // Positive dDepth: tested position is below the shadow map
     // Negative dDepth: tested position is above
-    float dDepth = -(rayLightViewPos.z) - shadowMapViewZ;
+    float dDepth = shadowMapViewZ - rayLightViewPos.z;
 
     // Ray is under the shadow map height field
     if (dDepth > 0)
@@ -144,9 +145,7 @@ float MarchShadowRay(vec3 rayLightViewPos, vec3 rayLightViewDir, float bias)
       // Ray intersected some geometry
       // OR
       // The ray hasn't collided with anything on the last step (we're already under the height field, assume infinite thickness so there is at least some shadow)
-      if (dDepth < shadowUniforms.heightmapThickness 
-          || stepIdx == shadowUniforms.stepsPerRay - 1
-          )
+      if (dDepth < shadowUniforms.heightmapThickness || stepIdx == shadowUniforms.stepsPerRay - 1)
       {
         return 0.0;
       }
