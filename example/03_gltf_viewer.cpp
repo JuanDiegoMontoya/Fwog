@@ -82,7 +82,7 @@ struct ShadowUniforms
   // SMRT stuff
   uint32_t shadowRays = 7;
   uint32_t stepsPerRay = 7;
-  float rayStepSize = 0.2f;
+  float rayStepSize = 0.1f;
   float heightmapThickness = 0.5f;
   float sourceAngleRad = 0.05f;
 };
@@ -611,7 +611,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   else if (shadowMode == 1)
   {
     SliderUint("Shadow Rays", &shadowUniforms.shadowRays, 1, 10);
-    SliderUint("Steps Per Ray", &shadowUniforms.stepsPerRay, 1, 10);
+    SliderUint("Steps Per Ray", &shadowUniforms.stepsPerRay, 1, 20);
     ImGui::SliderFloat("Ray Step Size", &shadowUniforms.rayStepSize, 0.01f, 1.0f);
     ImGui::SliderFloat("Heightmap Thickness", &shadowUniforms.heightmapThickness, 0.05f, 1.0f);
     ImGui::SliderFloat("Light Spread", &shadowUniforms.sourceAngleRad, 0.001f, 0.3f);
