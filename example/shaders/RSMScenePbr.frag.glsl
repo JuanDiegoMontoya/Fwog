@@ -32,8 +32,9 @@ void main()
   if ((u_material.flags & HAS_BASE_COLOR_TEXTURE) != 0)
   {
     color *= texture(s_baseColor, v_uv);
-    color.rgb *= shadingUniforms.sunStrength.rgb;
   }
+
+  color.rgb *= shadingUniforms.sunStrength.rgb;
   
   if (color.a < u_material.alphaCutoff)
   {
