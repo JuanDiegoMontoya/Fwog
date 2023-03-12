@@ -181,7 +181,10 @@ namespace Fwog
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    if (ri.clearColorOnLoad)
+    switch (ri.colorLoadOp)
+    {
+    case AttachmentLoadOp::LOAD: break;
+    case AttachmentLoadOp::CLEAR:
     {
       FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ri.clearColorValue.data)));
       if (context->lastColorMask[0] != ColorComponentFlag::RGBA_BITS)
@@ -191,7 +194,19 @@ namespace Fwog
       }
       glClearNamedFramebufferfv(0, GL_COLOR, 0, std::get_if<std::array<float, 4>>(&ri.clearColorValue.data)->data());
     }
-    if (ri.clearDepthOnLoad)
+    case AttachmentLoadOp::DONT_CARE:
+    {
+      GLenum attachment = GL_COLOR;
+      glInvalidateNamedFramebufferData(0, 1, &attachment);
+      break;
+    }
+    default: FWOG_UNREACHABLE;
+    }
+
+    switch (ri.depthLoadOp)
+    {
+    case AttachmentLoadOp::LOAD: break;
+    case AttachmentLoadOp::CLEAR:
     {
       if (context->lastDepthMask == false)
       {
@@ -200,7 +215,19 @@ namespace Fwog
       }
       glClearNamedFramebufferfv(0, GL_DEPTH, 0, &ri.clearDepthValue);
     }
-    if (ri.clearStencilOnLoad)
+    case AttachmentLoadOp::DONT_CARE:
+    {
+      GLenum attachment = GL_DEPTH;
+      glInvalidateNamedFramebufferData(0, 1, &attachment);
+      break;
+    }
+    default: FWOG_UNREACHABLE;
+    }
+
+    switch (ri.stencilLoadOp)
+    {
+    case AttachmentLoadOp::LOAD: break;
+    case AttachmentLoadOp::CLEAR:
     {
       if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
       {
@@ -209,6 +236,14 @@ namespace Fwog
         context->lastStencilMask[1] = true;
       }
       glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
+    }
+    case AttachmentLoadOp::DONT_CARE:
+    {
+      GLenum attachment = GL_STENCIL;
+      glInvalidateNamedFramebufferData(0, 1, &attachment);
+      break;
+    }
+    default: FWOG_UNREACHABLE;
     }
 
     // Framebuffer sRGB can only be disabled in this exact function
@@ -255,7 +290,10 @@ namespace Fwog
     for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
     {
       const auto& attachment = ri.colorAttachments[i];
-      if (attachment.clearOnLoad)
+      switch (attachment.loadOp)
+      {
+      case AttachmentLoadOp::LOAD: break;
+      case AttachmentLoadOp::CLEAR:
       {
         if (context->lastColorMask[i] != ColorComponentFlag::RGBA_BITS)
         {
@@ -287,53 +325,71 @@ namespace Fwog
           break;
         default: FWOG_UNREACHABLE;
         }
+        break;
+      }
+      case AttachmentLoadOp::DONT_CARE:
+      {
+        GLenum attachment = GL_COLOR_ATTACHMENT0 + i;
+        glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+        break;
+      }
+      default: FWOG_UNREACHABLE;
       }
     }
 
-    if (ri.depthAttachment && ri.depthAttachment->clearOnLoad && ri.stencilAttachment && ri.stencilAttachment->clearOnLoad)
+    if (ri.depthAttachment)
     {
-      // clear depth and stencil simultaneously
-      if (context->lastDepthMask == false)
+      switch (ri.depthAttachment->loadOp)
       {
-        glDepthMask(true);
-        context->lastDepthMask = true;
-      }
-      if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
+      case AttachmentLoadOp::LOAD: break;
+      case AttachmentLoadOp::CLEAR:
       {
-        glStencilMask(true);
-        context->lastStencilMask[0] = true;
-        context->lastStencilMask[1] = true;
+        // clear just depth
+        if (context->lastDepthMask == false)
+        {
+          glDepthMask(true);
+          context->lastDepthMask = true;
+        }
+
+        glClearNamedFramebufferfv(context->currentFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depth);
+        break;
       }
-
-      auto& clearDepth = ri.depthAttachment->clearValue;
-      auto& clearStencil = ri.stencilAttachment->clearValue;
-
-      glClearNamedFramebufferfi(context->currentFbo, GL_DEPTH_STENCIL, 0, clearDepth.depth, clearStencil.stencil);
+      case AttachmentLoadOp::DONT_CARE:
+      {
+        GLenum attachment = GL_DEPTH_ATTACHMENT;
+        glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+        break;
+      }
+      default: FWOG_UNREACHABLE;
+      }
     }
-    else if ((ri.depthAttachment && ri.depthAttachment->clearOnLoad) &&
-             (!ri.stencilAttachment || !ri.stencilAttachment->clearOnLoad))
+    
+    if (ri.stencilAttachment)
     {
-      // clear just depth
-      if (context->lastDepthMask == false)
+      switch (ri.stencilAttachment->loadOp)
       {
-        glDepthMask(true);
-        context->lastDepthMask = true;
-      }
-
-      glClearNamedFramebufferfv(context->currentFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depth);
-    }
-    else if ((ri.stencilAttachment && ri.stencilAttachment->clearOnLoad) &&
-             (!ri.depthAttachment || !ri.depthAttachment->clearOnLoad))
-    {
-      // clear just stencil
-      if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
+      case AttachmentLoadOp::LOAD: break;
+      case AttachmentLoadOp::CLEAR:
       {
-        glStencilMask(true);
-        context->lastStencilMask[0] = true;
-        context->lastStencilMask[1] = true;
-      }
+        // clear just stencil
+        if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
+        {
+          glStencilMask(true);
+          context->lastStencilMask[0] = true;
+          context->lastStencilMask[1] = true;
+        }
 
-      glClearNamedFramebufferiv(context->currentFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.stencil);
+        glClearNamedFramebufferiv(context->currentFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.stencil);
+        break;
+      }
+      case AttachmentLoadOp::DONT_CARE:
+      {
+        GLenum attachment = GL_STENCIL_ATTACHMENT;
+        glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+        break;
+      }
+      default: FWOG_UNREACHABLE;
+      }
     }
 
     Viewport viewport{};

@@ -30,6 +30,13 @@ namespace Fwog
     std::variant<std::array<float, 4>, std::array<uint32_t, 4>, std::array<int32_t, 4>> data;
   };
 
+  enum class AttachmentLoadOp : uint32_t
+  {
+    LOAD,      // The previous contents of the image will be preserved
+    CLEAR,     // The contents of the image will be cleared to a uniform value
+    DONT_CARE, // The previous contents of the image need not be preserved (they may be discarded)
+  };
+
   struct ClearDepthStencilValue
   {
     float depth{};
@@ -39,14 +46,14 @@ namespace Fwog
   struct RenderColorAttachment
   {
     const Texture* texture = nullptr;
-    bool clearOnLoad = false;
+    AttachmentLoadOp loadOp = AttachmentLoadOp::LOAD;
     ClearColorValue clearValue;
   };
   
   struct RenderDepthStencilAttachment
   {
     const Texture* texture = nullptr;
-    bool clearOnLoad = false;
+    AttachmentLoadOp loadOp = AttachmentLoadOp::LOAD;
     ClearDepthStencilValue clearValue;
   };
   
@@ -70,11 +77,11 @@ namespace Fwog
   {
     std::string_view name;
     Viewport viewport = {};
-    bool clearColorOnLoad = false;
+    AttachmentLoadOp colorLoadOp = AttachmentLoadOp::LOAD;
     ClearColorValue clearColorValue;
-    bool clearDepthOnLoad = false;
+    AttachmentLoadOp depthLoadOp = AttachmentLoadOp::LOAD;
     float clearDepthValue = 0.0f;
-    bool clearStencilOnLoad = false;
+    AttachmentLoadOp stencilLoadOp = AttachmentLoadOp::LOAD;
     int32_t clearStencilValue = 0;
 
     // Allows control over automatic linear->sRGB conversion for rendering to the swapchain,
