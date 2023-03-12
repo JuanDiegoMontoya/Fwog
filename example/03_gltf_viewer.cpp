@@ -262,7 +262,8 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
   if (!filename)
   {
-    // Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
+    //Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
+    
     //Utility::LoadModelFromFile(scene, "models/rock_terrain_3/scene.gltf", glm::mat4{.5}, false);
     
     //Utility::LoadModelFromFile(scene, "models/Sponza/glTF/Sponza.gltf", glm::mat4{.5}, false);
@@ -271,20 +272,22 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
     //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/San_Miguel/san-miguel.glb", glm::mat4{.20f}, true);
     
+    Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/shadow_test.glb", glm::mat4{1.0f}, true);
+    
     //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/path_tracing_nightmare.glb", glm::mat4{.25}, true);
 
     //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/aaa/scene2.glb", glm::mat4{.25}, true);
     
-    Utility::LoadModelFromFile(
-       scene,
-       "H:/Repositories/glTF-Sample-Models/downloaded schtuff/Main/NewSponza_Main_Blender_glTF.gltf",
-       glm::mat4{.4f},
-       false);
-    Utility::LoadModelFromFile(
-       scene,
-       "H:/Repositories/glTF-Sample-Models/downloaded schtuff/PKG_A_Curtains/NewSponza_Curtains_glTF.gltf",
-       glm::mat4{.4f},
-       false);
+    //Utility::LoadModelFromFile(
+    //   scene,
+    //   "H:/Repositories/glTF-Sample-Models/downloaded schtuff/Main/NewSponza_Main_Blender_glTF.gltf",
+    //   glm::mat4{.4f},
+    //   false);
+    //Utility::LoadModelFromFile(
+    //   scene,
+    //   "H:/Repositories/glTF-Sample-Models/downloaded schtuff/PKG_A_Curtains/NewSponza_Curtains_glTF.gltf",
+    //   glm::mat4{.4f},
+    //   false);
   }
   else
   {
@@ -389,17 +392,15 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::RenderColorAttachment gAlbedoAttachment{
       .texture = &frame.gAlbedo.value(),
-      .clearOnLoad = true,
-      .clearValue = {.1f, .3f, .5f, 0.0f},
+      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
     Fwog::RenderColorAttachment gNormalAttachment{
       .texture = &frame.gNormal.value(),
-      .clearOnLoad = false,
-      .clearValue = {0.f, 0.f, 0.f, 0.f},
+      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
     Fwog::RenderDepthStencilAttachment gDepthAttachment{
       .texture = &frame.gDepth.value(),
-      .clearOnLoad = true,
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.depth = 1.0f},
     };
     Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
@@ -437,17 +438,15 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::RenderColorAttachment rcolorAttachment{
       .texture = &rsmFlux,
-      .clearOnLoad = false,
-      .clearValue = {0.f, 0.f, 0.f, 0.f},
+      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
     Fwog::RenderColorAttachment rnormalAttachment{
       .texture = &rsmNormal,
-      .clearOnLoad = false,
-      .clearValue = {0.f, 0.f, 0.f, 0.f},
+      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
     Fwog::RenderDepthStencilAttachment rdepthAttachment{
       .texture = &rsmDepth,
-      .clearOnLoad = true,
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.depth = 1.0f},
     };
     Fwog::RenderColorAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
@@ -529,10 +528,10 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
       },
-    .clearColorOnLoad = false,
-    .clearColorValue = Fwog::ClearColorValue{.0f, .0f, .0f, 1.0f},
-    .clearDepthOnLoad = false,
-    .clearStencilOnLoad = false,
+    .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
+    .clearColorValue = {.1f, .3f, .5f, 0.0f},
+    .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+    .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   });
   {
     Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);

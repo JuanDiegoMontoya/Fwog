@@ -638,17 +638,15 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::RenderColorAttachment gAlbedoAttachment{
       .texture = &frame.gAlbedo.value(),
-      .clearOnLoad = true,
-      .clearValue = {.1f, .3f, .5f, 0.0f},
+      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
     Fwog::RenderColorAttachment gNormalAttachment{
       .texture = &frame.gNormal.value(),
-      .clearOnLoad = false,
-      .clearValue = {0.f, 0.f, 0.f, 0.f},
+      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
     Fwog::RenderDepthStencilAttachment gDepthAttachment{
       .texture = &frame.gDepth.value(),
-      .clearOnLoad = true,
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.depth = 0.0f},
     };
     Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
@@ -688,7 +686,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::RenderDepthStencilAttachment depthAttachment{
       .texture = &shadowDepth,
-      .clearOnLoad = true,
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.depth = 1.0f},
     };
 
@@ -783,7 +781,11 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   // shading pass (full screen tri)
   {
-    Fwog::RenderColorAttachment shadingAttachment{.texture = &frame.shadingTexHdr.value()};
+    Fwog::RenderColorAttachment shadingAttachment{
+      .texture = &frame.shadingTexHdr.value(),
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
+      .clearValue = {.1f, .3f, .5f, 0.0f},
+    };
 
     Fwog::RenderInfo shadingRenderingInfo{.colorAttachments = {&shadingAttachment, 1}};
     Fwog::BeginRendering(shadingRenderingInfo);
@@ -864,6 +866,9 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::SwapchainRenderInfo swapchainRenderingInfo{
       .viewport = {.drawRect{.extent = {windowWidth, windowHeight}}},
+      .colorLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+      .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+      .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
       .enableSrgb = false,
     };
     Fwog::BeginSwapchainRendering(swapchainRenderingInfo);

@@ -87,9 +87,10 @@ vec3 ComputeIndirectIrradiance(vec3 surfaceNormal, vec3 surfaceWorldPos, vec2 no
     vec2 pixelLightUV = rsmUV + vec2(r * cos(theta), r * sin(theta)) * rsm.rMax;
     float weight = r;
 
+    float rsmDepth = textureLod(s_rsmDepth, pixelLightUV, 0.0).x;
+    if (rsmDepth == 1.0) continue;
     vec3 rsmFlux = textureLod(s_rsmFlux, pixelLightUV, 0.0).rgb;
     vec3 rsmNormal = textureLod(s_rsmNormal, pixelLightUV, 0.0).xyz;
-    float rsmDepth = textureLod(s_rsmDepth, pixelLightUV, 0.0).x;
     vec3 rsmWorldPos = UnprojectUV(rsmDepth, pixelLightUV, rsm.invSunViewProj);
 
     sumC += ComputePixelLight(surfaceWorldPos, surfaceNormal, rsmFlux, rsmWorldPos, rsmNormal) * weight;

@@ -311,7 +311,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
 
   Fwog::RenderDepthStencilAttachment gDepthAttachment{
     .texture = &frame.gDepth.value(),
-    .clearOnLoad = true,
+    .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.depth = 1.0f},
   };
 
@@ -319,7 +319,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
   {
     Fwog::RenderColorAttachment gColorAttachment{
       .texture = &frame.gAlbedo.value(),
-      .clearOnLoad = true,
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.1f, .3f, .5f, 0.0f},
     };
     Fwog::BeginRendering({
@@ -357,7 +357,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
   // noticeable unless at low framerates.
   if (!config.freezeCulling)
   {
-    gDepthAttachment.clearOnLoad = false;
+    gDepthAttachment.loadOp = Fwog::AttachmentLoadOp::LOAD;
     Fwog::BeginRendering({.name = "Occlusion culling", .depthAttachment = &gDepthAttachment});
 
     // Re-upload the draw commands buffer to reset the instance counts to 0 for culling.

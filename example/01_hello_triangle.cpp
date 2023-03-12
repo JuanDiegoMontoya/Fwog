@@ -131,11 +131,11 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
 {
   // Before we are allowed to render anything, we must declare what we are rendering to.
   // In this case we are rendering straight to the screen, so we can use BeginSwapchainRendering.
-  // We are also provided with an opportunity to clear any of the render targets here.
+  // We are also provided with an opportunity to clear any of the render targets here (by setting the load op to clear).
   // We will use it to clear the color buffer with a soothing dark magenta.
   Fwog::BeginSwapchainRendering(Fwog::SwapchainRenderInfo{
     .viewport = Fwog::Viewport{.drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}}},
-    .clearColorOnLoad = true,
+    .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearColorValue = {.2f, .0f, .2f, 1.0f},
   });
   

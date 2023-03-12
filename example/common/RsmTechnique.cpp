@@ -179,14 +179,14 @@ namespace RSM
     ss.addressModeV = Fwog::AddressMode::REPEAT;
     auto nearestSampler = Fwog::Sampler(ss);
 
-    ss.minFilter = Fwog::Filter::LINEAR;
-    ss.magFilter = Fwog::Filter::LINEAR;
-    auto linearSampler = Fwog::Sampler(ss);
-
     ss.borderColor = Fwog::BorderColor::FLOAT_TRANSPARENT_BLACK;
     ss.addressModeU = Fwog::AddressMode::CLAMP_TO_BORDER;
     ss.addressModeV = Fwog::AddressMode::CLAMP_TO_BORDER;
     auto nearestSamplerClamped = Fwog::Sampler(ss);
+
+    ss.minFilter = Fwog::Filter::LINEAR;
+    ss.magFilter = Fwog::Filter::LINEAR;
+    auto linearSampler = Fwog::Sampler(ss);
 
     rsmUniforms = {
       .targetDim = {internalWidth, internalHeight},

@@ -381,19 +381,18 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   auto nearestSampler = Fwog::Sampler(ss);
 
   // Render scene geometry to the g-buffer
+  // DONT_CARE indicates that the previous contents can be discarded before rendering
   Fwog::RenderColorAttachment gAlbedoAttachment{
     .texture = &frame.gAlbedo.value(),
-    .clearOnLoad = true,
-    .clearValue = {.1f, .3f, .5f, 0.0f},
+    .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
   Fwog::RenderColorAttachment gNormalAttachment{
     .texture = &frame.gNormal.value(),
-    .clearOnLoad = false,
-    .clearValue = {0.f, 0.f, 0.f, 0.f},
+    .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
   Fwog::RenderDepthStencilAttachment gDepthAttachment{
     .texture = &frame.gDepth.value(),
-    .clearOnLoad = true,
+    .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.depth = 1.0f},
   };
   Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
@@ -418,17 +417,15 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   // Shadow map (RSM) scene pass
   Fwog::RenderColorAttachment rcolorAttachment{
     .texture = &rsmFlux,
-    .clearOnLoad = false,
-    .clearValue = {0.f, 0.f, 0.f, 0.f},
+    .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
   Fwog::RenderColorAttachment rnormalAttachment{
     .texture = &rsmNormal,
-    .clearOnLoad = false,
-    .clearValue = {0.f, 0.f, 0.f, 0.f},
+    .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
   Fwog::RenderDepthStencilAttachment rdepthAttachment{
     .texture = &rsmDepth,
-    .clearOnLoad = true,
+    .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.depth = 1.0f},
   };
   Fwog::RenderColorAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
@@ -490,10 +487,10 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
       },
-    .clearColorOnLoad = false,
-    .clearColorValue = {.0f, .0f, .0f, 1.0f},
-    .clearDepthOnLoad = false,
-    .clearStencilOnLoad = false,
+    .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
+    .clearColorValue = {.1f, .3f, .5f, 0.0f},
+    .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+    .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   });
   {
     Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);

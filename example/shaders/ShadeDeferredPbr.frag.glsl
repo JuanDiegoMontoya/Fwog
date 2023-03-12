@@ -247,8 +247,7 @@ void main()
 
   if (depth == 1.0)
   {
-    o_color = albedo;
-    return;
+    discard;
   }
 
   vec3 fragWorldPos = UnprojectUV(depth, v_uv, invViewProj);
