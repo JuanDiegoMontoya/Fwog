@@ -257,37 +257,10 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
   cameraSpeed = 2.5f;
   mainCamera.position.y = 1;
-  //mainCamera.position.x = -4.5f;
-  sunPosition = -1.433f;
 
   if (!filename)
   {
-    //Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
-    
-    //Utility::LoadModelFromFile(scene, "models/rock_terrain_3/scene.gltf", glm::mat4{.5}, false);
-    
-    //Utility::LoadModelFromFile(scene, "models/Sponza/glTF/Sponza.gltf", glm::mat4{.5}, false);
-
-    //Utility::LoadModelFromFile(scene, "models/SM_Deccer_Cubes_Textured_Embedded.gltf", glm::mat4{1}, false);
-
-    //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/San_Miguel/san-miguel.glb", glm::mat4{.20f}, true);
-    
-    Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/shadow_test.glb", glm::mat4{1.0f}, true);
-    
-    //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/path_tracing_nightmare.glb", glm::mat4{.25}, true);
-
-    //Utility::LoadModelFromFile(scene, "H:/Repositories/glTF-Sample-Models/downloaded schtuff/aaa/scene2.glb", glm::mat4{.25}, true);
-    
-    //Utility::LoadModelFromFile(
-    //   scene,
-    //   "H:/Repositories/glTF-Sample-Models/downloaded schtuff/Main/NewSponza_Main_Blender_glTF.gltf",
-    //   glm::mat4{.4f},
-    //   false);
-    //Utility::LoadModelFromFile(
-    //   scene,
-    //   "H:/Repositories/glTF-Sample-Models/downloaded schtuff/PKG_A_Curtains/NewSponza_Curtains_glTF.gltf",
-    //   glm::mat4{.4f},
-    //   false);
+    Utility::LoadModelFromFile(scene, "models/simple_scene.glb", glm::mat4{.125}, true);
   }
   else
   {
