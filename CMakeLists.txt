@@ -92,19 +92,26 @@ target_compile_options(fwog
 	>
 )
 
-option (FWOG_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
+option(FWOG_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-       add_compile_options (-fdiagnostics-color=always)
+       add_compile_options(-fdiagnostics-color=always)
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-       add_compile_options (-fcolor-diagnostics)
-    endif ()
-endif ()
+       add_compile_options(-fcolor-diagnostics)
+    endif()
+endif()
 
 
 target_link_libraries(fwog lib_glad)
 
-option (FWOG_BUILD_EXAMPLES "Build the example projects for Fwog." TRUE)
+option(FWOG_BUILD_EXAMPLES "Build the example projects for Fwog." FALSE)
 if (${FWOG_BUILD_EXAMPLES})
 	add_subdirectory(example)
-endif ()
+endif()
+
+option(FWOG_BUILD_DOCS "Build the documentation for Fwog." FALSE)
+if (${FWOG_BUILD_DOCS})
+	# Add the cmake folder so the FindSphinx module is found
+	set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+	add_subdirectory(docs)
+endif()
