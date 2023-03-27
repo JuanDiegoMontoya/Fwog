@@ -4,31 +4,26 @@
 
 namespace Fwog
 {
-
   Fence::Fence() {}
 
   Fence::~Fence()
   {
-    glDeleteSync(reinterpret_cast<GLsync>(sync_));
-    sync_ = nullptr;
+    DeleteSync();
   }
 
-  Fence::Fence(Fence&& old) noexcept
-  {
-    sync_ = std::exchange(old.sync_, nullptr);
-  }
+  Fence::Fence(Fence&& old) noexcept : sync_(std::exchange(old.sync_, nullptr)) {}
 
   Fence& Fence::operator=(Fence&& old) noexcept
   {
     if (this == &old)
       return *this;
     this->~Fence();
-    sync_ = std::exchange(old.sync_, nullptr);
-    return *this;
+    return *new (this) Fence(std::move(old));
   }
 
   void Fence::Signal()
   {
+    FWOG_ASSERT(sync_ == nullptr);
     sync_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   }
 
@@ -46,7 +41,13 @@ namespace Fwog
     uint64_t elapsed;
     glGetQueryObjectui64v(id, GL_QUERY_RESULT, &elapsed);
     glDeleteQueries(1, &id);
-    this->~Fence();
+    DeleteSync();
     return elapsed;
+  }
+
+  void Fence::DeleteSync()
+  {
+    glDeleteSync(reinterpret_cast<GLsync>(sync_));
+    sync_ = nullptr;
   }
 } // namespace Fwog

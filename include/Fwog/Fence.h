@@ -24,6 +24,8 @@ namespace Fwog
     uint64_t Wait();
 
   private:
+    void DeleteSync();
+
     void* sync_{};
   };
 } // namespace Fwog
