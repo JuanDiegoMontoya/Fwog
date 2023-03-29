@@ -216,8 +216,9 @@ namespace Fwog
 
   uint64_t Texture::GetBindlessHandle(Sampler sampler)
   {
+    FWOG_ASSERT(detail::context->properties.features.bindlessTextures && "GL_ARB_bindless_texture is not supported");
     FWOG_ASSERT(bindlessHandle_ == 0 && "Texture already has bindless handle resident.");
-    bindlessHandle_ = glGetTextureHandleARB(id_);
+    bindlessHandle_ = glGetTextureSamplerHandleARB(id_, sampler.Handle());
     FWOG_ASSERT(bindlessHandle_ != 0 && "Failed to create texture sampler handle.");
     glMakeTextureHandleResidentARB(bindlessHandle_);
     return bindlessHandle_;
