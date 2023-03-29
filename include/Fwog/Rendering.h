@@ -16,6 +16,10 @@ namespace Fwog
   struct GraphicsPipeline;
   struct ComputePipeline;
 
+  /// @brief Describes a clear color value
+  ///
+  /// The clear color value can be up to four of float, uint32_t, or int32_t. Use of a type that does not match 
+  /// the render target format may result in undefined behavior.
   struct ClearColorValue
   {
     ClearColorValue() {};
@@ -30,11 +34,17 @@ namespace Fwog
     std::variant<std::array<float, 4>, std::array<uint32_t, 4>, std::array<int32_t, 4>> data;
   };
 
+  /// @brief Tells Fwog what to do with a render target at the beginning of a pass
   enum class AttachmentLoadOp : uint32_t
   {
-    LOAD,      // The previous contents of the image will be preserved
-    CLEAR,     // The contents of the image will be cleared to a uniform value
-    DONT_CARE, // The previous contents of the image need not be preserved (they may be discarded)
+    /// @brief The previous contents of the image will be preserved
+    LOAD,
+
+    /// @brief The contents of the image will be cleared to a uniform value
+    CLEAR,
+
+    /// @brief The previous contents of the image need not be preserved (they may be discarded)
+    DONT_CARE,
   };
 
   struct ClearDepthStencilValue
@@ -72,9 +82,9 @@ namespace Fwog
     bool operator==(const Viewport&) const noexcept = default;
   };
 
-  // I don't know how to get the default framebuffer's textures so I have this awful struct instead
   struct SwapchainRenderInfo
   {
+    /// @brief An optional name to demarcate the pass in a graphics debugger
     std::string_view name;
     Viewport viewport = {};
     AttachmentLoadOp colorLoadOp = AttachmentLoadOp::LOAD;
@@ -83,32 +93,49 @@ namespace Fwog
     float clearDepthValue = 0.0f;
     AttachmentLoadOp stencilLoadOp = AttachmentLoadOp::LOAD;
     int32_t clearStencilValue = 0;
-
-    // Allows control over automatic linear->sRGB conversion for rendering to the swapchain,
-    // because OpenGL does not expose the swapchain as an image we can interact with.
+    
+    /// @brief If true, a linear->sRGB encoding conversion will be applied when rendering to the swapchain
+    ///
+    /// This facility is provided because OpenGL does not expose the swapchain as an image we can interact with 
+    /// in the usual manner.
     bool enableSrgb = true;
   };
 
   // Describes the render targets that may be used in a draw
   struct RenderInfo
   {
+    /// @brief An optional name to demarcate the pass in a graphics debugger
     std::string_view name;
-    // If null, the viewport size will be the minimum the render targets' size, and the offset will be 0
+
+    /// @brief A pointer to a viewport
+    /// 
+    /// If null, the viewport size will be the minimum the render targets' size and the offset will be 0.
     const Viewport* viewport = nullptr;
     std::span<const RenderColorAttachment> colorAttachments;
     const RenderDepthStencilAttachment* depthAttachment = nullptr;
     const RenderDepthStencilAttachment* stencilAttachment = nullptr;
   };
 
-  // begin or end a scope of rendering to a set of render targets
+  /// @brief Begins a rendering scope for rendering to the swapchain
+  /// @param renderInfo Rendering parameters
+  /// 
+  /// The swapchain can be thought of as "the window". This function is provided because OpenGL nor 
+  /// windowing libraries provide a simple mechanism to access the swapchain as a set of images without 
+  /// interop with an explicit API like Vulkan or D3D12.
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo);
+
+  /// @brief Begins a rendering scope for rendering to a set of textures
+  /// @param renderInfo Rendering parameters
   void BeginRendering(const RenderInfo& renderInfo);
+
+  /// @brief Ends a rendering scope
   void EndRendering();
 
   // begin a compute scope
   void BeginCompute(std::string_view name = {});
   void EndCompute();
 
+  /// @brief Blits a texture to another texture. Supports minification and magnification
   void BlitTexture(const Texture& source,
                    const Texture& target,
                    Offset3D sourceOffset,
@@ -118,7 +145,7 @@ namespace Fwog
                    Filter filter,
                    AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
-  // blit to 0
+  /// @brief Blits a texture to the swapchain. Supports minification and magnification
   void BlitTextureToSwapchain(const Texture& source,
                               Offset3D sourceOffset,
                               Offset3D targetOffset,
@@ -127,6 +154,7 @@ namespace Fwog
                               Filter filter,
                               AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
+  /// @brief Performs a simple copy (i.e., memcpy) from source to target
   void CopyTexture(const Texture& source,
                    const Texture& target,
                    uint32_t sourceLevel,
@@ -134,48 +162,104 @@ namespace Fwog
                    Offset3D sourceOffset,
                    Offset3D targetOffset,
                    Extent3D extent);
+
+  //void CopyBufferToImage
   
+  /// @brief Defines a barrier ordering memory transactions
+  /// @param accessBits The barriers to insert
+  /// 
+  /// This call is used to ensure that incoherent writes (SSBO writes and image stores) from a shader
+  /// are reflected in subsequent accesses.
   void MemoryBarrier(MemoryBarrierBits accessBits); // glMemoryBarrier
 
+  /// @brief Allows subsequent draw commands to read the result of texels written in a previous draw operation
+  ///
+  /// See the ARB_texture_barrier spec for potential uses.
   void TextureBarrier(); // glTextureBarrier
 
-  // Convenience for allowing easy whole buffer binding
+  /// @brief Convenience constant to allow binding the whole buffer in Cmd::BindUniformBuffer and Cmd::BindStorageBuffer
+  ///
+  /// If an offset is provided with this constant, then the range [offset, buffer.Size()) will be bound.
   constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
 
-  // Cmd:: functions can only be called within a rendering scope
+  /// @brief Functions that set pipeline state, binds resources, or issues draws or dispatches
+  ///
+  /// These functions are analogous to Vulkan vkCmd* calls, which can only be made inside of an active command buffer.
+  /// 
+  /// @note Calling functions in this namespace outside of a rendering or compute scope will result in undefined behavior
   namespace Cmd
   {
-    void BindGraphicsPipeline(const GraphicsPipeline& pipeline); // sets pipeline state
+    /// @brief Binds a graphics pipeline to be used for future draw operations
+    /// @param pipeline The pipeline to bind
+    /// 
+    /// Valid in rendering scopes.
+    void BindGraphicsPipeline(const GraphicsPipeline& pipeline);
+
+    /// @brief Binds a compute pipeline to be used for future dispatch operations
+    /// @param pipeline The pipeline to bind
+    /// 
+    /// Valid in compute scopes.
     void BindComputePipeline(const ComputePipeline& pipeline);
 
-    // dynamic state
-    // void SetViewports(std::span<const Rect2D> viewports);         // glViewportArrayv
-    void SetViewport(const Viewport& viewport); // glViewport
+    /// @brief Dynamically sets the viewport
+    /// @param viewport The new viewport
+    /// 
+    /// Similar to glViewport. Valid in rendering scopes.
+    void SetViewport(const Viewport& viewport);
 
-    void SetScissor(const Rect2D& scissor); // glScissor
+    /// @brief Dynamically sets the scissor rect
+    /// @param scissor The new scissor rect
+    /// 
+    /// Similar to glScissor. Valid in rendering scopes.
+    void SetScissor(const Rect2D& scissor);
 
-    // drawing operations
-
-    // glDrawArraysInstancedBaseInstance
+    /// @brief Equivalent to glDrawArraysInstancedBaseInstance or vkCmdDraw
+    /// @param vertexCount The number of vertices to draw
+    /// @param instanceCount The number of instances to draw
+    /// @param firstVertex The index of the first vertex to draw
+    /// @param firstInstance The instance ID of the first instance to draw
+    /// 
+    /// Valid in rendering scopes.
     void Draw(uint32_t vertexCount,
               uint32_t instanceCount,
               uint32_t firstVertex,
               uint32_t firstInstance);
 
-    // glDrawElementsInstancedBaseVertexBaseInstance
+    /// @brief Equivalent to glDrawElementsInstancedBaseVertexBaseInstance or vkCmdDrawIndexed
+    /// @param indexCount The number of vertices to draw
+    /// @param instanceCount The number of instances to draw
+    /// @param firstIndex The base index within the index buffer
+    /// @param vertexOffset The value added to the vertex index before indexing into the vertex buffer
+    /// @param firstInstance The instance ID of the first instance to draw
+    /// 
+    /// Valid in rendering scopes.
     void DrawIndexed(uint32_t indexCount,
                      uint32_t instanceCount,
                      uint32_t firstIndex,
                      int32_t vertexOffset,
                      uint32_t firstInstance);
 
-    // glMultiDrawArraysIndirect
+    /// @brief Equivalent to glMultiDrawArraysIndirect or vkCmdDrawDrawIndirect
+    /// @param commandBuffer The buffer containing draw parameters
+    /// @param commandBufferOffset The byte offset into commandBuffer where parameters begin
+    /// @param drawCount The number of draws to execute
+    /// @param stride The byte stride between successive sets of draw parameters
+    /// 
+    /// Valid in rendering scopes.
     void DrawIndirect(const Buffer& commandBuffer,
                       uint64_t commandBufferOffset,
                       uint32_t drawCount,
                       uint32_t stride);
 
-    // glMultiDrawArraysIndirectCount
+    /// @brief Equivalent to glMultiDrawArraysIndirectCount or vkCmdDrawIndirectCount
+    /// @param commandBuffer The buffer containing draw parameters
+    /// @param commandBufferOffset The byte offset into commandBuffer where parameters begin
+    /// @param countBuffer The buffer containing the draw count
+    /// @param countBufferOffset The byte offset into countBuffer where the draw count begins
+    /// @param maxDrawCount The maximum number of draws that will be executed
+    /// @param stride The byte stride between successive sets of draw parameters
+    /// 
+    /// Valid in rendering scopes.
     void DrawIndirectCount(const Buffer& commandBuffer,
                            uint64_t commandBufferOffset,
                            const Buffer& countBuffer,
@@ -183,13 +267,27 @@ namespace Fwog
                            uint32_t maxDrawCount,
                            uint32_t stride);
 
-    // glMultiDrawElementsIndirect
+    /// @brief Equivalent to glMultiDrawElementsIndirect or vkCmdDrawIndexedIndirect
+    /// @param commandBuffer The buffer containing draw parameters
+    /// @param commandBufferOffset The byte offset into commandBuffer where parameters begin
+    /// @param drawCount The number of draws to execute
+    /// @param stride The byte stride between successive sets of draw parameters
+    /// 
+    /// Valid in rendering scopes.
     void DrawIndexedIndirect(const Buffer& commandBuffer,
                              uint64_t commandBufferOffset,
                              uint32_t drawCount,
                              uint32_t stride);
 
-    // glMultiDrawElementsIndirectCount
+    /// @brief Equivalent to glMultiDrawElementsIndirectCount or vkCmdDrawIndexedIndirectCount
+    /// @param commandBuffer The buffer containing draw parameters
+    /// @param commandBufferOffset The byte offset into commandBuffer where parameters begin
+    /// @param countBuffer The buffer containing the draw count
+    /// @param countBufferOffset The byte offset into countBuffer where the draw count begins
+    /// @param maxDrawCount The maximum number of draws that will be executed
+    /// @param stride The byte stride between successive sets of draw parameters
+    /// 
+    /// Valid in rendering scopes.
     void DrawIndexedIndirectCount(const Buffer& commandBuffer,
                                   uint64_t commandBufferOffset,
                                   const Buffer& countBuffer,
@@ -197,30 +295,49 @@ namespace Fwog
                                   uint32_t maxDrawCount,
                                   uint32_t stride);
 
-    // vertex setup
-
-    // glVertexArrayVertexBuffer
+    /// @brief Binds a buffer to a vertex buffer binding point
+    ///
+    /// Similar to glVertexArrayVertexBuffer. Valid in rendering scopes.
     void BindVertexBuffer(uint32_t bindingIndex, const Buffer& buffer, uint64_t offset, uint64_t stride);
     
-    // glVertexArrayElementBuffer
+    /// @brief Binds an index buffer
+    ///
+    /// Similar to glVertexArrayElementBuffer. Valid in rendering scopes.
     void BindIndexBuffer(const Buffer& buffer, IndexType indexType);
-
-    // 'descriptor' binding
-    // valid in render and compute scopes
     
-    // glBindBufferRange
+    /// @brief Binds a range within a buffer as a uniform buffer
+    ///
+    /// Similar to glBindBufferRange(GL_UNIFORM_BUFFER, ...)
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
-
-    // glBindBufferRange
+    
+    /// @brief Binds a range within a buffer as a storage buffer
+    ///
+    /// Similar to glBindBufferRange(GL_SHADER_STORAGE_BUFFER, ...)
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
 
-    // glBindTextureUnit + glBindSampler
+    /// @brief Binds a texture and a sampler to a texture unit
+    ///
+    /// Similar to glBindTextureUnit + glBindSampler
     void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler);
 
-    // glBindImageTexture{s}
+    /// @brief Binds a texture to an image unit
+    ///
+    /// Similar to glBindImageTexture{s}
     void BindImage(uint32_t index, const Texture& texture, uint32_t level);
 
+    /// @brief Invokes a compute shader
+    /// @param groupCountX The number of local workgroups to dispatch in the X dimension
+    /// @param groupCountY The number of local workgroups to dispatch in the Y dimension
+    /// @param groupCountZ The number of local workgroups to dispatch in the Z dimension
+    /// 
+    /// Valid in compute scopes.
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+
+    /// @brief Invokes a compute shader with the group count provided by a buffer
+    /// @param commandBuffer The buffer containing dispatch parameters
+    /// @param commandBufferOffset The byte offset into commandBuffer where the parameters begin
+    /// 
+    /// Valid in compute scopes.
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset);
 
     // clang-format on

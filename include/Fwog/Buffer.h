@@ -9,7 +9,7 @@ namespace Fwog
 {
   // clang-format off
   
-  // used to constrain types accepted by Buffer
+  /// @brief Used to constrain the types accpeted by Buffer
   class TriviallyCopyableByteSpan : public std::span<const std::byte>
   {
   public:
@@ -35,7 +35,11 @@ namespace Fwog
   enum class BufferStorageFlag : uint32_t
   {
     NONE = 0,
+
+    /// @brief If set, allows the user to update the buffer's contents with Buffer::SubData
     DYNAMIC_STORAGE = 1 << 0,
+
+    /// @brief Hints to the implementation to place the buffer storage in host memory
     CLIENT_STORAGE = 1 << 1,
   };
   FWOG_DECLARE_FLAG_TYPE(BufferStorageFlags, BufferStorageFlag, uint32_t)
@@ -49,7 +53,8 @@ namespace Fwog
     MAP_COHERENT = 1 << 3,
   };
   FWOG_DECLARE_FLAG_TYPE(BufferMapFlags, BufferMapFlag, uint32_t)
-
+    
+  /// @brief Encapsulates an OpenGL buffer
   class Buffer
   {
   public:
@@ -102,6 +107,8 @@ namespace Fwog
     mutable bool isMapped_{false};
   };
 
+  /// @brief A buffer that provides typed operations
+  /// @tparam T A trivially copyable type
   template<class T>
   requires(std::is_trivially_copyable_v<T>) class TypedBuffer : public Buffer
   {

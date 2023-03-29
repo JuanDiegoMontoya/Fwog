@@ -3,6 +3,7 @@
 
 namespace Fwog
 {
+  /// @brief Use to demarcate a scope for viewing in a graphics debugger
   class ScopedDebugMarker
   {
   public:

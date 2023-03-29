@@ -96,11 +96,18 @@ namespace Fwog
     float blendConstants[4]                                = { 0, 0, 0, 0 }; // glBlendColor
   };
 
+  /// @brief Parameters for the constructor of GraphicsPipeline
   struct GraphicsPipelineInfo
   {
+    /// @brief An optional name for viewing in a graphics debugger
     std::string_view name;
+
+    /// @brief Non-null pointer to a vertex shader
     const Shader* vertexShader            = nullptr;
+
+    /// @brief Optional pointer to a fragment shader
     const Shader* fragmentShader          = nullptr;
+
     InputAssemblyState inputAssemblyState = {};
     VertexInputState vertexInputState     = {};
     RasterizationState rasterizationState = {};
@@ -111,14 +118,20 @@ namespace Fwog
     // Tessellation state omitted (stretch goal)
   };
 
+  /// @brief Parameters for the constructor of ComputePipeline
   struct ComputePipelineInfo
   {
+    /// @brief An optional name for viewing in a graphics debugger
     std::string_view name;
+
+    /// @brief Non-null pointer to a compute shader
     const Shader* shader;
   };
 
+  /// @brief An object that encapsulates the state needed to issue draws
   struct GraphicsPipeline
   {
+    /// @throws PipelineCompilationException
     GraphicsPipeline(const GraphicsPipelineInfo& info);
     ~GraphicsPipeline();
     GraphicsPipeline(GraphicsPipeline&& old) noexcept;
@@ -128,6 +141,8 @@ namespace Fwog
 
     bool operator==(const GraphicsPipeline&) const = default;
 
+    /// @brief Gets the handle of the underlying OpenGL program object
+    /// @return The program
     [[nodiscard]] uint64_t Handle() const
     {
       return id_;
@@ -137,8 +152,10 @@ namespace Fwog
     uint64_t id_;
   };
 
+  /// @brief An object that encapsulates the state needed to issue dispatches
   struct ComputePipeline
   {
+    /// @throws PipelineCompilationException
     ComputePipeline(const ComputePipelineInfo& info);
     ~ComputePipeline();
     ComputePipeline(ComputePipeline&& old) noexcept;
@@ -152,7 +169,9 @@ namespace Fwog
     {
       return workgroupSize_;
     }
-
+    
+    /// @brief Gets the handle of the underlying OpenGL program object
+    /// @return The program
     [[nodiscard]] uint64_t Handle() const
     {
       return id_;

@@ -4,10 +4,12 @@
 
 namespace Fwog
 {
-  // Synchronous single-buffered GPU-timeline timer.
-  // Will induce massive pipeline stalls when using.
-  // Useful for measuring the time a single pass or draw takes.
-  // Use sparingly, and only if detailed perf data is needed for a particular draw.
+  /// @brief Synchronous single-buffered GPU-timeline timer. Querying the timer will result in a stall
+  /// as commands are flushed and waited on to complete
+  /// 
+  /// Use sparingly, and only if detailed perf data is needed for a particular draw.
+  /// 
+  /// @todo This class is in desparate need of an update
   class TimerQuery
   {
   public:
@@ -26,12 +28,12 @@ namespace Fwog
     uint32_t queries[2];
   };
 
-  // Async N-buffered timer query.
-  // Does not induce pipeline stalls.
-  // Useful for measuring performance of passes every frame without causing stalls.
-  // However, the results returned may be from multiple frames ago,
-  // and results are not guaranteed to be available.
-  // In practice, setting N to 5 should allow at least one query to be available.
+  /// @brief Async N-buffered timer query that does not induce pipeline stalls
+  ///
+  /// Useful for measuring performance of passes every frame without causing stalls.
+  /// However, the results returned may be from multiple frames ago,
+  /// and results are not guaranteed to be available.
+  /// In practice, setting N to 5 should allow at least one query to be available every frame.
   class TimerQueryAsync
   {
   public:
@@ -43,14 +45,18 @@ namespace Fwog
     TimerQueryAsync& operator=(const TimerQueryAsync&) = delete;
     TimerQueryAsync& operator=(TimerQueryAsync&&) = delete;
 
-    // begins or ends a query
-    // always call EndZone after BeginZone
-    // never call BeginZone or EndZone twice in a row
+    /// @brief Begins a query zone
+    ///
+    /// @note EndZone must be called before another zone can begin
     void BeginZone();
+
+    /// @brief Ends a query zone
+    ///
+    /// @note BeginZone must be called before a zone can end
     void EndZone();
 
-    // returns oldest query's result, if available
-    // otherwise, returns std::nullopt
+    /// @brief Gets the latest available query
+    /// @return The latest query, if available. Otherwise, std::nullopt is returned
     [[nodiscard]] std::optional<uint64_t> PopTimestamp();
 
   private:
@@ -60,7 +66,7 @@ namespace Fwog
     uint32_t* queries{};
   };
 
-  // wraps any timer query to allow for easy scoping
+  /// @brief RAII wrapper for TimerQueryAsync
   template<typename T>
   class TimerScoped
   {

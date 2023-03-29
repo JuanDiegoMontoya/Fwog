@@ -2,11 +2,9 @@
 #include <Fwog/Config.h>
 #include <cstdint>
 
-/*
-  A blocking fence sync object used for CPU-GPU sync.
-*/
 namespace Fwog
 {
+  /// @brief An object used for CPU-GPU synchronization
   class Fence
   {
   public:
@@ -17,10 +15,12 @@ namespace Fwog
     Fence& operator=(const Fence&) = delete;
     ~Fence();
 
+    /// @brief Inserts a fence into the command stream
     void Signal();
 
-    // returns how long (in ns) we were blocked for
-    // TODO: add timeout
+    /// @brief Waits for the fence to be signaled and returns
+    /// @return How long (in nanoseconds) the fence blocked
+    /// @todo Add timeout parameter
     uint64_t Wait();
 
   private:

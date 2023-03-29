@@ -14,6 +14,7 @@ namespace Fwog
   class TextureView;
   class Sampler;
 
+  /// @brief Parameters for the constructor of Texture
   struct TextureCreateInfo
   {
     ImageType imageType = {};
@@ -26,9 +27,12 @@ namespace Fwog
     bool operator==(const TextureCreateInfo&) const noexcept = default;
   };
 
+  /// @brief Parameters for the constructor of TextureView
   struct TextureViewCreateInfo
   {
+    /// @note Must be an image type compatible with the base texture as defined by table 8.21 in the OpenGL spec
     ImageType viewType = {};
+    /// @note Must be a format compatible with the base texture as defined by table 8.22 in the OpenGL spec
     Format format = {};
     uint32_t minLevel = 0;
     uint32_t numLevels = 0;
@@ -36,6 +40,7 @@ namespace Fwog
     uint32_t numLayers = 0;
   };
 
+  /// @brief Parameters for Texture::SubImage
   struct TextureUpdateInfo
   {
     UploadDimension dimension = {};
@@ -47,6 +52,7 @@ namespace Fwog
     const void* pixels = nullptr;
   };
 
+  /// @brief Parameters for Texture::ClearImage
   struct TextureClearInfo
   {
     uint32_t level = 0;
@@ -54,9 +60,11 @@ namespace Fwog
     Extent3D size = {};
     UploadFormat format = {};
     UploadType type = {};
+    /// @brief If null, then the subresource will be cleared with zeroes
     const void* data = nullptr;
   };
 
+  /// @brief Parameters for the constructor of Sampler
   struct SamplerState
   {
     bool operator==(const SamplerState& rhs) const noexcept = default;
@@ -77,9 +85,13 @@ namespace Fwog
     CompareOp compareOp = CompareOp::NEVER;
   };
 
+  /// @brief Encapsulates an immutable OpenGL texture
   class Texture
   {
   public:
+    /// @brief Constructs the texture
+    /// @param createInfo Parameters to construct the texture
+    /// @param name An optional name for viewing the resource in a graphics debugger
     explicit Texture(const TextureCreateInfo& createInfo, std::string_view name = "");
     Texture(Texture&& old) noexcept;
     Texture& operator=(Texture&& old) noexcept;
@@ -87,29 +99,49 @@ namespace Fwog
     Texture& operator=(const Texture&) = delete;
     virtual ~Texture();
 
+    /// @todo Remove
     bool operator==(const Texture&) const noexcept = default;
 
+    /// @brief Updates a subresource of the image
+    /// @param info The subresource and data to upload
     void SubImage(const TextureUpdateInfo& info);
+
+    /// @brief Clears a subresource of the image to a specified value
+    /// @param info The subresource and value to clear it with
     void ClearImage(const TextureClearInfo& info);
+
+    /// @brief Automatically generates LoDs of the image. All mip levels beyond 0 are filled with the generated LoDs
     void GenMipmaps();
 
-    // Create a view of a single mip or layer of this texture
+    /// @brief Creates a view of a single mip level of the image
     [[nodiscard]] TextureView CreateSingleMipView(uint32_t level) const;
+
+    /// @brief Creates a view of a single array layer of the image
     [[nodiscard]] TextureView CreateSingleLayerView(uint32_t layer) const;
 
-    // Reinterpret the data of this texture. Must be a compatible format as defined by table 8.22 in the spec
+    /// @brief Reinterpret the data of this texture
+    /// @param newFormat The format to reinterpret the data as
+    /// @return A new texture view
     [[nodiscard]] TextureView CreateFormatView(Format newFormat) const;
 
+    /// @brief Generates and makes resident a bindless handle from the image and a sampler. Only available if GL_ARB_bindless_texture is supported
+    /// @param sampler The sampler to bind to the texture
+    /// @return A bindless texture handle that can be placed in a buffer and used to construct a combined texture sampler in a shader
+    /// @todo Improve this
     [[nodiscard]] uint64_t GetBindlessHandle(Sampler sampler);
 
     [[nodiscard]] const TextureCreateInfo& CreateInfo() const
     {
       return createInfo_;
     }
+
     [[nodiscard]] Extent3D Extent() const
     {
       return createInfo_.extent;
     }
+
+    /// @brief Gets the handle of the underlying OpenGL texture object
+    /// @return The texture
     [[nodiscard]] uint32_t Handle() const
     {
       return id_;
@@ -137,10 +169,14 @@ namespace Fwog
   //  explicit DepthStencilTexture()
   //};
 
+  /// @brief Encapsulates an OpenGL texture view
   class TextureView : public Texture
   {
   public:
-    // make a texture view with explicit parameters
+    /// @brief Constructs the texture view with explicit parameters
+    /// @param viewInfo Parameters to construct the texture
+    /// @param texture A texture of which to construct a view
+    /// @param name An optional name for viewing the resource in a graphics debugger
     explicit TextureView(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name = "");
     explicit TextureView(const TextureViewCreateInfo& viewInfo,
                          const TextureView& textureView,
@@ -165,11 +201,14 @@ namespace Fwog
     TextureViewCreateInfo viewInfo_{};
   };
 
+  /// @brief Encapsulates an OpenGL sampler
   class Sampler
   {
   public:
     explicit Sampler(const SamplerState& samplerState);
 
+    /// @brief Gets the handle of the underlying OpenGL sampler object
+    /// @return The sampler
     [[nodiscard]] uint32_t Handle() const
     {
       return id_;

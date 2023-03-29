@@ -12,9 +12,14 @@ namespace Fwog
     COMPUTE_SHADER
   };
 
+  /// @brief A shader object to be used in one or more GraphicsPipeline or ComputePipeline objects
   class Shader
   {
   public:
+    /// @brief Constructs the shader
+    /// @param stage A pipeline stage
+    /// @param source A GLSL source string
+    /// @throws ShaderCompilationException if the shader is malformed
     explicit Shader(PipelineStage stage, std::string_view source);
     Shader(const Shader&) = delete;
     Shader(Shader&& old) noexcept;
@@ -22,6 +27,8 @@ namespace Fwog
     Shader& operator=(Shader&& old) noexcept;
     ~Shader();
 
+    /// @brief Gets the handle of the underlying OpenGL shader object
+    /// @return The shader
     [[nodiscard]] uint32_t Handle() const
     {
       return id_;
