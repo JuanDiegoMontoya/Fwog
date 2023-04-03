@@ -6,6 +6,7 @@
 
 namespace Fwog
 {
+  /// @brief Base type for all exceptions
   class Exception : public std::exception
   {
   public:
@@ -21,11 +22,17 @@ namespace Fwog
     std::string message_;
   };
 
+  /// @brief Exception type thrown when a shader encounters a compilation error
+  ///
+  /// The exception string will contain the error message
   class ShaderCompilationException : public Exception
   {
     using Exception::Exception;
   };
 
+  /// @brief Exception type thrown when a pipeline encounters a compilation error
+  ///
+  /// These can be thrown if OpenGL encounters a linker error when linking two or more shaders into a program.
   class PipelineCompilationException : public Exception
   {
     using Exception::Exception;
