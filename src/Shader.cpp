@@ -32,6 +32,7 @@ namespace Fwog
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success)
     {
+      glDeleteShader(id);
       std::string infoLog;
       const GLsizei infoLength = 512;
       infoLog.resize(infoLength + 1, '\0');
