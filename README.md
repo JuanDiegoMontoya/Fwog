@@ -2,6 +2,8 @@
 
 ![Fwog logo](media/logo.png)
 
+[![Docs](https://img.shields.io/readthedocs/fwog?style=for-the-badge)](https://fwog.readthedocs.io) [![CI](https://img.shields.io/github/actions/workflow/status/juandiegomontoya/fwog/cmake.yml?branch=main&style=for-the-badge)](https://github.com/juandiegomontoya/fwog/actions/workflows/cmake.yml)
+
 ## Froggy OpenGL Engoodener
 
 Low-level OpenGL 4.6 abstraction written in C++20. Fwog mitigates many of the weak points of OpenGL while providing a modern interface (outlined in [my blog post](https://juandiegomontoya.github.io/modern_opengl.html)).
