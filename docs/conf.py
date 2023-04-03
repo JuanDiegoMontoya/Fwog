@@ -30,6 +30,7 @@ author = 'Jake Ryan'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['breathe']
+cpp_index_common_prefix = ['Fwog::']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -41,6 +42,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+html_theme_options = {
+}
 
 # Breathe Configuration
 breathe_default_project = "Fwog"
