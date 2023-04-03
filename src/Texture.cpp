@@ -3,6 +3,7 @@
 #include <Fwog/detail/ContextState.h>
 #include <array>
 #include <utility>
+#include <new>
 
 #define MAX_NAME_LEN 256
 
