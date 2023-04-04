@@ -12,6 +12,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include FWOG_OPENGL_HEADER
+
 //#include <glm/gtx/string_cast.hpp>
 
 #define TINYGLTF_IMPLEMENTATION

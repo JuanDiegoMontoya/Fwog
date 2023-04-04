@@ -2,7 +2,9 @@
 
 #include <Fwog/Context.h>
 #include <Fwog/DebugMarker.h>
-#include <Fwog/detail/ContextState.h>
+
+#include FWOG_OPENGL_HEADER
+#include <GLFW/glfw3.h>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>

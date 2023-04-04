@@ -1,12 +1,12 @@
 #include "common/Application.h"
 
-#include <array>
-
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
 #include <Fwog/Pipeline.h>
 #include <Fwog/Rendering.h>
 #include <Fwog/Shader.h>
+
+#include <array>
 
 /* 01_hello_triangle
  *

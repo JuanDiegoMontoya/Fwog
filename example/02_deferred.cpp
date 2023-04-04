@@ -9,10 +9,8 @@
 #include <Fwog/Texture.h>
 #include <Fwog/Timer.h>
 
-#include <array>
-#include <optional>
-#include <tuple>
-#include <vector>
+#include FWOG_OPENGL_HEADER
+#include <GLFW/glfw3.h>
 
 #include <glm/gtx/transform.hpp>
 #include <glm/mat4x4.hpp>
@@ -24,6 +22,11 @@
 #include <stb_image.h>
 
 #include <imgui.h>
+
+#include <array>
+#include <optional>
+#include <tuple>
+#include <vector>
 
 /* 02_deferred
  *

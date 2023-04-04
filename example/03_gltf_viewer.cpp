@@ -11,6 +11,9 @@
 #include <Fwog/Texture.h>
 #include <Fwog/Timer.h>
 
+#include FWOG_OPENGL_HEADER
+#include <GLFW/glfw3.h>
+
 #include <stb_image.h>
 
 #include <imgui.h>

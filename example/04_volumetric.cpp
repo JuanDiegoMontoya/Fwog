@@ -1,12 +1,5 @@
 #include "common/Application.h"
-
-#include <array>
-#include <charconv>
-#include <exception>
-#include <fstream>
-#include <stdexcept>
-#include <string>
-#include <vector>
+#include "common/SceneLoader.h"
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
@@ -17,17 +10,26 @@
 #include <Fwog/Texture.h>
 #include <Fwog/Timer.h>
 
+#include FWOG_OPENGL_HEADER
+#include <GLFW/glfw3.h>
+
 #include <glm/gtx/transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-#include "common/SceneLoader.h"
-
 #define STB_INCLUDE_IMPLEMENTATION
 #define STB_INCLUDE_LINE_GLSL
 #include <stb_include.h>
+
+#include <array>
+#include <charconv>
+#include <exception>
+#include <fstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 /* 04_volumetric
  *
@@ -372,7 +374,7 @@ public:
     Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
     Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
     Fwog::Cmd::BindImage(0, densityVolume, 0);
-    Fwog::Cmd::Dispatch(densityVolume.Extent());
+    Fwog::Cmd::DispatchInvocations(densityVolume.Extent());
     Fwog::EndCompute();
   }
 
@@ -756,7 +758,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
           Fwog::Cmd::BindSampledImage(0, esmTex, linearSampler);
           Fwog::Cmd::BindImage(0, esmTexPingPong, 0);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::Dispatch(esmExtent2);
+          Fwog::Cmd::DispatchInvocations(esmExtent2);
 
           esmBlurUniforms.direction = {1, 0};
           esmBlurUniforms.targetDim = {esmExtent1.width, esmExtent1.height};
@@ -764,7 +766,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
           Fwog::Cmd::BindSampledImage(0, esmTexPingPong, linearSampler);
           Fwog::Cmd::BindImage(0, esmTex, 0);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::Dispatch(esmExtent1);
+          Fwog::Cmd::DispatchInvocations(esmExtent1);
         }
       }
     }
@@ -841,8 +843,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindSampledImage(0, frame.shadingTexHdr.value(), nearestSampler);
     Fwog::Cmd::BindSampledImage(1, noiseTexture.value(), nearestSampler);
     Fwog::Cmd::BindImage(0, frame.shadingTexLdr.value(), 0);
-    Fwog::Extent2D numGroups = (frame.shadingTexLdr->Extent() + 7) / 8;
-    Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+    Fwog::Cmd::DispatchInvocations(frame.shadingTexLdr->Extent());
     Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
     Fwog::EndCompute();
   }

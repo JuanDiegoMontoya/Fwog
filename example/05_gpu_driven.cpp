@@ -1,15 +1,6 @@
 #include "common/Application.h"
 #include "common/SceneLoader.h"
 
-#include <array>
-#include <charconv>
-#include <exception>
-#include <fstream>
-#include <iostream>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
 #include <Fwog/Buffer.h>
 #include <Fwog/DebugMarker.h>
 #include <Fwog/Pipeline.h>
@@ -31,6 +22,15 @@
 #define STB_INCLUDE_IMPLEMENTATION
 #define STB_INCLUDE_LINE_GLSL
 #include <stb_include.h>
+
+#include <array>
+#include <charconv>
+#include <exception>
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 /* 05_gpu_driven
  *

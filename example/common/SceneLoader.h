@@ -1,14 +1,16 @@
 #pragma once
-#include <vector>
-#include <string_view>
-#include <optional>
+#include <Fwog/detail/Flags.h>
+#include <Fwog/Buffer.h>
+#include <Fwog/Texture.h>
+
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
-#include <Fwog/detail/Flags.h>
-#include <Fwog/Buffer.h>
-#include <Fwog/Texture.h>
+
+#include <vector>
+#include <string_view>
+#include <optional>
 
 namespace Utility
 {
