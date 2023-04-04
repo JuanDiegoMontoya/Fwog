@@ -345,7 +345,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
     if (config.viewBoundingBoxes)
     {
       Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
-      Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
+      Fwog::Cmd::Draw(14, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
     }
 
     Fwog::EndRendering();
