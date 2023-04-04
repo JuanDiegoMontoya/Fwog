@@ -1,8 +1,11 @@
 #include <Fwog/Exception.h>
 #include <Fwog/Shader.h>
+
 #include <string>
 #include <string_view>
 #include <utility>
+
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog
 {

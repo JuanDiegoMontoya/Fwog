@@ -1,5 +1,6 @@
 #include <Fwog/Timer.h>
 #include <numeric>
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog
 {

@@ -1,5 +1,6 @@
 #include <Fwog/Context.h>
 #include <Fwog/detail/ContextState.h>
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog
 {

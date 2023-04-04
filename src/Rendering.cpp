@@ -5,6 +5,7 @@
 #include <Fwog/Texture.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <Fwog/detail/ContextState.h>
+
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -12,6 +13,8 @@
 #include <numeric>
 #include <utility>
 #include <vector>
+
+#include FWOG_OPENGL_HEADER
 
 // helper function
 static void GLEnableOrDisable(GLenum state, GLboolean value)

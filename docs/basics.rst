@@ -36,8 +36,8 @@ Fwog can be configured by adding certain defines to your compile command:
 - ``FWOG_FORCE_DEBUG``: If defined, debug functionality will be enabled in all builds.
 - ``FWOG_ASSERT <assert-like-construct>``: Defines a custom assert function/macro for Fwog to use internally. By default, Fwog will use ``assert``.
 - ``FWOG_UNREACHABLE <unreachable-like-construct>``: Defines a custom unreachable function/macro for Fwog to use internally. By default, Fwog will simply use ``FWOG_ASSERT(0)`` for unreachable paths.
-- ``FWOG_CUSTOM_OPENGL_HEADER <header-string>``: Allows the user to define where OpenGL function declarations can be found. By default, Fwog will search for ``<glad/gl.h>``.
-- ``FWOG_DEFAULT_CLIP_DEPTH_RANGE_ZERO_TO_ONE``: If defined, the default value for Viewport::depthRange will be ClipDepthRange::ZeroToOne. Otherwise, its default value will be ClipDepthRange::NegativeOneToOne.
+- ``FWOG_OPENGL_HEADER <header-string>``: Allows the user to define where OpenGL function declarations can be found. By default, Fwog will search for ``<glad/gl.h>``.
+- ``FWOG_DEFAULT_CLIP_DEPTH_RANGE_ZERO_TO_ONE``: If defined, the default value for Viewport::depthRange will be :cpp:enumerator:`Fwog::ClipDepthRange::ZeroToOne`. Otherwise, its default value will be :cpp:enumerator:`Fwog::ClipDepthRange::NegativeOneToOne`.
 
 Errors
 ------

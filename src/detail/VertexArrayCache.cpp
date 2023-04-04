@@ -3,6 +3,7 @@
 #include "Fwog/detail/ApiToEnum.h"
 #include "Fwog/detail/Hash.h"
 #include "Fwog/detail/PipelineManager.h"
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog::detail
 {

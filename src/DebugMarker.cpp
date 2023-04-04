@@ -1,4 +1,5 @@
 #include <Fwog/DebugMarker.h>
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog
 {

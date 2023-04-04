@@ -2,6 +2,7 @@
 #include <numeric>
 #include <utility>
 #include <new>
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog
 {

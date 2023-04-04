@@ -1,4 +1,5 @@
 #include <Fwog/detail/ApiToEnum.h>
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog::detail
 {

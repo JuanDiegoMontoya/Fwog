@@ -1,9 +1,12 @@
 #include <Fwog/Texture.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <Fwog/detail/ContextState.h>
+
 #include <array>
 #include <utility>
 #include <new>
+
+#include FWOG_OPENGL_HEADER
 
 #define MAX_NAME_LEN 256
 

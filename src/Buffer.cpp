@@ -1,6 +1,7 @@
 #include <Fwog/Buffer.h>
 #include <Fwog/detail/ApiToEnum.h>
 #include <utility>
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog
 {

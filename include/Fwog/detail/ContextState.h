@@ -6,7 +6,10 @@
 #include <Fwog/detail/PipelineManager.h>
 #include <Fwog/detail/SamplerCache.h>
 #include <Fwog/detail/VertexArrayCache.h>
+
 #include <memory>
+
+#include FWOG_OPENGL_HEADER
 
 namespace Fwog::detail
 {

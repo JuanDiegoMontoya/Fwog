@@ -4,6 +4,8 @@
 
 #include <utility>
 
+#include FWOG_OPENGL_HEADER
+
 namespace Fwog
 {
   GraphicsPipeline::GraphicsPipeline(const GraphicsPipelineInfo& info)

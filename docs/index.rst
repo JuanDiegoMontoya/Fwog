@@ -20,7 +20,7 @@ Fwog uses pipeline objects to encapsulate what would otherwise be global OpenGL 
 
 Caveats
 -------
-Given Fwog's goals, there are a number of things that the API does not expose.
+Given Fwog's goals, there are a number of features that the API does not expose:
 
 - The default uniform block (i.e., uniforms set with ``glUniform*``)
 - Geometry and tessellation shaders

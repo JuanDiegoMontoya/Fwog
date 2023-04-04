@@ -13,10 +13,8 @@
   #define FWOG_UNREACHABLE FWOG_ASSERT(0)
 #endif
 
-#ifndef FWOG_CUSTOM_OPENGL_HEADER
-  #include <glad/gl.h>
-#else
-  #include FWOG_CUSTOM_OPENGL_HEADER
+#ifndef FWOG_OPENGL_HEADER
+  #define FWOG_OPENGL_HEADER <glad/gl.h>
 #endif
 
 #ifndef FWOG_DEFAULT_CLIP_DEPTH_RANGE_ZERO_TO_ONE
