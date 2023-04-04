@@ -1,5 +1,6 @@
 #pragma once
 #include <Fwog/Config.h>
+#include <cstdint>
 #include <optional>
 
 namespace Fwog
