@@ -829,6 +829,8 @@ namespace Fwog
 
       auto pipelineState = detail::GetComputePipelineInternal(pipeline.Handle());
 
+      context->lastComputePipelineWorkgroupSize = pipeline.WorkgroupSize();
+
       if (context->isPipelineDebugGroupPushed)
       {
         context->isPipelineDebugGroupPushed = false;
@@ -1037,6 +1039,28 @@ namespace Fwog
       FWOG_ASSERT(context->isComputeActive);
 
       glDispatchCompute(groupCountX, groupCountY, groupCountZ);
+    }
+
+    void Dispatch(Extent3D groupCount)
+    {
+      FWOG_ASSERT(context->isComputeActive);
+
+      glDispatchCompute(groupCount.width, groupCount.height, groupCount.depth);
+    }
+
+    void DispatchInvocations(uint32_t invocationCountX, uint32_t invocationCountY, uint32_t invocationCountZ)
+    {
+      DispatchInvocations(Extent3D{invocationCountX, invocationCountY, invocationCountZ});
+    }
+
+    void DispatchInvocations(Extent3D invocationCount)
+    {
+      FWOG_ASSERT(context->isComputeActive);
+
+      const auto workgroupSize = context->lastComputePipelineWorkgroupSize;
+      const auto groupCount = (invocationCount + workgroupSize - 1) / workgroupSize;
+
+      glDispatchCompute(groupCount.width, groupCount.height, groupCount.depth);
     }
 
     void DispatchIndirect(const Buffer& commandBuffer, uint64_t commandBufferOffset)

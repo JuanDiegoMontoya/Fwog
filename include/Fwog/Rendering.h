@@ -333,6 +333,30 @@ namespace Fwog
     /// Valid in compute scopes.
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
+    /// @brief Invokes a compute shader
+    /// @param groupCount The number of local workgroups to dispatch
+    /// 
+    /// Valid in compute scopes.
+    void Dispatch(Extent3D groupCount);
+
+    /// @brief Invokes a compute shader a specified number of times
+    /// @param invocationCountX The minimum number of invocations in the X dimension
+    /// @param invocationCountY The minimum number of invocations in the Y dimension
+    /// @param invocationCountZ The minimum number of invocations in the Z dimension
+    /// 
+    /// Automatically computes the number of workgroups to invoke based on the formula 
+    /// groupCount = (invocationCount + workgroupSize - 1) / workgroupSize.
+    /// Valid in compute scopes.
+    void DispatchInvocations(uint32_t invocationCountX, uint32_t invocationCountY, uint32_t invocationCountZ);
+    
+    /// @brief Invokes a compute shader a specified number of times
+    /// @param invocationCount The minimum number of invocations
+    /// 
+    /// Automatically computes the number of workgroups to invoke based on the formula 
+    /// groupCount = (invocationCount + workgroupSize - 1) / workgroupSize.
+    /// Valid in compute scopes.
+    void DispatchInvocations(Extent3D invocationCount);
+
     /// @brief Invokes a compute shader with the group count provided by a buffer
     /// @param commandBuffer The buffer containing dispatch parameters
     /// @param commandBufferOffset The byte offset into commandBuffer where the parameters begin

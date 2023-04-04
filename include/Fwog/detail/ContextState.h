@@ -42,6 +42,8 @@ namespace Fwog::detail
     // the next pipeline is bound.
     std::shared_ptr<const detail::GraphicsPipelineInfoOwning> lastGraphicsPipeline{};
 
+    Extent3D lastComputePipelineWorkgroupSize{};
+
     // Currently unused (and probably shouldn't be used)
     const RenderInfo* lastRenderInfo{};
 
