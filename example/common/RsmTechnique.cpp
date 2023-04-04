@@ -233,51 +233,46 @@ namespace RSM
 
       if (rsmFiltered)
       {
-        const auto blitLocalSize = blitPipeline.WorkgroupSize();
         const auto workSize = Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x, (uint32_t)rsmUniforms.targetDim.y, 1};
 
         if (inverseResolutionScale > 1)
         {
           Fwog::ScopedDebugMarker marker2("Downsample G-buffer");
 
-          const auto numGroups = (workSize + blitLocalSize - 1) / blitLocalSize;
-
           Fwog::Cmd::BindComputePipeline(blitPipeline);
           Fwog::Cmd::BindSampledImage(0, gNormal, nearestSampler);
           Fwog::Cmd::BindImage(0, gNormalSmall.value(), 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(workSize);
 
           Fwog::Cmd::BindSampledImage(0, gNormalPrev, nearestSampler);
           Fwog::Cmd::BindImage(0, gNormalPrevSmall.value(), 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(workSize);
 
           Fwog::Cmd::BindSampledImage(0, gDepth, nearestSampler);
           Fwog::Cmd::BindImage(0, gDepthSmall.value(), 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(workSize);
 
           Fwog::Cmd::BindSampledImage(0, gDepthPrev, nearestSampler);
           Fwog::Cmd::BindImage(0, gDepthPrevSmall.value(), 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(workSize);
         }
 
         {
           Fwog::ScopedDebugMarker marker2("Downsample RSM");
 
-          const auto numGroups = (blitLocalSize + SMALL_RSM_SIZE - 1) / blitLocalSize;
-
           Fwog::Cmd::BindComputePipeline(blitPipeline);
 
           Fwog::Cmd::BindSampledImage(0, rsmFlux, nearestSampler);
           Fwog::Cmd::BindImage(0, rsmFluxSmall, 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(SMALL_RSM_SIZE, SMALL_RSM_SIZE, 1);
 
           Fwog::Cmd::BindSampledImage(0, rsmNormal, nearestSampler);
           Fwog::Cmd::BindImage(0, rsmNormalSmall, 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(SMALL_RSM_SIZE, SMALL_RSM_SIZE, 1);
 
           Fwog::Cmd::BindSampledImage(0, rsmDepth, nearestSampler);
           Fwog::Cmd::BindImage(0, rsmDepthSmall, 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(SMALL_RSM_SIZE, SMALL_RSM_SIZE, 1);
         }
 
         uint32_t currentPass = 0;
@@ -286,24 +281,18 @@ namespace RSM
         {
           Fwog::ScopedDebugMarker marker2("Sample RSM");
 
-          const auto workgroupSize = rsmIndirectFilteredPipeline.WorkgroupSize();
-          const auto numGroups = (workSize + workgroupSize - 1) / workgroupSize;
-
           Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
           Fwog::Cmd::BindSampledImage(7, *noiseTex, nearestSampler);
           rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT |
                                    Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
           Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(workSize);
         }
 
         // Temporally accumulate samples before filtering
         {
           Fwog::ScopedDebugMarker marker2("Temporal Accumulation");
-
-          const auto workgroupSize = rsmReprojectPipeline.WorkgroupSize();
-          const auto numGroups = (workSize + workgroupSize - 1) / workgroupSize;
 
           ReprojectionUniforms reprojectionUniforms = {
             .invViewProjCurrent = cameraUniforms.invViewProj,
@@ -330,7 +319,7 @@ namespace RSM
           Fwog::Cmd::BindImage(1, historyLengthTex, 0);
           Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
-          Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+          Fwog::Cmd::DispatchInvocations(workSize);
         }
 
         FilterUniforms filterUniforms = {
@@ -344,9 +333,6 @@ namespace RSM
 
         {
           Fwog::ScopedDebugMarker marker2("Filter");
-
-          const auto workgroupSize = bilateral5x5Pipeline.WorkgroupSize();
-          const auto numGroups = (workSize + workgroupSize - 1) / workgroupSize;
 
           Fwog::Cmd::BindComputePipeline(bilateral5x5Pipeline);
           Fwog::Cmd::BindSampledImage(1, gNormalSmall ? gNormalSmall.value() : gNormal, nearestSampler);
@@ -363,14 +349,14 @@ namespace RSM
             Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
             Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
             Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+            Fwog::Cmd::DispatchInvocations(workSize);
 
             filterUniforms.direction = {1, 0};
             filterUniformBuffer.SubDataTyped(filterUniforms);
             Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
             Fwog::Cmd::BindImage(0, indirectUnfilteredTexPrev, 0);
             Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+            Fwog::Cmd::DispatchInvocations(workSize);
 
             for (int i = 1; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
             {
@@ -381,14 +367,14 @@ namespace RSM
               Fwog::Cmd::BindSampledImage(0, i == 1 ? indirectUnfilteredTexPrev : indirectFilteredTex, nearestSampler);
               Fwog::Cmd::BindImage(0, indirectUnfilteredTex, 0);
               Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-              Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+              Fwog::Cmd::DispatchInvocations(workSize);
 
               filterUniforms.direction = {1, 0};
               filterUniformBuffer.SubDataTyped(filterUniforms);
               Fwog::Cmd::BindSampledImage(0, indirectUnfilteredTex, nearestSampler);
               Fwog::Cmd::BindImage(0, indirectFilteredTex, 0);
               Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-              Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+              Fwog::Cmd::DispatchInvocations(workSize);
             }
           }
           else
@@ -427,7 +413,7 @@ namespace RSM
               Fwog::Cmd::BindSampledImage(0, *in, nearestSampler);
               Fwog::Cmd::BindImage(0, *out, 0);
               Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-              Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+              Fwog::Cmd::DispatchInvocations(workSize);
             }
           }
         }
@@ -440,22 +426,16 @@ namespace RSM
           {
             Fwog::ScopedDebugMarker marker2("Modulate Albedo");
 
-            const auto workgroupSize = modulatePipeline.WorkgroupSize();
-            const auto numGroupsA = (illuminationOutTex.Extent() + workgroupSize - 1) / workgroupSize;
-
             Fwog::Cmd::BindComputePipeline(modulatePipeline);
             Fwog::Cmd::BindSampledImage(0, indirectFilteredTex, nearestSampler);
             Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
             Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
             Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
+            Fwog::Cmd::DispatchInvocations(illuminationOutTex.Extent());
           }
           else // Use bilateral upscale
           {
             Fwog::ScopedDebugMarker marker2("Modulate Albedo (Upscale)");
-
-            const auto workgroupSize = modulateUpscalePipeline.WorkgroupSize();
-            const auto numGroupsA = (illuminationOutTex.Extent() + workgroupSize - 1) / workgroupSize;
 
             Fwog::Cmd::BindComputePipeline(modulateUpscalePipeline);
 
@@ -478,7 +458,7 @@ namespace RSM
             Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
             Fwog::Cmd::BindImage(0, illuminationOutTex, 0);
             Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::Dispatch(numGroupsA.width, numGroupsA.height, 1);
+            Fwog::Cmd::DispatchInvocations(illuminationOutTex.Extent());
           }
         }
         else
@@ -505,32 +485,31 @@ namespace RSM
         Fwog::Cmd::BindImage(0, illuminationUpscaled, 0);
 
         const auto workgroupSize = rsmIndirectFilteredPipeline.WorkgroupSize();
-        const auto workSize = Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x, (uint32_t)rsmUniforms.targetDim.y, 1};
-        const auto numGroups = (workSize / 2 + workgroupSize - 1) / workgroupSize;
+        const auto workSize = Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x / 2, (uint32_t)rsmUniforms.targetDim.y / 2, 1};
 
         // Quarter resolution indirect illumination pass
         uint32_t currentPass = 0;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
         Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+        Fwog::Cmd::DispatchInvocations(workSize);
 
         // Reconstruction pass 1
         currentPass = 1;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
         Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+        Fwog::Cmd::DispatchInvocations(workSize);
 
         // Reconstruction pass 2
         currentPass = 2;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
         Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+        Fwog::Cmd::DispatchInvocations(workSize);
 
         // Reconstruction pass 3
         currentPass = 3;
         rsmUniformBuffer.SubData(currentPass, offsetof(RsmUniforms, currentPass));
         Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+        Fwog::Cmd::DispatchInvocations(workSize);
       }
     }
     Fwog::EndCompute();

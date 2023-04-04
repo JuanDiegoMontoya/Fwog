@@ -372,8 +372,7 @@ public:
     Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
     Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
     Fwog::Cmd::BindImage(0, densityVolume, 0);
-    Fwog::Extent3D numGroups = (densityVolume.Extent() + 7) / 8;
-    Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, numGroups.depth);
+    Fwog::Cmd::Dispatch(densityVolume.Extent());
     Fwog::EndCompute();
   }
 
@@ -390,8 +389,8 @@ public:
     Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
     Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
     Fwog::Cmd::BindImage(0, targetVolume, 0);
-    Fwog::Extent3D numGroups = (targetVolume.Extent() + 15) / 16;
-    Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+    // We only want to invoke threads on the X and Y dimensions, but not the Z dimension
+    Fwog::Cmd::DispatchInvocations(targetVolume.Extent().width, targetVolume.Extent().height, 1);
     Fwog::EndCompute();
   }
 
@@ -415,8 +414,7 @@ public:
     Fwog::Cmd::BindSampledImage(2, sourceVolume, sampler);
     Fwog::Cmd::BindSampledImage(3, noise, sampler);
     Fwog::Cmd::BindImage(0, targetColor, 0);
-    Fwog::Extent2D numGroups = (targetColor.Extent() + 15) / 16;
-    Fwog::Cmd::Dispatch(numGroups.width, numGroups.height, 1);
+    Fwog::Cmd::DispatchInvocations(targetColor.Extent());
     Fwog::EndCompute();
   }
 
@@ -731,8 +729,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
         Fwog::Cmd::BindSampledImage(0, shadowDepth, nearestMirrorSampler);
         Fwog::Cmd::BindImage(0, esmTex, 0);
         Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer);
-        auto dispatchDim = (esmTex.Extent() + 7) / 8;
-        Fwog::Cmd::Dispatch(dispatchDim.width, dispatchDim.height, 1);
+        Fwog::Cmd::DispatchInvocations(esmTex.Extent());
 
         Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
       }
@@ -749,9 +746,6 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
         const auto esmExtent1 = esmTex.Extent();
         const auto esmExtent2 = esmTexPingPong.Extent();
 
-        const auto dispatchSize1 = (esmExtent2 + 7) / 8;
-        const auto dispatchSize2 = (esmExtent1 + 7) / 8;
-
         Fwog::Cmd::BindUniformBuffer(0, esmBlurUniformBuffer);
 
         for (size_t i = 0; i < config.esmBlurPasses; i++)
@@ -762,7 +756,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
           Fwog::Cmd::BindSampledImage(0, esmTex, linearSampler);
           Fwog::Cmd::BindImage(0, esmTexPingPong, 0);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::Dispatch(dispatchSize1.width, dispatchSize1.height, 1);
+          Fwog::Cmd::Dispatch(esmExtent2);
 
           esmBlurUniforms.direction = {1, 0};
           esmBlurUniforms.targetDim = {esmExtent1.width, esmExtent1.height};
@@ -770,7 +764,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
           Fwog::Cmd::BindSampledImage(0, esmTexPingPong, linearSampler);
           Fwog::Cmd::BindImage(0, esmTex, 0);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::Dispatch(dispatchSize2.width, dispatchSize2.height, 1);
+          Fwog::Cmd::Dispatch(esmExtent1);
         }
       }
     }
