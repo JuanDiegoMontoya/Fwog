@@ -27,6 +27,8 @@ namespace Fwog::detail
 
   GLsizei SampleCountToGL(SampleCount sampleCount);
 
+  GLint ComponentSwizzleToGL(ComponentSwizzle swizzle);
+
   ////////////////////////////////////////////////////////// pipeline
   GLenum CullModeToGL(CullMode mode);
   GLenum PolygonModeToGL(PolygonMode mode);

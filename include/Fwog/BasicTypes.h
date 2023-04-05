@@ -136,6 +136,17 @@ namespace Fwog
     TEX_2D_MULTISAMPLE,
     TEX_2D_MULTISAMPLE_ARRAY,
   };
+  
+  /// @brief Specifies how a component is swizzled
+  enum class ComponentSwizzle : uint32_t
+  {
+    ZERO,
+    ONE,
+    R,
+    G,
+    B,
+    A
+  };
 
   enum class Format : uint32_t
   {

@@ -218,6 +218,20 @@ namespace Fwog
     return TextureView(createInfo, *this);
   }
 
+  TextureView Texture::CreateSwizzleView(ComponentMapping components) const
+  {
+    TextureViewCreateInfo createInfo{
+      .viewType = createInfo_.imageType,
+      .format = createInfo_.format,
+      .components = components,
+      .minLevel = 0,
+      .numLevels = createInfo_.mipLevels,
+      .minLayer = 0,
+      .numLayers = createInfo_.arrayLayers,
+    };
+    return TextureView(createInfo, *this);
+  }
+
   uint64_t Texture::GetBindlessHandle(Sampler sampler)
   {
     FWOG_ASSERT(detail::context->properties.features.bindlessTextures && "GL_ARB_bindless_texture is not supported");
@@ -258,6 +272,12 @@ namespace Fwog
                   viewInfo.numLevels,
                   viewInfo.minLayer,
                   viewInfo.numLayers);
+
+    glTextureParameteri(id_, GL_TEXTURE_SWIZZLE_R, detail::ComponentSwizzleToGL(viewInfo.components.r));
+    glTextureParameteri(id_, GL_TEXTURE_SWIZZLE_G, detail::ComponentSwizzleToGL(viewInfo.components.g));
+    glTextureParameteri(id_, GL_TEXTURE_SWIZZLE_B, detail::ComponentSwizzleToGL(viewInfo.components.b));
+    glTextureParameteri(id_, GL_TEXTURE_SWIZZLE_A, detail::ComponentSwizzleToGL(viewInfo.components.a));
+
     if (!name.empty())
     {
       glObjectLabel(GL_TEXTURE, id_, static_cast<GLsizei>(name.length()), name.data());

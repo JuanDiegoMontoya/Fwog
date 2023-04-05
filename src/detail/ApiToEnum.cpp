@@ -210,6 +210,20 @@ namespace Fwog::detail
     }
   }
 
+  GLint ComponentSwizzleToGL(ComponentSwizzle swizzle)
+  {
+    switch (swizzle)
+	  {
+		case Fwog::ComponentSwizzle::ZERO: return GL_ZERO;
+    case Fwog::ComponentSwizzle::ONE: return GL_ONE;
+    case Fwog::ComponentSwizzle::R: return GL_RED;
+    case Fwog::ComponentSwizzle::G: return GL_GREEN;
+    case Fwog::ComponentSwizzle::B: return GL_BLUE;
+    case Fwog::ComponentSwizzle::A: return GL_ALPHA;
+    default: FWOG_UNREACHABLE; return 0;
+	  }
+  }
+
   GLenum CullModeToGL(CullMode mode)
   {
     switch (mode)

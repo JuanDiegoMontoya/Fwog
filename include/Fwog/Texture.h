@@ -27,6 +27,15 @@ namespace Fwog
     bool operator==(const TextureCreateInfo&) const noexcept = default;
   };
 
+  /// @brief Specifies a color component mapping
+  struct ComponentMapping
+  {
+    ComponentSwizzle r = ComponentSwizzle::R;
+    ComponentSwizzle g = ComponentSwizzle::G;
+    ComponentSwizzle b = ComponentSwizzle::B;
+    ComponentSwizzle a = ComponentSwizzle::A;
+  };
+
   /// @brief Parameters for the constructor of TextureView
   struct TextureViewCreateInfo
   {
@@ -34,6 +43,7 @@ namespace Fwog
     ImageType viewType = {};
     /// @note Must be a format compatible with the base texture as defined by table 8.22 in the OpenGL spec
     Format format = {};
+    ComponentMapping components = {};
     uint32_t minLevel = 0;
     uint32_t numLevels = 0;
     uint32_t minLayer = 0;
@@ -123,6 +133,11 @@ namespace Fwog
     /// @param newFormat The format to reinterpret the data as
     /// @return A new texture view
     [[nodiscard]] TextureView CreateFormatView(Format newFormat) const;
+
+    /// @brief Creates a view of the texture with a new component mapping
+    /// @param components The swizzled components
+    /// @return A new texture view
+    [[nodiscard]] TextureView CreateSwizzleView(ComponentMapping components) const;
 
     /// @brief Generates and makes resident a bindless handle from the image and a sampler. Only available if GL_ARB_bindless_texture is supported
     /// @param sampler The sampler to bind to the texture
