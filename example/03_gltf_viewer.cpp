@@ -207,6 +207,12 @@ private:
     std::optional<Fwog::Texture> gNormalPrev;
     std::optional<Fwog::Texture> gDepthPrev;
     std::optional<RSM::RsmTechnique> rsm;
+
+    // For debug drawing with ImGui
+    std::optional<Fwog::TextureView> gAlbedoSwizzled;
+    std::optional<Fwog::TextureView> gNormalSwizzled;
+    std::optional<Fwog::TextureView> gDepthSwizzled;
+    std::optional<Fwog::TextureView> gRsmIlluminanceSwizzled;
   };
   Frame frame{};
 
@@ -214,6 +220,11 @@ private:
   Fwog::Texture rsmFlux;
   Fwog::Texture rsmNormal;
   Fwog::Texture rsmDepth;
+
+  // For debug drawing with ImGui
+  Fwog::TextureView rsmFluxSwizzled;
+  Fwog::TextureView rsmNormalSwizzled;
+  Fwog::TextureView rsmDepthSwizzled;
 
   ShadingUniforms shadingUniforms;
   ShadowUniforms shadowUniforms;
@@ -243,6 +254,9 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
     rsmFlux(Fwog::CreateTexture2D({gShadowmapWidth, gShadowmapHeight}, Fwog::Format::R11G11B10_FLOAT)),
     rsmNormal(Fwog::CreateTexture2D({gShadowmapWidth, gShadowmapHeight}, Fwog::Format::R16G16B16_SNORM)),
     rsmDepth(Fwog::CreateTexture2D({gShadowmapWidth, gShadowmapHeight}, Fwog::Format::D16_UNORM)),
+    rsmFluxSwizzled(rsmFlux.CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE})),
+    rsmNormalSwizzled(rsmNormal.CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE})),
+    rsmDepthSwizzled(rsmDepth.CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE})),
     // Create constant-size buffers
     globalUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     shadingUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
@@ -317,6 +331,12 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
   frame.gDepthPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
 
   frame.rsm = RSM::RsmTechnique(newWidth, newHeight);
+
+  // create debug views
+  frame.gAlbedoSwizzled = frame.gAlbedo->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
+  frame.gNormalSwizzled = frame.gNormal->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
+  frame.gDepthSwizzled = frame.gDepth->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
+  frame.gRsmIlluminanceSwizzled = frame.rsm->GetIndirectLighting().CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
 }
 
 void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt) {}
@@ -596,25 +616,21 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   if (ImGui::BeginTabItem("G-Buffers"))
   {
     float aspect = float(windowWidth) / windowHeight;
-    glTextureParameteri(frame.gAlbedo.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gAlbedo.value().Handle())),
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gAlbedoSwizzled.value().Handle())),
                  {100 * aspect, 100},
                  {0, 1},
                  {1, 0});
     ImGui::SameLine();
-    glTextureParameteri(frame.gNormal.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gNormal.value().Handle())),
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gNormalSwizzled.value().Handle())),
                  {100 * aspect, 100},
                  {0, 1},
                  {1, 0});
-    glTextureParameteri(frame.gDepth.value().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gDepth.value().Handle())),
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gDepthSwizzled.value().Handle())),
                  {100 * aspect, 100},
                  {0, 1},
                  {1, 0});
     ImGui::SameLine();
-    glTextureParameteri(frame.rsm->GetIndirectLighting().Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.rsm->GetIndirectLighting().Handle())),
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gRsmIlluminanceSwizzled.value().Handle())),
                  {100 * aspect, 100},
                  {0, 1},
                  {1, 0});
@@ -622,14 +638,14 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   }
   if (ImGui::BeginTabItem("RSM Buffers"))
   {
-    glTextureParameteri(rsmDepth.Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmDepth.Handle())), {100, 100}, {0, 1}, {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmDepthSwizzled.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::SameLine();
-    glTextureParameteri(rsmNormal.Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmNormal.Handle())), {100, 100}, {0, 1}, {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmNormalSwizzled.Handle())),
+                 {100, 100},
+                 {0, 1},
+                 {1, 0});
     ImGui::SameLine();
-    glTextureParameteri(rsmFlux.Handle(), GL_TEXTURE_SWIZZLE_A, GL_ONE);
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmFlux.Handle())), {100, 100}, {0, 1}, {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmFluxSwizzled.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::EndTabItem();
   }
   ImGui::EndTabBar();

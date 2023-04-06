@@ -10,7 +10,6 @@
 #include <Fwog/Texture.h>
 #include <Fwog/Timer.h>
 
-#include FWOG_OPENGL_HEADER
 #include <GLFW/glfw3.h>
 
 #include <glm/gtx/transform.hpp>
