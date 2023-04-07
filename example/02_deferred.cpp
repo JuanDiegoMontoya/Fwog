@@ -156,7 +156,7 @@ static constexpr auto gCubeIndices = std::array<uint16_t, 36>{
 
 static constexpr auto sceneInputBindingDescs = std::array{
   Fwog::VertexInputBindingDescription{
-    // color
+    // position
     .location = 0,
     .binding = 0,
     .format = Fwog::Format::R32G32B32_FLOAT,
