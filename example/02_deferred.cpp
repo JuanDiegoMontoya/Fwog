@@ -102,7 +102,7 @@ struct RSMUniforms
 
 ////////////////////////////////////// Globals
 
-std::array<Vertex, 24> gCubeVertices{
+static constexpr auto gCubeVertices = std::array<Vertex, 24>{
   // front (+z)
   Vertex{{-0.5, -0.5, 0.5}, {0, 0, 1}, {0, 0}},
   {{0.5, -0.5, 0.5}, {0, 0, 1}, {1, 0}},
@@ -140,7 +140,7 @@ std::array<Vertex, 24> gCubeVertices{
   {{-0.5, -0.5, 0.5}, {0, -1, 0}, {0, 1}},
 };
 
-std::array<uint16_t, 36> gCubeIndices{
+static constexpr auto gCubeIndices = std::array<uint16_t, 36>{
   0,  1,  2,  2,  3,  0,
 
   4,  5,  6,  6,  7,  4,

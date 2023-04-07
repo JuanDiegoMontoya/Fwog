@@ -112,6 +112,7 @@ static Fwog::GraphicsPipeline CreatePipeline()
   return Fwog::GraphicsPipeline{{
     .vertexShader = &vertexShader,
     .fragmentShader = &fragmentShader,
+    .inputAssemblyState = {.topology = Fwog::PrimitiveTopology::TRIANGLE_LIST},
     .vertexInputState = {inputDescs},
   }};
 }
