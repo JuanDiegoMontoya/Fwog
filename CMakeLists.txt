@@ -58,23 +58,15 @@ find_package(OpenGL REQUIRED)
 # enable asan for debug builds
 if (DEBUG)
     if (WIN32)
-        target_compile_options(fwog PUBLIC /fsanitize=address)
+        target_compile_options(fwog PRIVATE /fsanitize=address)
     else()
-        target_compile_options(fwog PUBLIC -fsanitize=address)
+        target_compile_options(fwog PRIVATE -fsanitize=address)
     endif()
 endif()
 
-# Determine whether we're compiling with clang++
-string(FIND "${CMAKE_CXX_COMPILER}" "clang++" COMPILER_CLANGPP)
-if(COMPILER_CLANGPP GREATER -1)
-    set(COMPILER_CLANGPP 1)
-else()
-    set(COMPILER_CLANGPP 0)
-endif()
-
 target_compile_options(fwog
-	INTERFACE
-	$<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,${COMPILER_CLANGPP}>:
+	PRIVATE
+	$<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
 	-Wall
 	-Wextra
 	-pedantic-errors
