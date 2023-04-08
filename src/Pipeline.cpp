@@ -37,7 +37,7 @@ namespace Fwog
   ComputePipeline::ComputePipeline(const ComputePipelineInfo& info) : id_(detail::CompileComputePipelineInternal(info))
   {
     GLint workgroupSize[3];
-    glGetProgramiv(id_, GL_COMPUTE_WORK_GROUP_SIZE, workgroupSize);
+    glGetProgramiv(static_cast<GLuint>(id_), GL_COMPUTE_WORK_GROUP_SIZE, workgroupSize);
 
     FWOG_ASSERT(workgroupSize[0] <= GetDeviceProperties().limits.maxComputeWorkGroupSize[0] &&
                 workgroupSize[1] <= GetDeviceProperties().limits.maxComputeWorkGroupSize[1] &&

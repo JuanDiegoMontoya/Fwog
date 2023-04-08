@@ -174,7 +174,6 @@ namespace Fwog
 #endif
 
     const auto& ri = renderInfo;
-    GLbitfield clearBuffers = 0;
 
     if (!ri.name.empty())
     {
@@ -332,8 +331,8 @@ namespace Fwog
       }
       case AttachmentLoadOp::DONT_CARE:
       {
-        GLenum attachment = GL_COLOR_ATTACHMENT0 + i;
-        glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+        GLenum colorAttachment = GL_COLOR_ATTACHMENT0 + i;
+        glInvalidateNamedFramebufferData(context->currentFbo, 1, &colorAttachment);
         break;
       }
       default: FWOG_UNREACHABLE;
