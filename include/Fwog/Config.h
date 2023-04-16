@@ -6,7 +6,7 @@
 #endif
 
 #ifndef FWOG_ASSERT
-  #if FWOG_DEBUG
+  #ifdef FWOG_DEBUG
     #define FWOG_ASSERT(x) assert(x)
   #else
     #define FWOG_ASSERT(x) (void)(x)
