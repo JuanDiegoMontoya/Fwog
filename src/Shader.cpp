@@ -35,11 +35,12 @@ namespace Fwog
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-      glDeleteShader(id);
+     
       std::string infoLog;
       const GLsizei infoLength = 512;
       infoLog.resize(infoLength + 1, '\0');
       glGetShaderInfoLog(id, infoLength, nullptr, infoLog.data());
+      glDeleteShader(id);
       throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
     }
 
