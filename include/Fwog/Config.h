@@ -6,7 +6,11 @@
 #endif
 
 #ifndef FWOG_ASSERT
-  #define FWOG_ASSERT(x) assert(x)
+  #if FWOG_DEBUG
+    #define FWOG_ASSERT(x) assert(x)
+  #else
+    #define FWOG_ASSERT(x) (void)(x)
+  #endif
 #endif
 
 #ifndef FWOG_UNREACHABLE
