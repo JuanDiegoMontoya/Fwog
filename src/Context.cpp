@@ -31,6 +31,7 @@ namespace Fwog
       }
     }
   }
+
   static void QueryGlDeviceProperties(Fwog::DeviceProperties& properties)
   {
     properties.vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
@@ -126,6 +127,7 @@ namespace Fwog
     Fwog::detail::context = new Fwog::detail::ContextState;
     QueryGlDeviceProperties(Fwog::detail::context->properties);
     glDisable(GL_DITHER);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   }
 
   void Terminate()
@@ -167,6 +169,7 @@ namespace Fwog
     
     glEnable(GL_FRAMEBUFFER_SRGB);
     glDisable(GL_DITHER);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   }
 
   const DeviceProperties& GetDeviceProperties()
