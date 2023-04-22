@@ -29,6 +29,11 @@ namespace Fwog
     std::span<const VertexInputBindingDescription> vertexBindingDescriptions = {};
   };
 
+  struct TessellationState
+  {
+    uint32_t patchControlPoints; // glPatchParameteri(GL_PATCH_VERTICES, ...)
+  };
+
   // TODO: see what rasterization state can be dynamic instead
   struct RasterizationState
   {
@@ -108,8 +113,15 @@ namespace Fwog
     /// @brief Optional pointer to a fragment shader
     const Shader* fragmentShader          = nullptr;
 
+    /// @brief Optional pointer to a tessellation control shader
+    const Shader* tessellationControlShader = nullptr;
+
+    /// @brief Optional pointer to a tessellation evaluation shader
+    const Shader* tessellationEvaluationShader = nullptr;
+
     InputAssemblyState inputAssemblyState = {};
     VertexInputState vertexInputState     = {};
+    TessellationState tessellationState   = {};
     RasterizationState rasterizationState = {};
     DepthState depthState                 = {};
     StencilState stencilState             = {};

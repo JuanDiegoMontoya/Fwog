@@ -25,6 +25,7 @@ namespace Fwog::detail
     std::string name;
     InputAssemblyState inputAssemblyState;
     VertexInputStateOwning vertexInputState;
+    TessellationState tessellationState;
     RasterizationState rasterizationState;
     DepthState depthState;
     StencilState stencilState;

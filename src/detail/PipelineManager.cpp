@@ -17,8 +17,14 @@ namespace Fwog::detail
       return GraphicsPipelineInfoOwning{
         .name = std::string(info.name),
         .inputAssemblyState = info.inputAssemblyState,
-        .vertexInputState = {{info.vertexInputState.vertexBindingDescriptions.begin(),
-                              info.vertexInputState.vertexBindingDescriptions.end()}},
+        .vertexInputState =
+          {
+            {
+              info.vertexInputState.vertexBindingDescriptions.begin(),
+              info.vertexInputState.vertexBindingDescriptions.end(),
+            },
+          },
+        .tessellationState = info.tessellationState,
         .rasterizationState = info.rasterizationState,
         .depthState = info.depthState,
         .stencilState = info.stencilState,
@@ -58,11 +64,26 @@ namespace Fwog::detail
   uint64_t CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info)
   {
     FWOG_ASSERT(info.vertexShader && "A graphics pipeline must at least have a vertex shader");
+    if (info.tessellationControlShader || info.tessellationEvaluationShader)
+    {
+      FWOG_ASSERT(info.tessellationControlShader && info.tessellationEvaluationShader &&
+                  "Either both or neither tessellation shader can be present");
+    }
     GLuint program = glCreateProgram();
     glAttachShader(program, info.vertexShader->Handle());
     if (info.fragmentShader)
     {
       glAttachShader(program, info.fragmentShader->Handle());
+    }
+
+    if (info.tessellationControlShader)
+    {
+      glAttachShader(program, info.tessellationControlShader->Handle());
+    }
+
+    if (info.tessellationEvaluationShader)
+    {
+      glAttachShader(program, info.tessellationEvaluationShader->Handle());
     }
 
     std::string infolog;

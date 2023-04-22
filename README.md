@@ -22,7 +22,7 @@ Fwog is interested in providing an abstraction of a *subset* of OpenGL. That mea
 
 - The default uniform block (e.g., uniforms set with glUniform*)
   - Alternative: uniform and storage buffers
-- Geometry and tessellation control/evaluation shaders
+- Geometry shaders
   - Alternative: compute shaders
 - Multisampled rasterization
 - Multiple viewports/layered rendering

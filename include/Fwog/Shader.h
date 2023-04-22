@@ -8,6 +8,8 @@ namespace Fwog
   enum class PipelineStage
   {
     VERTEX_SHADER,
+    TESSELLATION_CONTROL_SHADER,
+    TESSELLATION_EVALUATION_SHADER,
     FRAGMENT_SHADER,
     COMPUTE_SHADER
   };

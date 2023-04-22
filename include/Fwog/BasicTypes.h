@@ -327,7 +327,9 @@ namespace Fwog
     TRIANGLE_LIST,
     TRIANGLE_STRIP,
     TRIANGLE_FAN,
-    // TODO: add more toplogies that are deemed useful
+
+    /// @note Available only in pipelines with tessellation shaders
+    PATCH_LIST,
   };
 
   enum class PolygonMode : uint32_t

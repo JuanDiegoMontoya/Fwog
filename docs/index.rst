@@ -23,7 +23,7 @@ Caveats
 Given Fwog's goals, there are a number of features that the API does not expose:
 
 - The default uniform block (i.e., uniforms set with ``glUniform*``)
-- Geometry and tessellation shaders
+- Geometry shaders
 - Multi-viewport/layered rendering
 - Multisampled rasterization
 - Transform feedback

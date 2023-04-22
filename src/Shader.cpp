@@ -16,6 +16,8 @@ namespace Fwog
       switch (stage)
       {
       case PipelineStage::VERTEX_SHADER: return GL_VERTEX_SHADER;
+      case PipelineStage::TESSELLATION_CONTROL_SHADER: return GL_TESS_CONTROL_SHADER;
+      case PipelineStage::TESSELLATION_EVALUATION_SHADER: return GL_TESS_EVALUATION_SHADER;
       case PipelineStage::FRAGMENT_SHADER: return GL_FRAGMENT_SHADER;
       case PipelineStage::COMPUTE_SHADER: return GL_COMPUTE_SHADER;
       default: FWOG_UNREACHABLE; return 0;

@@ -365,7 +365,7 @@ namespace Fwog
       default: FWOG_UNREACHABLE;
       }
     }
-    
+
     if (ri.stencilAttachment)
     {
       switch (ri.stencilAttachment->loadOp)
@@ -638,8 +638,15 @@ namespace Fwog
         glBindVertexArray(context->currentVao);
       }
 
-      //////////////////////////////////////////////////////////////// rasterization
-      const auto& rs = pipelineState->rasterizationState;
+      //////////////////////////////////////////////////////////////// tessellation
+      if (!context->lastGraphicsPipeline || pipelineState->tessellationState.patchControlPoints !=
+                                              context->lastGraphicsPipeline->tessellationState.patchControlPoints)
+      {
+        glPatchParameteri(GL_PATCH_VERTICES, static_cast<GLint>(pipelineState->tessellationState.patchControlPoints));
+      }
+
+        //////////////////////////////////////////////////////////////// rasterization
+        const auto& rs = pipelineState->rasterizationState;
       if (!context->lastGraphicsPipeline ||
           rs.depthClampEnable != context->lastGraphicsPipeline->rasterizationState.depthClampEnable)
       {
