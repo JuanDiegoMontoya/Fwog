@@ -72,11 +72,6 @@ namespace Fwog::detail
       throw PipelineCompilationException("Failed to compile graphics pipeline.\n" + infolog);
     }
 
-    if (auto it = gGraphicsPipelines.find(program); it != gGraphicsPipelines.end())
-    {
-      return it->first;
-    }
-
     auto owning = MakePipelineInfoOwning(info);
     gGraphicsPipelines.insert({program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning))});
     return program;
@@ -116,11 +111,6 @@ namespace Fwog::detail
     {
       glDeleteProgram(program);
       throw PipelineCompilationException("Failed to compile compute pipeline.\n" + infolog);
-    }
-
-    if (auto it = gComputePipelines.find(program); it != gComputePipelines.end())
-    {
-      return it->first;
     }
 
     auto owning = ComputePipelineInfoOwning{.name = std::string(info.name)};
