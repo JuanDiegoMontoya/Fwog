@@ -3,8 +3,8 @@
 #include <Fwog/detail/ContextState.h>
 
 #include <array>
-#include <utility>
 #include <new>
+#include <utility>
 
 #include FWOG_OPENGL_HEADER
 
@@ -150,8 +150,7 @@ namespace Fwog
   }
 
   Texture::Texture(Texture&& old) noexcept
-      : id_(std::exchange(old.id_, 0)), createInfo_(old.createInfo_),
-        bindlessHandle_(std::exchange(old.bindlessHandle_, 0))
+    : id_(std::exchange(old.id_, 0)), createInfo_(old.createInfo_), bindlessHandle_(std::exchange(old.bindlessHandle_, 0))
   {
   }
 
@@ -182,12 +181,12 @@ namespace Fwog
   TextureView Texture::CreateSingleMipView(uint32_t level) const
   {
     TextureViewCreateInfo createInfo{
-        .viewType = createInfo_.imageType,
-        .format = createInfo_.format,
-        .minLevel = level,
-        .numLevels = 1,
-        .minLayer = 0,
-        .numLayers = createInfo_.arrayLayers,
+      .viewType = createInfo_.imageType,
+      .format = createInfo_.format,
+      .minLevel = level,
+      .numLevels = 1,
+      .minLayer = 0,
+      .numLayers = createInfo_.arrayLayers,
     };
     return TextureView(createInfo, *this);
   }
@@ -195,12 +194,12 @@ namespace Fwog
   TextureView Texture::CreateSingleLayerView(uint32_t layer) const
   {
     TextureViewCreateInfo createInfo{
-        .viewType = createInfo_.imageType,
-        .format = createInfo_.format,
-        .minLevel = 0,
-        .numLevels = createInfo_.mipLevels,
-        .minLayer = layer,
-        .numLayers = 1,
+      .viewType = createInfo_.imageType,
+      .format = createInfo_.format,
+      .minLevel = 0,
+      .numLevels = createInfo_.mipLevels,
+      .minLayer = layer,
+      .numLayers = 1,
     };
     return TextureView(createInfo, *this);
   }
@@ -208,12 +207,12 @@ namespace Fwog
   TextureView Texture::CreateFormatView(Format newFormat) const
   {
     TextureViewCreateInfo createInfo{
-        .viewType = createInfo_.imageType,
-        .format = newFormat,
-        .minLevel = 0,
-        .numLevels = createInfo_.mipLevels,
-        .minLayer = 0,
-        .numLayers = createInfo_.arrayLayers,
+      .viewType = createInfo_.imageType,
+      .format = newFormat,
+      .minLevel = 0,
+      .numLevels = createInfo_.mipLevels,
+      .minLayer = 0,
+      .numLayers = createInfo_.arrayLayers,
     };
     return TextureView(createInfo, *this);
   }
@@ -260,7 +259,7 @@ namespace Fwog
   TextureView::TextureView() {}
 
   TextureView::TextureView(const TextureViewCreateInfo& viewInfo, const Texture& texture, std::string_view name)
-      : viewInfo_(viewInfo)
+    : viewInfo_(viewInfo)
   {
     createInfo_ = texture.CreateInfo();
     glGenTextures(1, &id_); // glCreateTextures does not work here
@@ -285,29 +284,29 @@ namespace Fwog
   }
 
   TextureView::TextureView(const TextureViewCreateInfo& viewInfo, const TextureView& textureView, std::string_view name)
-      : TextureView(viewInfo, static_cast<const Texture&>(textureView), name)
+    : TextureView(viewInfo, static_cast<const Texture&>(textureView), name)
   {
     createInfo_ = TextureCreateInfo{
-        .imageType = textureView.viewInfo_.viewType,
-        .format = textureView.viewInfo_.format,
-        .extent = textureView.createInfo_.extent,
-        .mipLevels = textureView.viewInfo_.numLevels,
-        .arrayLayers = textureView.viewInfo_.numLayers,
+      .imageType = textureView.viewInfo_.viewType,
+      .format = textureView.viewInfo_.format,
+      .extent = textureView.createInfo_.extent,
+      .mipLevels = textureView.viewInfo_.numLevels,
+      .arrayLayers = textureView.viewInfo_.numLayers,
     };
   }
 
   TextureView::TextureView(const Texture& texture, std::string_view name)
-      : TextureView(
-            TextureViewCreateInfo{
-                .viewType = texture.CreateInfo().imageType,
-                .format = texture.CreateInfo().format,
-                .minLevel = 0,
-                .numLevels = texture.CreateInfo().mipLevels,
-                .minLayer = 0,
-                .numLayers = texture.CreateInfo().arrayLayers,
-            },
-            texture,
-            name)
+    : TextureView(
+        TextureViewCreateInfo{
+          .viewType = texture.CreateInfo().imageType,
+          .format = texture.CreateInfo().format,
+          .minLevel = 0,
+          .numLevels = texture.CreateInfo().mipLevels,
+          .minLayer = 0,
+          .numLayers = texture.CreateInfo().arrayLayers,
+        },
+        texture,
+        name)
   {
   }
 
@@ -331,12 +330,12 @@ namespace Fwog
   Texture CreateTexture2D(Extent2D size, Format format, std::string_view name)
   {
     TextureCreateInfo createInfo{
-        .imageType = ImageType::TEX_2D,
-        .format = format,
-        .extent = {size.width, size.height, 1},
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .sampleCount = SampleCount::SAMPLES_1,
+      .imageType = ImageType::TEX_2D,
+      .format = format,
+      .extent = {size.width, size.height, 1},
+      .mipLevels = 1,
+      .arrayLayers = 1,
+      .sampleCount = SampleCount::SAMPLES_1,
     };
     return Texture(createInfo, name);
   }
@@ -344,12 +343,12 @@ namespace Fwog
   Texture CreateTexture2DMip(Extent2D size, Format format, uint32_t mipLevels, std::string_view name)
   {
     TextureCreateInfo createInfo{
-        .imageType = ImageType::TEX_2D,
-        .format = format,
-        .extent = {size.width, size.height, 1},
-        .mipLevels = mipLevels,
-        .arrayLayers = 1,
-        .sampleCount = SampleCount::SAMPLES_1,
+      .imageType = ImageType::TEX_2D,
+      .format = format,
+      .extent = {size.width, size.height, 1},
+      .mipLevels = mipLevels,
+      .arrayLayers = 1,
+      .sampleCount = SampleCount::SAMPLES_1,
     };
     return Texture(createInfo, name);
   }

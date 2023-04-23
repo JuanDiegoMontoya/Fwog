@@ -126,8 +126,6 @@ namespace Fwog
     DepthState depthState                 = {};
     StencilState stencilState             = {};
     ColorBlendState colorBlendState       = {};
-    // Multisample state omitted (stretch goal)
-    // Tessellation state omitted (stretch goal)
   };
 
   /// @brief Parameters for the constructor of ComputePipeline

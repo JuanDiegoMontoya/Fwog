@@ -30,7 +30,7 @@ namespace Fwog
         glBindSampler(i, 0);
       }
     }
-  }
+  } // namespace detail
 
   static void QueryGlDeviceProperties(Fwog::DeviceProperties& properties)
   {
@@ -160,13 +160,13 @@ namespace Fwog
     context->lastStencilMask[0] = 0;
     context->lastStencilMask[1] = 0;
     glStencilMask(false);
-    
+
     context->currentFbo = 0;
     context->currentVao = 0;
     context->lastGraphicsPipeline.reset();
     context->initViewport = true;
     context->lastScissor = {};
-    
+
     glEnable(GL_FRAMEBUFFER_SRGB);
     glDisable(GL_DITHER);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);

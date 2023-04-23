@@ -57,6 +57,7 @@ namespace Fwog
       detail::DestroyComputePipelineInternal(id_);
     }
   }
+
   ComputePipeline::ComputePipeline(ComputePipeline&& old) noexcept
     : id_(std::exchange(old.id_, 0)),
       workgroupSize_(std::exchange(old.workgroupSize_, Extent3D{}))

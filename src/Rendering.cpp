@@ -645,8 +645,8 @@ namespace Fwog
         glPatchParameteri(GL_PATCH_VERTICES, static_cast<GLint>(pipelineState->tessellationState.patchControlPoints));
       }
 
-        //////////////////////////////////////////////////////////////// rasterization
-        const auto& rs = pipelineState->rasterizationState;
+      //////////////////////////////////////////////////////////////// rasterization
+      const auto& rs = pipelineState->rasterizationState;
       if (!context->lastGraphicsPipeline ||
           rs.depthClampEnable != context->lastGraphicsPipeline->rasterizationState.depthClampEnable)
       {
