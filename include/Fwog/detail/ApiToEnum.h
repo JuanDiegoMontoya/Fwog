@@ -12,7 +12,6 @@ namespace Fwog::detail
 
   ////////////////////////////////////////////////////////// buffer
   GLbitfield BufferStorageFlagsToGL(BufferStorageFlags flags);
-  GLbitfield BufferMapFlagsToGL(BufferMapFlags flags);
 
   ////////////////////////////////////////////////////////// texture
   GLint ImageTypeToGL(ImageType imageType);

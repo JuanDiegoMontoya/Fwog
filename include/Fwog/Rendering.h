@@ -1,6 +1,6 @@
 #pragma once
-#include <Fwog/Config.h>
 #include <Fwog/BasicTypes.h>
+#include <Fwog/Config.h>
 #include <array>
 #include <span>
 #include <string_view>
@@ -154,7 +154,9 @@ namespace Fwog
                               Filter filter,
                               AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
 
-  /// @brief Performs a simple copy (i.e., memcpy) from source to target
+  /// @brief Copies data between textures
+  ///
+  /// No format conversion is applied, as in memcpy.
   void CopyTexture(const Texture& source,
                    const Texture& target,
                    uint32_t sourceLevel,
@@ -181,6 +183,14 @@ namespace Fwog
   ///
   /// If an offset is provided with this constant, then the range [offset, buffer.Size()) will be bound.
   constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
+
+  /// @brief Copies data between buffers
+  /// @param size The amount of data to copy, in bytes. If size is WHOLE_BUFFER, the size of the source buffer is used.
+  void CopyBuffer(const Buffer& source,
+                  const Buffer& target,
+                  uint32_t sourceOffset = 0,
+                  uint32_t targetOffset = 0,
+                  uint64_t size = WHOLE_BUFFER);
 
   /// @brief Functions that set pipeline state, binds resources, or issues draws or dispatches
   ///

@@ -5,28 +5,31 @@
 
 namespace Fwog
 {
-  Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags, BufferMapFlags mapFlags)
-      : size_(std::max(size, static_cast<size_t>(1)))
+  Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags)
+    : size_(std::max(size, static_cast<size_t>(1)))
   {
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
-    glflags |= detail::BufferMapFlagsToGL(mapFlags);
     glCreateBuffers(1, &id_);
     glNamedBufferStorage(id_, size_, data, glflags);
+    if (storageFlags & BufferStorageFlag::MAP_MEMORY)
+    {
+      // GL_MAP_UNSYNCHRONIZED_BIT should be used if the user can map and unmap buffers at their own will
+      constexpr GLenum access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+      mappedMemory_ = glMapNamedBufferRange(id_, 0, size_, access);
+    }
   }
 
-  Buffer::Buffer(size_t size, BufferStorageFlags storageFlags, BufferMapFlags mapFlags)
-      : Buffer(nullptr, size, storageFlags, mapFlags)
-  {
-  }
+  Buffer::Buffer(size_t size, BufferStorageFlags storageFlags) : Buffer(nullptr, size, storageFlags) {}
 
-  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags, BufferMapFlags mapFlags)
-      : Buffer(data.data(), data.size_bytes(), storageFlags, mapFlags)
+  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags)
+    : Buffer(data.data(), data.size_bytes(), storageFlags)
   {
   }
 
   Buffer::Buffer(Buffer&& old) noexcept
-      : size_(std::exchange(old.size_, 0)), id_(std::exchange(old.id_, 0)),
-        isMapped_(std::exchange(old.isMapped_, false))
+    : size_(std::exchange(old.size_, 0)),
+      id_(std::exchange(old.id_, 0)),
+      mappedMemory_(std::exchange(old.mappedMemory_, nullptr))
   {
   }
 
@@ -40,9 +43,12 @@ namespace Fwog
 
   Buffer::~Buffer()
   {
-    FWOG_ASSERT(!IsMapped() && "Buffers must not be mapped at time of destruction");
     if (id_)
     {
+      if (mappedMemory_)
+      {
+        glUnmapNamedBuffer(id_);
+      }
       glDeleteBuffers(1, &id_);
     }
   }
@@ -56,20 +62,6 @@ namespace Fwog
   {
     FWOG_ASSERT(size + offset <= Size());
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
-  }
-
-  void* Buffer::Map(BufferMapFlags flags) const
-  {
-    FWOG_ASSERT(!IsMapped() && "Buffers cannot be mapped more than once at a time");
-    isMapped_ = true;
-    return glMapNamedBufferRange(id_, 0, Size(), detail::BufferMapFlagsToGL(flags));
-  }
-
-  void Buffer::Unmap() const
-  {
-    FWOG_ASSERT(IsMapped() && "Buffers that aren't mapped cannot be unmapped");
-    isMapped_ = false;
-    glUnmapNamedBuffer(id_);
   }
 
   void Buffer::ClearSubData(size_t offset,
@@ -86,5 +78,10 @@ namespace Fwog
                               detail::UploadFormatToGL(uploadFormat),
                               detail::UploadTypeToGL(uploadType),
                               data);
+  }
+
+  void Buffer::Invalidate() const
+  {
+    glInvalidateBufferData(id_);
   }
 } // namespace Fwog

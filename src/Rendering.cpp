@@ -581,6 +581,20 @@ namespace Fwog
     glTextureBarrier();
   }
 
+  void CopyBuffer(const Buffer& source, const Buffer& target, uint32_t sourceOffset, uint32_t targetOffset, uint64_t size)
+  {
+    if (size == WHOLE_BUFFER)
+    {
+      size = source.Size() - sourceOffset;
+    }
+
+    glCopyNamedBufferSubData(source.Handle(),
+                             target.Handle(),
+                             static_cast<GLintptr>(sourceOffset),
+                             static_cast<GLintptr>(targetOffset),
+                             static_cast<GLsizeiptr>(size));
+  }
+
   namespace Cmd
   {
     void BindGraphicsPipeline(const GraphicsPipeline& pipeline)
@@ -644,9 +658,9 @@ namespace Fwog
       {
         if (!context->lastGraphicsPipeline ||
             ts.patchControlPoints != context->lastGraphicsPipeline->tessellationState.patchControlPoints)
-      {
-        glPatchParameteri(GL_PATCH_VERTICES, static_cast<GLint>(pipelineState->tessellationState.patchControlPoints));
-      }
+        {
+          glPatchParameteri(GL_PATCH_VERTICES, static_cast<GLint>(pipelineState->tessellationState.patchControlPoints));
+        }
       }
 
       //////////////////////////////////////////////////////////////// rasterization

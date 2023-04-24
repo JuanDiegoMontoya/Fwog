@@ -28,16 +28,15 @@ namespace Fwog::detail
     GLbitfield ret = 0;
     ret |= flags & BufferStorageFlag::DYNAMIC_STORAGE ? GL_DYNAMIC_STORAGE_BIT : 0;
     ret |= flags & BufferStorageFlag::CLIENT_STORAGE ?  GL_CLIENT_STORAGE_BIT : 0;
-    return ret;
-  }
 
-  GLbitfield BufferMapFlagsToGL(BufferMapFlags flags)
-  {
-    GLbitfield ret = 0;
-    ret |= flags & BufferMapFlag::MAP_READ ? GL_MAP_READ_BIT : 0;
-    ret |= flags & BufferMapFlag::MAP_WRITE ? GL_MAP_WRITE_BIT : 0;
-    ret |= flags & BufferMapFlag::MAP_PERSISTENT ? GL_MAP_PERSISTENT_BIT : 0;
-    ret |= flags & BufferMapFlag::MAP_COHERENT ? GL_MAP_COHERENT_BIT : 0;
+    // As far as I can tell, there is no perf hit to having both MAP_WRITE and MAP_READ all the time.
+    // Additionally, desktop platforms (the ones we care about) do not have incoherent host-visible 
+    // device heaps, so we can safely include that flag all the time.
+    // https://gpuopen.com/learn/get-the-most-out-of-smart-access-memory/
+    // https://basnieuwenhuizen.nl/the-catastrophe-of-reading-from-vram/
+    // https://asawicki.info/news_1740_vulkan_memory_types_on_pc_and_how_to_use_them
+    constexpr GLenum memMapFlags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+    ret |= flags & BufferStorageFlag::MAP_MEMORY ? memMapFlags : 0;
     return ret;
   }
 

@@ -514,7 +514,7 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
     esmTexPingPong(Fwog::CreateTexture2D(config.esmResolution, Fwog::Format::R32_FLOAT)),
     esmUniformBuffer(config.esmExponent, Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     esmBlurUniformBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
-    globalUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE, Fwog::BufferMapFlag::MAP_WRITE),
+    globalUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     shadingUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     materialUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     scenePipeline(CreateScenePipeline()),
