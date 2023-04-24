@@ -72,11 +72,20 @@ namespace Fwog
     glGetIntegerv(GL_MAX_VERTEX_ATTRIB_STRIDE, &limits.maxVertexAttribStride);
     glGetIntegerv(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, &limits.maxVertexAttribRelativeOffset);
     glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &limits.maxVertexOutputComponents);
+    glGetIntegerv(GL_MAX_TESS_CONTROL_INPUT_COMPONENTS, &limits.maxTessellationControlPerVertexInputComponents);
+    glGetIntegerv(GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS, &limits.maxTessellationControlPerVertexOutputComponents);
+    glGetIntegerv(GL_MAX_TESS_PATCH_COMPONENTS, &limits.maxTessellationControlPerPatchOutputComponents);
+    glGetIntegerv(GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS, &limits.maxTessellationControlTotalOutputComponents);
+    glGetIntegerv(GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS, &limits.maxTessellationEvaluationInputComponents);
+    glGetIntegerv(GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS, &limits.maxTessellationEvaluationOutputComponents);
     glGetIntegerv(GL_MAX_FRAGMENT_INPUT_COMPONENTS, &limits.maxFragmentInputComponents);
     glGetIntegerv(GL_MIN_PROGRAM_TEXEL_OFFSET, &limits.texelOffsetRange[0]);
     glGetIntegerv(GL_MAX_PROGRAM_TEXEL_OFFSET, &limits.texelOffsetRange[1]);
     glGetIntegerv(GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET, &limits.textureGatherOffsetRange[0]);
     glGetIntegerv(GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET, &limits.textureGatherOffsetRange[1]);
+
+    glGetIntegerv(GL_MAX_TESS_GEN_LEVEL, &limits.maxTessellationGenerationLevel);
+    glGetIntegerv(GL_MAX_PATCH_VERTICES, &limits.maxPatchSize);
 
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &limits.maxUniformBufferBindings);
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &limits.maxUniformBlockSize);

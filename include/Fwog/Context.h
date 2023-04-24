@@ -38,9 +38,18 @@ namespace Fwog
     int32_t maxVertexAttribStride;         // GL_MAX_VERTEX_ATTRIB_STRIDE
     int32_t maxVertexAttribRelativeOffset; // GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET
     int32_t maxVertexOutputComponents;     // GL_MAX_VERTEX_OUTPUT_COMPONENTS
+    int32_t maxTessellationControlPerVertexInputComponents; // GL_MAX_TESS_CONTROL_INPUT_COMPONENTS
+    int32_t maxTessellationControlPerVertexOutputComponents;// GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS
+    int32_t maxTessellationControlPerPatchOutputComponents; // GL_MAX_TESS_PATCH_COMPONENTS
+    int32_t maxTessellationControlTotalOutputComponents;    // GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS
+    int32_t maxTessellationEvaluationInputComponents;       // GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS
+    int32_t maxTessellationEvaluationOutputComponents;      // GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS
     int32_t maxFragmentInputComponents;    // GL_MAX_FRAGMENT_INPUT_COMPONENTS
     int32_t texelOffsetRange[2];           // GL_MIN_PROGRAM_TEXEL_OFFSET & GL_MAX_PROGRAM_TEXEL_OFFSET
-    int32_t textureGatherOffsetRange[2]; // GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET & GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET
+    int32_t textureGatherOffsetRange[2];   // GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET & GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET
+
+    int32_t maxTessellationGenerationLevel; // GL_MAX_TESS_GEN_LEVEL
+    int32_t maxPatchSize;                   // GL_MAX_PATCH_VERTICES
 
     int32_t maxUniformBufferBindings;     // GL_MAX_UNIFORM_BUFFER_BINDINGS
     int32_t maxUniformBlockSize;          // GL_MAX_UNIFORM_BLOCK_SIZE
