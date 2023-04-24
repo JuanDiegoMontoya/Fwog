@@ -639,10 +639,14 @@ namespace Fwog
       }
 
       //////////////////////////////////////////////////////////////// tessellation
-      if (!context->lastGraphicsPipeline || pipelineState->tessellationState.patchControlPoints !=
-                                              context->lastGraphicsPipeline->tessellationState.patchControlPoints)
+      const auto& ts = pipelineState->tessellationState;
+      if (ts.patchControlPoints > 0)
+      {
+        if (!context->lastGraphicsPipeline ||
+            ts.patchControlPoints != context->lastGraphicsPipeline->tessellationState.patchControlPoints)
       {
         glPatchParameteri(GL_PATCH_VERTICES, static_cast<GLint>(pipelineState->tessellationState.patchControlPoints));
+      }
       }
 
       //////////////////////////////////////////////////////////////// rasterization
