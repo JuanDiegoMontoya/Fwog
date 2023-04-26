@@ -6,7 +6,7 @@
 namespace Fwog
 {
   Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags)
-    : size_(std::max(size, static_cast<size_t>(1)))
+    : size_(std::max(size, static_cast<size_t>(1))), storageFlags_(storageFlags)
   {
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
     glCreateBuffers(1, &id_);
@@ -28,6 +28,7 @@ namespace Fwog
 
   Buffer::Buffer(Buffer&& old) noexcept
     : size_(std::exchange(old.size_, 0)),
+      storageFlags_(std::exchange(old.storageFlags_, BufferStorageFlag::NONE)),
       id_(std::exchange(old.id_, 0)),
       mappedMemory_(std::exchange(old.mappedMemory_, nullptr))
   {
@@ -60,6 +61,8 @@ namespace Fwog
 
   void Buffer::SubData(const void* data, size_t size, size_t offset) const
   {
+    FWOG_ASSERT((storageFlags_ & BufferStorageFlag::DYNAMIC_STORAGE) &&
+                "SubData can only be called on buffers created with the DYNAMIC_STORAGE flag");
     FWOG_ASSERT(size + offset <= Size());
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
   }

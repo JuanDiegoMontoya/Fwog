@@ -59,7 +59,7 @@ namespace Fwog
     Buffer& operator=(const Buffer&) = delete;
     ~Buffer();
 
-    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes) const;
+    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes = 0) const;
     void ClearSubData(size_t offset,
                       size_t size,
                       Format internalFormat,
@@ -95,12 +95,12 @@ namespace Fwog
     void Invalidate() const;
 
   protected:
-    Buffer() {}
     Buffer(const void* data, size_t size, BufferStorageFlags storageFlags);
 
     void SubData(const void* data, size_t size, size_t offset = 0) const;
 
     size_t size_{};
+    BufferStorageFlags storageFlags_{};
     uint32_t id_{};
     void* mappedMemory_{};
   };
@@ -140,6 +140,8 @@ namespace Fwog
     {
       Buffer::SubData(data, sizeof(T) * startIndex);
     }
+
+    [[nodiscard]] void* GetMappedPointer() const = delete;
 
     [[nodiscard]] T* GetMappedPointerTyped() const
     {
