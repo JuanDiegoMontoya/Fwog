@@ -39,7 +39,14 @@ namespace
                                       [[maybe_unused]] const void* userParam)
   {
     // Ignore certain verbose info messages (particularly ones on Nvidia).
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131222 || id == 0)
+    if (id == 131169 || 
+        id == 131185 || // NV: Buffer will use video memory
+        id == 131218 || 
+        id == 131204 || // Texture cannot be used for texture mapping
+        id == 131222 ||
+        id == 131154 || // NV: pixel transfer is synchronized with 3D rendering
+        id == 0         // gl{Push, Pop}DebugGroup
+      )
       return;
 
     std::stringstream errStream;
