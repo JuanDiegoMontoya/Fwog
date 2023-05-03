@@ -379,21 +379,25 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   std::swap(frame.gNormal, frame.gNormalPrev);
 
   shadingUniforms = ShadingUniforms{
-    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0}),
+    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) *
+                             glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0}),
     .sunStrength = glm::vec4{2, 2, 2, 0},
   };
 
   auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 5.f);
   glm::mat4 viewProj = proj * mainCamera.GetViewMatrix();
-  globalUniformsBuffer.SubData(viewProj, 0);
-  globalUniformsBuffer.SubData(proj, offsetof(GlobalUniforms, proj));
+
+  auto globalUniforms = GlobalUniforms{};
+  globalUniforms.proj = proj;
+  globalUniforms.viewProj = viewProj;
+  globalUniformsBuffer.UpdateData(globalUniforms);
 
   glm::vec3 eye = glm::vec3{shadingUniforms.sunDir * -5.f};
   float eyeWidth = 2.5f;
   // shadingUniforms.viewPos = glm::vec4(camera.position, 0);
   auto projtemp = glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, .1f, 10.f);
   shadingUniforms.sunViewProj = projtemp * glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
-  shadingUniformsBuffer.SubData(shadingUniforms, 0);
+  shadingUniformsBuffer.UpdateData(shadingUniforms);
 
   Fwog::SamplerState ss;
   ss.minFilter = Fwog::Filter::NEAREST;
@@ -434,7 +438,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   }
   Fwog::EndRendering();
 
-  globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
+  globalUniforms.viewProj = shadingUniforms.sunViewProj;
+  globalUniformsBuffer.UpdateData(globalUniforms);
 
   // Shadow map (RSM) scene pass
   Fwog::RenderColorAttachment rcolorAttachment{
@@ -468,8 +473,9 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   }
   Fwog::EndRendering();
 
-  globalUniformsBuffer.SubData(viewProj, 0);
-  globalUniformsBuffer.SubData(glm::inverse(viewProj), sizeof(glm::mat4));
+  globalUniforms.viewProj = viewProj;
+  globalUniforms.invViewProj = glm::inverse(viewProj);
+  globalUniformsBuffer.UpdateData(globalUniforms);
 
   {
     static Fwog::TimerQueryAsync timer(5);
@@ -585,7 +591,10 @@ void DeferredApplication::OnGui(double dt)
   {
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmDepthSwizzled.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::SameLine();
-    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmNormalSwizzled.Handle())), {100, 100}, {0, 1}, {1, 0});
+    ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmNormalSwizzled.Handle())),
+                 {100, 100},
+                 {0, 1},
+                 {1, 0});
     ImGui::SameLine();
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(rsmFluxSwizzled.Handle())), {100, 100}, {0, 1}, {1, 0});
     ImGui::EndTabItem();

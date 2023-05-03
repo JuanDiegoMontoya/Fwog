@@ -307,7 +307,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
   mainCameraUniforms.viewProj = proj * mainCamera.GetViewMatrix();
   mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
-  globalUniformsBuffer.SubDataTyped(mainCameraUniforms);
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
   Fwog::RenderDepthStencilAttachment gDepthAttachment{
     .texture = &frame.gDepth.value(),

@@ -37,7 +37,7 @@ namespace RSM
                                  const Fwog::Texture& gDepthPrev,
                                  const Fwog::Texture& gNormalPrev);
 
-    const Fwog::Texture& GetIndirectLighting();
+    Fwog::Texture& GetIndirectLighting();
 
     void DrawGui();
 

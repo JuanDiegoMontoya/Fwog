@@ -283,9 +283,8 @@ public:
       .sampleCount = Fwog::SampleCount::SAMPLES_1,
     });
 
-    scatteringTexture->SubImage({
-      .dimension = Fwog::UploadDimension::ONE,
-                                 .size = {static_cast<uint32_t>(data.size())},
+    scatteringTexture->UpdateImage({
+      .extent = {static_cast<uint32_t>(data.size())},
                                  .format = Fwog::UploadFormat::RGB,
                                  .type = Fwog::UploadType::FLOAT,
       .pixels = data.data(),
@@ -353,7 +352,7 @@ public:
     {
       uniformBuffer = Fwog::Buffer(sizeof(uniforms), Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
     }
-    uniformBuffer->SubData(uniforms, 0);
+    uniformBuffer->UpdateData(uniforms);
   }
 
   void AccumulateDensity(const Fwog::Texture& densityVolume,
@@ -361,7 +360,7 @@ public:
                          const Fwog::Buffer& esmUniformBuffer,
                          const Fwog::Buffer& lightBuffer)
   {
-    assert(densityVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
+    assert(densityVolume.GetCreateInfo().imageType == Fwog::ImageType::TEX_3D);
 
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
@@ -379,8 +378,8 @@ public:
 
   void MarchVolume(const Fwog::Texture& sourceVolume, const Fwog::Texture& targetVolume)
   {
-    assert(sourceVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
-    assert(targetVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
+    assert(sourceVolume.GetCreateInfo().imageType == Fwog::ImageType::TEX_3D);
+    assert(targetVolume.GetCreateInfo().imageType == Fwog::ImageType::TEX_3D);
 
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
@@ -401,7 +400,7 @@ public:
                      const Fwog::Texture& sourceVolume,
                      const Fwog::Texture& noise)
   {
-    assert(sourceVolume.CreateInfo().imageType == Fwog::ImageType::TEX_3D);
+    assert(sourceVolume.GetCreateInfo().imageType == Fwog::ImageType::TEX_3D);
     assert(targetColor.Extent() == gbufferColor.Extent() && targetColor.Extent() == gbufferDepth.Extent());
 
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
@@ -561,9 +560,8 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
   auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
   assert(noise);
   noiseTexture = Fwog::CreateTexture2D({static_cast<uint32_t>(x), static_cast<uint32_t>(y)}, Fwog::Format::R8G8B8A8_UNORM);
-  noiseTexture->SubImage({
-    .dimension = Fwog::UploadDimension::TWO,
-    .size = {static_cast<uint32_t>(x), static_cast<uint32_t>(y)},
+  noiseTexture->UpdateImage({
+    .extent = {static_cast<uint32_t>(x), static_cast<uint32_t>(y)},
     .format = Fwog::UploadFormat::RGBA,
     .type = Fwog::UploadType::UBYTE,
     .pixels = noise,
@@ -605,7 +603,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::vec4{-.1, -.3, -.6, 0}),
     .sunStrength = glm::vec4{sunStrength * sunColor, 0},
   };
-  shadingUniformsBuffer.SubDataTyped(shadingUniforms);
+  shadingUniformsBuffer.UpdateData(shadingUniforms);
 
   // update global uniforms
   const auto fovy = glm::radians(70.f);
@@ -616,7 +614,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   mainCameraUniforms.viewProj = proj * mainCamera.GetViewMatrix();
   mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
-  globalUniformsBuffer.SubDataTyped(mainCameraUniforms);
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
   glm::vec3 eye = glm::vec3{-shadingUniforms.sunDir * config.lightDistance};
   shadingUniforms.sunViewProj = glm::orthoZO(-config.lightProjWidth,
@@ -626,7 +624,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
                                              0.f,
                                              config.lightFarPlane) *
                                 glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
-  shadingUniformsBuffer.SubData(shadingUniforms, 0);
+  shadingUniformsBuffer.UpdateData(shadingUniforms);
 
   auto sceneViewport = Fwog::Viewport{
     .drawRect = {.extent=frame.gAlbedo->Extent()},
@@ -666,7 +664,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     {
       const auto& mesh = scene.meshes[i];
       const auto& material = scene.materials[mesh.materialIdx];
-      materialUniformsBuffer.SubData(material.gpuMaterial, 0);
+      materialUniformsBuffer.UpdateData(material.gpuMaterial);
       if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         const auto& textureSampler = material.albedoTextureSampler.value();
@@ -679,7 +677,8 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::EndRendering();
   }
 
-  globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, offsetof(GlobalUniforms, viewProj));
+  mainCameraUniforms.viewProj = shadingUniforms.sunViewProj;
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
   // shadow map scene pass
   {
@@ -720,7 +719,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     {
       {
         Fwog::ScopedDebugMarker marker("Copy to ESM");
-        esmUniformBuffer.SubData(config.esmExponent, 0);
+        esmUniformBuffer.UpdateData(config.esmExponent);
 
         auto nearestMirrorSampler = Fwog::Sampler({.minFilter = Fwog::Filter::NEAREST,
                                                    .magFilter = Fwog::Filter::NEAREST,
@@ -753,7 +752,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
         {
           esmBlurUniforms.direction = {0, 1};
           esmBlurUniforms.targetDim = {esmExtent2.width, esmExtent2.height};
-          esmBlurUniformBuffer.SubData(esmBlurUniforms, 0);
+          esmBlurUniformBuffer.UpdateData(esmBlurUniforms);
           Fwog::Cmd::BindSampledImage(0, esmTex, linearSampler);
           Fwog::Cmd::BindImage(0, esmTexPingPong, 0);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
@@ -761,7 +760,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
           esmBlurUniforms.direction = {1, 0};
           esmBlurUniforms.targetDim = {esmExtent1.width, esmExtent1.height};
-          esmBlurUniformBuffer.SubData(esmBlurUniforms, 0);
+          esmBlurUniformBuffer.UpdateData(esmBlurUniforms);
           Fwog::Cmd::BindSampledImage(0, esmTexPingPong, linearSampler);
           Fwog::Cmd::BindImage(0, esmTex, 0);
           Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
@@ -772,7 +771,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
     Fwog::EndCompute();
   }
 
-  globalUniformsBuffer.SubData(mainCameraUniforms, 0);
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
   // shading pass (full screen tri)
   {

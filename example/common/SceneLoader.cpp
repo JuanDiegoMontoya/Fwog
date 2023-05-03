@@ -399,15 +399,14 @@ namespace Utility
 
       Fwog::TextureUpdateInfo updateInfo
       {
-        .dimension = Fwog::UploadDimension::TWO,
         .level = 0,
         .offset = {},
-        .size = { dims.width, dims.height, 1 },
+        .extent = { dims.width, dims.height, 1 },
         .format = Fwog::UploadFormat::RGBA,
         .type = Fwog::UploadType::UBYTE,
         .pixels = image.image.data()
       };
-      textureData.SubImage(updateInfo);
+      textureData.UpdateImage(updateInfo);
       textureData.GenMipmaps();
       
       textures.emplace_back(std::move(textureData));
@@ -417,7 +416,7 @@ namespace Utility
     return std::make_pair(std::move(textures), std::move(samplers));
   }
 
-  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex, std::span<const Fwog::Texture> textures, std::span<const Fwog::Sampler> samplers)
+  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex, std::span<Fwog::Texture> textures, std::span<const Fwog::Sampler> samplers)
   {
     std::vector<Material> materials;
 

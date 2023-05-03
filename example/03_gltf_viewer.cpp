@@ -372,9 +372,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   mainCameraUniforms.proj = proj;
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
 
-  globalUniformsBuffer.SubData(mainCameraUniforms, 0);
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
-  shadowUniformsBuffer.SubDataTyped(shadowUniforms);
+  shadowUniformsBuffer.UpdateData(shadowUniforms);
 
   glm::vec3 eye = glm::vec3{shadingUniforms.sunDir * -5.f};
   float eyeWidth = 7.0f;
@@ -382,7 +382,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   shadingUniforms.sunProj = glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f);
   shadingUniforms.sunView = glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
   shadingUniforms.sunViewProj = shadingUniforms.sunProj * shadingUniforms.sunView;
-  shadingUniformsBuffer.SubData(shadingUniforms, 0);
+  shadingUniformsBuffer.UpdateData(shadingUniforms);
 
   // Render scene geometry to the g-buffer
   {
@@ -415,7 +415,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     {
       const auto& mesh = scene.meshes[i];
       const auto& material = scene.materials[mesh.materialIdx];
-      materialUniformsBuffer.SubData(material.gpuMaterial, 0);
+      materialUniformsBuffer.UpdateData(material.gpuMaterial);
       if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         const auto& textureSampler = material.albedoTextureSampler.value();
@@ -428,7 +428,8 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   }
   Fwog::EndRendering();
 
-  globalUniformsBuffer.SubData(shadingUniforms.sunViewProj, 0);
+  mainCameraUniforms.viewProj = shadingUniforms.sunViewProj;
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
   // Shadow map (RSM) scene pass
   {
@@ -462,7 +463,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     {
       const auto& mesh = scene.meshes[i];
       const auto& material = scene.materials[mesh.materialIdx];
-      materialUniformsBuffer.SubData(material.gpuMaterial, 0);
+      materialUniformsBuffer.UpdateData(material.gpuMaterial);
       if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         const auto& textureSampler = material.albedoTextureSampler.value();
@@ -475,10 +476,10 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   }
   Fwog::EndRendering();
 
-  globalUniformsBuffer.SubData(mainCameraUniforms, 0);
+  globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
   auto rsmCameraUniforms = RSM::CameraUniforms{
-    .viewProj = mainCameraUniforms.viewProj,
+    .viewProj = proj * mainCamera.GetViewMatrix(),
     .invViewProj = mainCameraUniforms.invViewProj,
     .proj = proj,
     .cameraPos = glm::vec4(mainCamera.position, 0),
