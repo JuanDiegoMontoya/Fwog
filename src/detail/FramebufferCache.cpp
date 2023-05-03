@@ -10,17 +10,18 @@ namespace Fwog::detail
     RenderAttachments attachments;
     for (const auto& colorAttachment : renderInfo.colorAttachments)
     {
-      attachments.colorAttachments.emplace_back(colorAttachment.texture->CreateInfo(), colorAttachment.texture->Handle());
+      attachments.colorAttachments.emplace_back(colorAttachment.texture->GetCreateInfo(),
+                                                detail::GetHandle(*colorAttachment.texture));
     }
     if (renderInfo.depthAttachment)
     {
-      attachments.depthAttachment.emplace(renderInfo.depthAttachment->texture->CreateInfo(),
-                                          renderInfo.depthAttachment->texture->Handle());
+      attachments.depthAttachment.emplace(renderInfo.depthAttachment->texture->GetCreateInfo(),
+                                          detail::GetHandle(*renderInfo.depthAttachment->texture));
     }
     if (renderInfo.stencilAttachment)
     {
-      attachments.stencilAttachment.emplace(renderInfo.stencilAttachment->texture->CreateInfo(),
-                                            renderInfo.stencilAttachment->texture->Handle());
+      attachments.stencilAttachment.emplace(renderInfo.stencilAttachment->texture->GetCreateInfo(),
+                                            detail::GetHandle(*renderInfo.stencilAttachment->texture));
     }
 
     for (size_t i = 0; i < framebufferCacheKey_.size(); i++)
@@ -72,7 +73,7 @@ namespace Fwog::detail
   // Must be called when a texture is deleted, otherwise the cache becomes invalid.
   void FramebufferCache::RemoveTexture(const Texture& texture)
   {
-    const TextureProxy texp = {texture.CreateInfo(), texture.Handle()};
+    const TextureProxy texp = {texture.GetCreateInfo(), detail::GetHandle(texture)};
 
     for (size_t i = 0; i < framebufferCacheKey_.size(); i++)
     {

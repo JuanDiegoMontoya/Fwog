@@ -153,19 +153,22 @@ namespace Fwog
                               Extent3D targetExtent,
                               Filter filter,
                               AspectMask aspect = AspectMaskBit::COLOR_BUFFER_BIT);
+  
+  struct CopyTextureInfo
+  {
+    const Texture& source;
+    Texture& target;
+    uint32_t sourceLevel = 0;
+    uint32_t targetLevel = 0;
+    Offset3D sourceOffset = {};
+    Offset3D targetOffset = {};
+    Extent3D extent = {};
+  };
 
   /// @brief Copies data between textures
   ///
   /// No format conversion is applied, as in memcpy.
-  void CopyTexture(const Texture& source,
-                   const Texture& target,
-                   uint32_t sourceLevel,
-                   uint32_t targetLevel,
-                   Offset3D sourceOffset,
-                   Offset3D targetOffset,
-                   Extent3D extent);
-
-  //void CopyBufferToImage
+  void CopyTexture(const CopyTextureInfo& copy);
   
   /// @brief Defines a barrier ordering memory transactions
   /// @param accessBits The barriers to insert
@@ -179,18 +182,67 @@ namespace Fwog
   /// See the ARB_texture_barrier spec for potential uses.
   void TextureBarrier(); // glTextureBarrier
 
-  /// @brief Convenience constant to allow binding the whole buffer in Cmd::BindUniformBuffer and Cmd::BindStorageBuffer
-  ///
-  /// If an offset is provided with this constant, then the range [offset, buffer.Size()) will be bound.
-  constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
+  /// @brief Parameters for CopyBuffer()
+  struct CopyBufferInfo
+  {
+    const Buffer& source;
+    Buffer& target;
+    uint64_t sourceOffset = 0;
+    uint64_t targetOffset = 0;
+    
+    /// @brief The amount of data to copy, in bytes. If size is WHOLE_BUFFER, the size of the source buffer is used.
+    uint64_t size = WHOLE_BUFFER;
+  };
 
   /// @brief Copies data between buffers
-  /// @param size The amount of data to copy, in bytes. If size is WHOLE_BUFFER, the size of the source buffer is used.
-  void CopyBuffer(const Buffer& source,
-                  const Buffer& target,
-                  uint32_t sourceOffset = 0,
-                  uint32_t targetOffset = 0,
-                  uint64_t size = WHOLE_BUFFER);
+  void CopyBuffer(const CopyBufferInfo& copy);
+
+  /// @brief Parameters for CopyTextureToBuffer
+  struct CopyTextureToBufferInfo
+  {
+    const Texture& sourceTexture;
+    Buffer& targetBuffer;
+    uint32_t level = 0;
+    Offset3D sourceOffset = {};
+    uint64_t targetOffset = {};
+    Extent3D extent = {};
+    UploadFormat format = UploadFormat::INFER_FORMAT;
+    UploadType type = UploadType::INFER_TYPE;
+    
+    /// @brief Specifies, in texels, the size of rows in the buffer (for 2D and 3D images). If zero, it is assumed to be tightly packed according to \p extent
+    uint32_t bufferRowLength = 0;
+    
+    /// @brief Specifies, in texels, the number of rows in the buffer (for 3D images. If zero, it is assumed to be tightly packed according to \p extent
+    uint32_t bufferImageHeight = 0;
+  };
+  
+  /// @brief Copies texture data into a buffer
+  void CopyTextureToBuffer(const CopyTextureToBufferInfo& copy);
+  
+  struct CopyBufferToTextureInfo
+  {
+    const Buffer& sourceBuffer;
+    Texture& targetTexture;
+    uint32_t level = 0;
+    uint64_t sourceOffset = {};
+    Offset3D targetOffset = {};
+    Extent3D extent = {};
+
+    /// @brief The arrangement of components of texels in the source buffer. DEPTH_STENCIL is not allowed here
+    UploadFormat format = UploadFormat::INFER_FORMAT;
+
+    /// @brief The data type of the texel data
+    UploadType type = UploadType::INFER_TYPE;
+
+    /// @brief Specifies, in texels, the size of rows in the buffer (for 2D and 3D images). If zero, it is assumed to be tightly packed according to \p extent
+    uint32_t bufferRowLength = 0;
+    
+    /// @brief Specifies, in texels, the number of rows in the buffer (for 3D images. If zero, it is assumed to be tightly packed according to \p extent
+    uint32_t bufferImageHeight = 0;
+  };
+
+  /// @brief Copes buffer data into a texture
+  void CopyBufferToTexture(const CopyBufferToTextureInfo& copy);
 
   /// @brief Functions that set pipeline state, binds resources, or issues draws or dispatches
   ///

@@ -50,6 +50,7 @@ namespace Fwog::detail
     case ImageType::TEX_1D_ARRAY:             return GL_TEXTURE_1D_ARRAY;
     case ImageType::TEX_2D_ARRAY:             return GL_TEXTURE_2D_ARRAY;
     case ImageType::TEX_CUBEMAP:              return GL_TEXTURE_CUBE_MAP;
+    case ImageType::TEX_CUBEMAP_ARRAY:        return GL_TEXTURE_CUBE_MAP_ARRAY;
     case ImageType::TEX_2D_MULTISAMPLE:       return GL_TEXTURE_2D_MULTISAMPLE;
     case ImageType::TEX_2D_MULTISAMPLE_ARRAY: return GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
     default: FWOG_UNREACHABLE; return 0;
@@ -212,14 +213,122 @@ namespace Fwog::detail
   GLint ComponentSwizzleToGL(ComponentSwizzle swizzle)
   {
     switch (swizzle)
-	  {
-		case Fwog::ComponentSwizzle::ZERO: return GL_ZERO;
+    {
+    case Fwog::ComponentSwizzle::ZERO: return GL_ZERO;
     case Fwog::ComponentSwizzle::ONE: return GL_ONE;
     case Fwog::ComponentSwizzle::R: return GL_RED;
     case Fwog::ComponentSwizzle::G: return GL_GREEN;
     case Fwog::ComponentSwizzle::B: return GL_BLUE;
     case Fwog::ComponentSwizzle::A: return GL_ALPHA;
     default: FWOG_UNREACHABLE; return 0;
+    }
+  }
+
+int ImageTypeToDimension(ImageType imageType)
+{
+  switch (imageType)
+  {
+  case Fwog::ImageType::TEX_1D:
+    return 1;
+  case Fwog::ImageType::TEX_2D: 
+  case Fwog::ImageType::TEX_2D_MULTISAMPLE:
+  case Fwog::ImageType::TEX_1D_ARRAY:
+    return 2;
+  case Fwog::ImageType::TEX_3D:
+  case Fwog::ImageType::TEX_2D_ARRAY:
+  case Fwog::ImageType::TEX_CUBEMAP:
+  case Fwog::ImageType::TEX_CUBEMAP_ARRAY:
+  case Fwog::ImageType::TEX_2D_MULTISAMPLE_ARRAY:
+    return 3;
+  default: FWOG_UNREACHABLE; return 0;
+  }
+}
+
+  UploadFormat FormatToUploadFormat(Format format)
+  {
+    switch (format)
+	  {
+    case Format::R8_UNORM:
+    case Format::R8_SNORM:
+    case Format::R16_UNORM:
+    case Format::R16_SNORM:
+    case Format::R16_FLOAT:
+    case Format::R32_FLOAT:
+      return UploadFormat::R;
+    case Format::R8_SINT:
+    case Format::R8_UINT:
+    case Format::R16_SINT:
+    case Format::R16_UINT:
+    case Format::R32_SINT:
+    case Format::R32_UINT:
+      return UploadFormat::R_INTEGER;
+    case Format::R8G8_UNORM:
+    case Format::R8G8_SNORM:
+    case Format::R16G16_UNORM:
+    case Format::R16G16_SNORM:
+    case Format::R16G16_FLOAT:
+    case Format::R32G32_FLOAT:
+      return UploadFormat::RG;
+    case Format::R8G8_SINT:
+    case Format::R8G8_UINT:
+    case Format::R16G16_SINT:
+    case Format::R16G16_UINT:
+    case Format::R32G32_SINT:
+    case Format::R32G32_UINT:
+      return UploadFormat::RG_INTEGER;
+    case Format::R3G3B2_UNORM:
+    case Format::R4G4B4_UNORM:
+    case Format::R5G5B5_UNORM:
+    case Format::R8G8B8_UNORM:
+    case Format::R8G8B8_SNORM:
+    case Format::R10G10B10_UNORM:
+    case Format::R12G12B12_UNORM:
+    case Format::R16G16B16_SNORM:
+    case Format::R8G8B8_SRGB:
+    case Format::R16G16B16_FLOAT:
+    case Format::R9G9B9_E5:
+    case Format::R32G32B32_FLOAT:
+    case Format::R11G11B10_FLOAT:
+      return UploadFormat::RGB;
+    case Format::R8G8B8_SINT:
+    case Format::R8G8B8_UINT:
+    case Format::R16G16B16_SINT:
+    case Format::R16G16B16_UINT:
+    case Format::R32G32B32_SINT:
+    case Format::R32G32B32_UINT:
+      return UploadFormat::RGB_INTEGER;
+    case Format::R2G2B2A2_UNORM:
+    case Format::R4G4B4A4_UNORM:
+    case Format::R5G5B5A1_UNORM:
+    case Format::R8G8B8A8_UNORM:
+    case Format::R8G8B8A8_SNORM:
+    case Format::R10G10B10A2_UNORM:
+    case Format::R12G12B12A12_UNORM:
+    case Format::R16G16B16A16_UNORM:
+    case Format::R16G16B16A16_SNORM:
+    case Format::R8G8B8A8_SRGB:
+    case Format::R16G16B16A16_FLOAT:
+    case Format::R32G32B32A32_FLOAT:
+      return UploadFormat::RGBA;
+    case Format::R10G10B10A2_UINT:
+    case Format::R8G8B8A8_SINT:
+    case Format::R8G8B8A8_UINT:
+    case Format::R16G16B16A16_SINT:
+    case Format::R16G16B16A16_UINT:
+    case Format::R32G32B32A32_SINT:
+    case Format::R32G32B32A32_UINT:
+      return UploadFormat::RGBA_INTEGER;
+    case Format::D32_FLOAT:
+    case Format::D32_UNORM:
+    case Format::D24_UNORM:
+    case Format::D16_UNORM:
+      return UploadFormat::DEPTH_COMPONENT;
+    case Format::D32_FLOAT_S8_UINT:
+    case Format::D24_UNORM_S8_UINT:
+      return UploadFormat::DEPTH_STENCIL;
+    //return UploadFormat::STENCIL_INDEX;
+    default: FWOG_UNREACHABLE; return {};
+    break;
 	  }
   }
 
@@ -320,12 +429,12 @@ namespace Fwog::detail
     }
   }
 
-GLenum DepthRangeToGL(ClipDepthRange depthRange)
-{
-  if (depthRange == ClipDepthRange::NegativeOneToOne)
-    return GL_NEGATIVE_ONE_TO_ONE;
-  return GL_ZERO_TO_ONE;
-}
+  GLenum DepthRangeToGL(ClipDepthRange depthRange)
+  {
+    if (depthRange == ClipDepthRange::NegativeOneToOne)
+      return GL_NEGATIVE_ONE_TO_ONE;
+    return GL_ZERO_TO_ONE;
+  }
 
   GLenum FormatToTypeGL(Format format)
   {
@@ -339,6 +448,8 @@ GLenum DepthRangeToGL(ClipDepthRange depthRange)
     case Format::R8G8_UINT:
     case Format::R8G8B8_UINT:
     case Format::R8G8B8A8_UINT:
+    case Format::R8G8B8A8_SRGB:
+    case Format::R8G8B8_SRGB:
       return GL_UNSIGNED_BYTE;
     case Format::R8_SNORM:
     case Format::R8G8_SNORM:

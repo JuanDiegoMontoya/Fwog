@@ -132,7 +132,7 @@ namespace Fwog
     TEX_1D_ARRAY,
     TEX_2D_ARRAY,
     TEX_CUBEMAP,
-    //TEX_CUBEMAP_ARRAY, // extremely cursed- do not use
+    TEX_CUBEMAP_ARRAY,
     TEX_2D_MULTISAMPLE,
     TEX_2D_MULTISAMPLE_ARRAY,
   };
@@ -234,13 +234,6 @@ namespace Fwog
     SAMPLES_16,
   };
 
-  enum class UploadDimension : uint32_t
-  {
-    ONE,
-    TWO,
-    THREE,
-  };
-
   enum class UploadFormat : uint32_t
   {
     UNDEFINED,
@@ -259,6 +252,9 @@ namespace Fwog
     DEPTH_COMPONENT,
     STENCIL_INDEX,
     DEPTH_STENCIL,
+
+    /// @brief For CopyTextureToBuffer and CopyBufferToTexture
+    INFER_FORMAT,
   };
 
   enum class UploadType : uint32_t
@@ -283,7 +279,15 @@ namespace Fwog
     UINT_8_8_8_8_REV,
     UINT_10_10_10_2,
     UINT_2_10_10_10_REV,
+    
+    /// @brief For CopyTextureToBuffer and CopyBufferToTexture
+    INFER_TYPE,
   };
+
+  /// @brief Convenience constant to allow binding the whole buffer in Cmd::BindUniformBuffer and Cmd::BindStorageBuffer
+  ///
+  /// If an offset is provided with this constant, then the range [offset, buffer.Size()) will be bound.
+  constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
 
   enum class Filter : uint8_t
   {

@@ -54,36 +54,31 @@ namespace Fwog
     }
   }
 
-  void Buffer::SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes) const
+  void Buffer::UpdateData(TriviallyCopyableByteSpan data, size_t destOffsetBytes)
   {
-    SubData(data.data(), data.size_bytes(), destOffsetBytes);
+    UpdateData(data.data(), data.size_bytes(), destOffsetBytes);
   }
 
-  void Buffer::SubData(const void* data, size_t size, size_t offset) const
+  void Buffer::UpdateData(const void* data, size_t size, size_t offset)
   {
     FWOG_ASSERT((storageFlags_ & BufferStorageFlag::DYNAMIC_STORAGE) &&
-                "SubData can only be called on buffers created with the DYNAMIC_STORAGE flag");
+                "UpdateData can only be called on buffers created with the DYNAMIC_STORAGE flag");
     FWOG_ASSERT(size + offset <= Size());
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
   }
 
-  void Buffer::ClearSubData(size_t offset,
-                            size_t size,
-                            Format internalFormat,
-                            UploadFormat uploadFormat,
-                            UploadType uploadType,
-                            const void* data) const
+  void Buffer::ClearSubData(const BufferClearInfo& clear)
   {
     glClearNamedBufferSubData(id_,
-                              detail::FormatToGL(internalFormat),
-                              offset,
-                              size,
-                              detail::UploadFormatToGL(uploadFormat),
-                              detail::UploadTypeToGL(uploadType),
-                              data);
+                              detail::FormatToGL(clear.internalFormat),
+                              clear.offset,
+                              clear.size,
+                              detail::UploadFormatToGL(clear.uploadFormat),
+                              detail::UploadTypeToGL(clear.uploadType),
+                              clear.data);
   }
 
-  void Buffer::Invalidate() const
+  void Buffer::Invalidate()
   {
     glInvalidateBufferData(id_);
   }

@@ -28,6 +28,10 @@ namespace Fwog::detail
 
   GLint ComponentSwizzleToGL(ComponentSwizzle swizzle);
 
+  int ImageTypeToDimension(ImageType imageType);
+
+  UploadFormat FormatToUploadFormat(Format format);
+
   ////////////////////////////////////////////////////////// pipeline
   GLenum CullModeToGL(CullMode mode);
   GLenum PolygonModeToGL(PolygonMode mode);

@@ -31,11 +31,21 @@ namespace Fwog
     }
   };
 
+  struct BufferClearInfo
+  {
+    uint64_t offset = 0;
+    uint64_t size = WHOLE_BUFFER;
+    Format internalFormat;
+    UploadFormat uploadFormat = UploadFormat::INFER_FORMAT;
+    UploadType uploadType = UploadType::INFER_TYPE;
+    const void* data = nullptr;
+  };
+
   enum class BufferStorageFlag : uint32_t
   {
     NONE = 0,
 
-    /// @brief Allows the user to update the buffer's contents with Buffer::SubData
+    /// @brief Allows the user to update the buffer's contents with Buffer::UpdateData
     DYNAMIC_STORAGE = 1 << 0,
 
     /// @brief Hints to the implementation to place the buffer storage in host memory
@@ -59,32 +69,33 @@ namespace Fwog
     Buffer& operator=(const Buffer&) = delete;
     ~Buffer();
 
-    void SubData(TriviallyCopyableByteSpan data, size_t destOffsetBytes = 0) const;
-    void ClearSubData(size_t offset,
-                      size_t size,
-                      Format internalFormat,
-                      UploadFormat uploadFormat,
-                      UploadType uploadType,
-                      const void* data) const;
+    void UpdateData(TriviallyCopyableByteSpan data, size_t destOffsetBytes = 0);
+
+    void ClearSubData(const BufferClearInfo& clear);
 
     /// @brief Gets a pointer that is mapped to the buffer's data store
     /// @return A pointer to mapped memory if the buffer was created with BufferStorageFlag::MAP_MEMORY, otherwise nullptr
-    [[nodiscard]] void* GetMappedPointer() const
+    [[nodiscard]] void* GetMappedPointer() noexcept
     {
       return mappedMemory_;
     }
 
-    [[nodiscard]] auto Handle() const
+    [[nodiscard]] const void* GetMappedPointer() const noexcept
+    {
+      return mappedMemory_;
+    }
+
+    [[nodiscard]] auto Handle() const noexcept
     {
       return id_;
     }
 
-    [[nodiscard]] auto Size() const
+    [[nodiscard]] auto Size() const noexcept
     {
       return size_;
     }
 
-    [[nodiscard]] bool IsMapped() const
+    [[nodiscard]] bool IsMapped() const noexcept
     {
       return mappedMemory_ != nullptr;
     }
@@ -92,12 +103,12 @@ namespace Fwog
     /// @brief Invalidates the content of the buffer's data store
     ///
     /// This call can be used to optimize driver synchronization in certain cases.
-    void Invalidate() const;
+    void Invalidate();
 
   protected:
     Buffer(const void* data, size_t size, BufferStorageFlags storageFlags);
 
-    void SubData(const void* data, size_t size, size_t offset = 0) const;
+    void UpdateData(const void* data, size_t size, size_t offset = 0);
 
     size_t size_{};
     BufferStorageFlags storageFlags_{};
@@ -105,7 +116,7 @@ namespace Fwog
     void* mappedMemory_{};
   };
 
-  /// @brief A buffer that provides typed operations
+  /// @brief A buffer that provides type-safe operations
   /// @tparam T A trivially copyable type
   template<class T>
     requires(std::is_trivially_copyable_v<T>)
@@ -131,19 +142,24 @@ namespace Fwog
     TypedBuffer(const TypedBuffer& other) = delete;
     TypedBuffer& operator=(const TypedBuffer&) = delete;
 
-    void SubDataTyped(const T& data, size_t startIndex = 0) const
+    void UpdateData(const T& data, size_t startIndex = 0)
     {
-      Buffer::SubData(data, sizeof(T) * startIndex);
+      Buffer::UpdateData(data, sizeof(T) * startIndex);
     }
 
-    void SubDataTyped(std::span<const T> data, size_t startIndex = 0) const
+    void UpdateData(std::span<const T> data, size_t startIndex = 0)
     {
-      Buffer::SubData(data, sizeof(T) * startIndex);
+      Buffer::UpdateData(data, sizeof(T) * startIndex);
     }
 
-    [[nodiscard]] void* GetMappedPointer() const = delete;
+    void UpdateData(TriviallyCopyableByteSpan data, size_t destOffsetBytes = 0) = delete;
 
-    [[nodiscard]] T* GetMappedPointerTyped() const
+    [[nodiscard]] T* GetMappedPointer() noexcept
+    {
+      return reinterpret_cast<T*>(mappedMemory_);
+    }
+
+    [[nodiscard]] const T* GetMappedPointer() const noexcept
     {
       return reinterpret_cast<T*>(mappedMemory_);
     }

@@ -114,7 +114,7 @@ static bool IsColorFormat(Fwog::Format format)
 
 static uint32_t MakeSingleTextureFbo(const Fwog::Texture& texture, Fwog::detail::FramebufferCache& fboCache)
 {
-  auto format = texture.CreateInfo().format;
+  auto format = texture.GetCreateInfo().format;
 
   auto depthStencil = Fwog::RenderDepthStencilAttachment{.texture = &texture};
   auto color = Fwog::RenderColorAttachment{.texture = &texture};
@@ -303,7 +303,7 @@ namespace Fwog
           context->lastColorMask[i] = ColorComponentFlag::RGBA_BITS;
         }
 
-        auto format = attachment.texture->CreateInfo().format;
+        auto format = attachment.texture->GetCreateInfo().format;
         auto baseTypeClass = detail::FormatToBaseTypeClass(format);
 
         auto& ccv = attachment.clearValue;
@@ -408,19 +408,19 @@ namespace Fwog
       Rect2D drawRect{.offset = {}, .extent = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()}};
       for (const auto& attachment : ri.colorAttachments)
       {
-        drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture->CreateInfo().extent.width);
-        drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture->CreateInfo().extent.height);
+        drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture->GetCreateInfo().extent.width);
+        drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture->GetCreateInfo().extent.height);
       }
       if (ri.depthAttachment)
       {
-        drawRect.extent.width = std::min(drawRect.extent.width, ri.depthAttachment->texture->CreateInfo().extent.width);
-        drawRect.extent.height = std::min(drawRect.extent.height, ri.depthAttachment->texture->CreateInfo().extent.height);
+        drawRect.extent.width = std::min(drawRect.extent.width, ri.depthAttachment->texture->GetCreateInfo().extent.width);
+        drawRect.extent.height = std::min(drawRect.extent.height, ri.depthAttachment->texture->GetCreateInfo().extent.height);
       }
       if (ri.stencilAttachment)
       {
-        drawRect.extent.width = std::min(drawRect.extent.width, ri.stencilAttachment->texture->CreateInfo().extent.width);
+        drawRect.extent.width = std::min(drawRect.extent.width, ri.stencilAttachment->texture->GetCreateInfo().extent.width);
         drawRect.extent.height =
-          std::min(drawRect.extent.height, ri.stencilAttachment->texture->CreateInfo().extent.height);
+          std::min(drawRect.extent.height, ri.stencilAttachment->texture->GetCreateInfo().extent.height);
       }
       viewport.drawRect = drawRect;
     }
@@ -546,29 +546,23 @@ namespace Fwog
                            detail::FilterToGL(filter));
   }
 
-  void CopyTexture(const Texture& source,
-                   const Texture& target,
-                   uint32_t sourceLevel,
-                   uint32_t targetLevel,
-                   Offset3D sourceOffset,
-                   Offset3D targetOffset,
-                   Extent3D extent)
+  void CopyTexture(const CopyTextureInfo& copy)
   {
-    glCopyImageSubData(source.Handle(),
+    glCopyImageSubData(detail::GetHandle(copy.source),
                        GL_TEXTURE,
-                       sourceLevel,
-                       sourceOffset.x,
-                       sourceOffset.y,
-                       sourceOffset.z,
-                       target.Handle(),
+                       copy.sourceLevel,
+                       copy.sourceOffset.x,
+                       copy.sourceOffset.y,
+                       copy.sourceOffset.z,
+                       copy.target.Handle(),
                        GL_TEXTURE,
-                       targetLevel,
-                       targetOffset.x,
-                       targetOffset.y,
-                       targetOffset.z,
-                       extent.width,
-                       extent.height,
-                       extent.depth);
+                       copy.targetLevel,
+                       copy.targetOffset.x,
+                       copy.targetOffset.y,
+                       copy.targetOffset.z,
+                       copy.extent.width,
+                       copy.extent.height,
+                       copy.extent.depth);
   }
 
   void MemoryBarrier(MemoryBarrierBits accessBits)
@@ -581,18 +575,78 @@ namespace Fwog
     glTextureBarrier();
   }
 
-  void CopyBuffer(const Buffer& source, const Buffer& target, uint32_t sourceOffset, uint32_t targetOffset, uint64_t size)
+  void CopyBuffer(const CopyBufferInfo& copy)
   {
+    auto size = copy.size;
     if (size == WHOLE_BUFFER)
     {
-      size = source.Size() - sourceOffset;
+      size = copy.source.Size() - copy.sourceOffset;
     }
 
-    glCopyNamedBufferSubData(source.Handle(),
-                             target.Handle(),
-                             static_cast<GLintptr>(sourceOffset),
-                             static_cast<GLintptr>(targetOffset),
+    glCopyNamedBufferSubData(copy.source.Handle(),
+                             copy.target.Handle(),
+                             static_cast<GLintptr>(copy.sourceOffset),
+                             static_cast<GLintptr>(copy.targetOffset),
                              static_cast<GLsizeiptr>(size));
+  }
+
+  void CopyTextureToBuffer(const CopyTextureToBufferInfo& copy)
+  {
+    glPixelStorei(GL_PACK_ROW_LENGTH, copy.bufferRowLength);
+    glPixelStorei(GL_PACK_IMAGE_HEIGHT, copy.bufferImageHeight);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, copy.targetBuffer.Handle());
+
+    GLenum format{};
+    if (copy.format == UploadFormat::INFER_FORMAT)
+    {
+      format = detail::UploadFormatToGL(detail::FormatToUploadFormat(copy.sourceTexture.GetCreateInfo().format));
+    }
+    else
+    {
+      format = detail::UploadFormatToGL(copy.format);
+    }
+
+    GLenum type{};
+    if (copy.type == UploadType::INFER_TYPE)
+    {
+      type = detail::FormatToTypeGL(copy.sourceTexture.GetCreateInfo().format);
+    }
+    else
+    {
+      type = detail::UploadTypeToGL(copy.type);
+    }
+
+    glGetTextureSubImage(const_cast<Texture&>(copy.sourceTexture).Handle(),
+                         copy.level,
+                         copy.sourceOffset.x,
+                         copy.sourceOffset.z,
+                         copy.sourceOffset.z,
+                         copy.extent.width,
+                         copy.extent.height,
+                         copy.extent.depth,
+                         format,
+                         type,
+                         static_cast<GLsizei>(copy.targetBuffer.Size()),
+                         reinterpret_cast<void*>(static_cast<uintptr_t>(copy.targetOffset)));
+  }
+
+  void CopyBufferToTexture(const CopyBufferToTextureInfo& copy)
+  {
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, copy.bufferRowLength);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, copy.bufferImageHeight);
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, copy.sourceBuffer.Handle());
+
+    const_cast<Texture&>(copy.targetTexture)
+      .subImageInternal({copy.level,
+                         copy.targetOffset,
+                         copy.extent,
+                         copy.format,
+                         copy.type,
+                         reinterpret_cast<void*>(static_cast<uintptr_t>(copy.sourceOffset)),
+                         copy.bufferRowLength,
+                         copy.bufferImageHeight});
   }
 
   namespace Cmd
@@ -1042,23 +1096,23 @@ namespace Fwog
     {
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
 
-      glBindTextureUnit(index, texture.Handle());
+      glBindTextureUnit(index, const_cast<Texture&>(texture).Handle());
       glBindSampler(index, sampler.Handle());
     }
 
     void BindImage(uint32_t index, const Texture& texture, uint32_t level)
     {
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
-      FWOG_ASSERT(level < texture.CreateInfo().mipLevels);
-      FWOG_ASSERT(IsValidImageFormat(texture.CreateInfo().format));
+      FWOG_ASSERT(level < texture.GetCreateInfo().mipLevels);
+      FWOG_ASSERT(IsValidImageFormat(texture.GetCreateInfo().format));
 
       glBindImageTexture(index,
-                         texture.Handle(),
+                         const_cast<Texture&>(texture).Handle(),
                          level,
                          GL_TRUE,
                          0,
                          GL_READ_WRITE,
-                         detail::FormatToGL(texture.CreateInfo().format));
+                         detail::FormatToGL(texture.GetCreateInfo().format));
     }
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
