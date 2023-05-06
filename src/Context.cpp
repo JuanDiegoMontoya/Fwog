@@ -59,6 +59,8 @@ namespace Fwog
     glGetIntegerv(GL_MAX_FRAMEBUFFER_HEIGHT, &limits.maxFramebufferHeight);
     glGetIntegerv(GL_MAX_FRAMEBUFFER_LAYERS, &limits.maxFramebufferLayers);
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &limits.maxColorAttachments);
+    glGetIntegerv(GL_MAX_SAMPLES, &limits.maxSamples);
+    glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &limits.maxSamplesNoAttachments);
 
     glGetFloatv(GL_MIN_FRAGMENT_INTERPOLATION_OFFSET, &limits.interpolationOffsetRange[0]);
     glGetFloatv(GL_MAX_FRAGMENT_INTERPOLATION_OFFSET, &limits.interpolationOffsetRange[1]);

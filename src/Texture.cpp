@@ -100,7 +100,7 @@ namespace Fwog
                                     detail::FormatToGL(createInfo.format),
                                     createInfo.extent.width,
                                     createInfo.extent.height,
-                                    GL_FALSE);
+                                    GL_TRUE);
       break;
     case ImageType::TEX_2D_MULTISAMPLE_ARRAY:
       glTextureStorage3DMultisample(id_,
@@ -109,9 +109,9 @@ namespace Fwog
                                     createInfo.extent.width,
                                     createInfo.extent.height,
                                     createInfo.arrayLayers,
-                                    GL_FALSE);
+                                    GL_TRUE);
       break;
-    default: break;
+    default: FWOG_UNREACHABLE; break;
     }
 
     if (!name.empty())

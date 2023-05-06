@@ -26,6 +26,7 @@ namespace Fwog::detail
           },
         .tessellationState = info.tessellationState,
         .rasterizationState = info.rasterizationState,
+        .multisampleState = info.multisampleState,
         .depthState = info.depthState,
         .stencilState = info.stencilState,
         .colorBlendState{

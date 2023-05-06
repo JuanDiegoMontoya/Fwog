@@ -34,7 +34,6 @@ namespace Fwog
     uint32_t patchControlPoints; // glPatchParameteri(GL_PATCH_VERTICES, ...)
   };
 
-  // TODO: see what rasterization state can be dynamic instead
   struct RasterizationState
   {
     bool depthClampEnable         = false;
@@ -44,19 +43,24 @@ namespace Fwog
     bool depthBiasEnable          = false;
     float depthBiasConstantFactor = 0;
     float depthBiasSlopeFactor    = 0;
-    //float depthBiasClamp; // no equivalent core OpenGL function
     float lineWidth               = 1; // glLineWidth
     float pointSize               = 1; // glPointSize
   };
 
+  struct MultisampleState
+  {
+    bool sampleShadingEnable   = false;      // glEnable(GL_SAMPLE_SHADING)
+    float minSampleShading     = 1;          // glMinSampleShading
+    uint32_t sampleMask        = 0xFFFFFFFF; // glSampleMaski
+    bool alphaToCoverageEnable = false;      // glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE)
+    bool alphaToOneEnable      = false;      // glEnable(GL_SAMPLE_ALPHA_TO_ONE)
+};
+
   struct DepthState
   {
-    bool depthTestEnable     = false;            // gl{Enable, Disable}(GL_DEPTH_TEST)
-    bool depthWriteEnable    = false;            // glDepthMask(depthWriteEnable)
+    bool depthTestEnable     = false;           // gl{Enable, Disable}(GL_DEPTH_TEST)
+    bool depthWriteEnable    = false;           // glDepthMask(depthWriteEnable)
     CompareOp depthCompareOp = CompareOp::LESS; // glDepthFunc
-    //bool depthBoundsTestEnable; // no equivalent core OpenGL function
-    //float minDepthBounds;       // ???
-    //float maxDepthBounds;       // ???
   };
 
   struct StencilOpState
@@ -123,6 +127,7 @@ namespace Fwog
     VertexInputState vertexInputState     = {};
     TessellationState tessellationState   = {};
     RasterizationState rasterizationState = {};
+    MultisampleState multisampleState     = {};
     DepthState depthState                 = {};
     StencilState stencilState             = {};
     ColorBlendState colorBlendState       = {};

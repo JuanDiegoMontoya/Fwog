@@ -769,6 +769,34 @@ namespace Fwog
         glPointSize(rs.pointSize);
       }
 
+      //////////////////////////////////////////////////////////////// multisample
+      const auto& ms = pipelineState->multisampleState;
+      if (!context->lastGraphicsPipeline || ms.sampleShadingEnable != context->lastGraphicsPipeline->multisampleState.sampleShadingEnable)
+      {
+        GLEnableOrDisable(GL_SAMPLE_SHADING, ms.sampleShadingEnable);
+      }
+
+      if (!context->lastGraphicsPipeline || ms.minSampleShading != context->lastGraphicsPipeline->multisampleState.minSampleShading)
+      {
+        glMinSampleShading(ms.minSampleShading);
+      }
+
+      if (!context->lastGraphicsPipeline || ms.sampleMask != context->lastGraphicsPipeline->multisampleState.sampleMask)
+      {
+        GLEnableOrDisable(GL_SAMPLE_MASK, ms.sampleMask != 0xFFFFFFFF);
+        glSampleMaski(0, ms.sampleMask);
+      }
+      
+      if (!context->lastGraphicsPipeline || ms.alphaToCoverageEnable != context->lastGraphicsPipeline->multisampleState.alphaToCoverageEnable)
+      {
+        GLEnableOrDisable(GL_SAMPLE_ALPHA_TO_COVERAGE, ms.alphaToCoverageEnable);
+      }
+
+      if (!context->lastGraphicsPipeline || ms.alphaToOneEnable != context->lastGraphicsPipeline->multisampleState.alphaToOneEnable)
+      {
+        GLEnableOrDisable(GL_SAMPLE_ALPHA_TO_ONE, ms.alphaToOneEnable);
+      }
+
       //////////////////////////////////////////////////////////////// depth + stencil
       const auto& ds = pipelineState->depthState;
       if (!context->lastGraphicsPipeline || ds.depthTestEnable != context->lastGraphicsPipeline->depthState.depthTestEnable)

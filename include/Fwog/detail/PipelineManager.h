@@ -27,6 +27,7 @@ namespace Fwog::detail
     VertexInputStateOwning vertexInputState;
     TessellationState tessellationState;
     RasterizationState rasterizationState;
+    MultisampleState multisampleState;
     DepthState depthState;
     StencilState stencilState;
     ColorBlendStateOwning colorBlendState;

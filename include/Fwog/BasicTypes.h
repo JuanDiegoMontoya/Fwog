@@ -225,13 +225,14 @@ namespace Fwog
   };
 
   // multisampling and anisotropy
-  enum class SampleCount : uint8_t
+  enum class SampleCount : uint32_t
   {
-    SAMPLES_1,
-    SAMPLES_2,
-    SAMPLES_4,
-    SAMPLES_8,
-    SAMPLES_16,
+    SAMPLES_1  = 1,
+    SAMPLES_2  = 2,
+    SAMPLES_4  = 4,
+    SAMPLES_8  = 8,
+    SAMPLES_16 = 16,
+    SAMPLES_32 = 32,
   };
 
   enum class UploadFormat : uint32_t
@@ -289,14 +290,14 @@ namespace Fwog
   /// If an offset is provided with this constant, then the range [offset, buffer.Size()) will be bound.
   constexpr inline uint64_t WHOLE_BUFFER = static_cast<uint64_t>(-1);
 
-  enum class Filter : uint8_t
+  enum class Filter : uint32_t
   {
     NONE,
     NEAREST,
     LINEAR,
   };
 
-  enum class AddressMode : uint8_t
+  enum class AddressMode : uint32_t
   {
     REPEAT,
     MIRRORED_REPEAT,
@@ -305,7 +306,7 @@ namespace Fwog
     MIRROR_CLAMP_TO_EDGE,
   };
 
-  enum class BorderColor : uint8_t
+  enum class BorderColor : uint32_t
   {
     FLOAT_TRANSPARENT_BLACK,
     INT_TRANSPARENT_BLACK,
@@ -357,7 +358,7 @@ namespace Fwog
     COUNTERCLOCKWISE,
   };
 
-  enum class CompareOp : uint8_t
+  enum class CompareOp : uint32_t
   {
     NEVER,
     LESS,

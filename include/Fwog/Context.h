@@ -22,15 +22,13 @@ namespace Fwog
     int32_t maxFramebufferHeight; // GL_MAX_FRAMEBUFFER_HEIGHT
     int32_t maxFramebufferLayers; // GL_MAX_FRAMEBUFFER_LAYERS
     int32_t maxColorAttachments;  // GL_MAX_COLOR_ATTACHMENTS
+    int32_t maxSamples;              // GL_MAX_SAMPLES
+    int32_t maxSamplesNoAttachments; // GL_MAX_FRAMEBUFFER_SAMPLES
 
     float interpolationOffsetRange[2]; // GL_MIN_FRAGMENT_INTERPOLATION_OFFSET & GL_MAX_FRAGMENT_INTERPOLATION_OFFSET
     float pointSizeGranularity;        // GL_POINT_SIZE_GRANULARITY
     float pointSizeRange[2];           // GL_POINT_SIZE_RANGE
     float lineWidthRange[2];           // GL_ALIASED_LINE_WIDTH_RANGE
-
-    // Uncomment if multisampling is added
-    // int32_t maxFramebufferSamples; // GL_MAX_FRAMEBUFFER_SAMPLES
-    // int32_t maxSampleMaskWords; // GL_MAX_SAMPLE_MASK_WORDS
 
     int32_t maxElementIndex;               // GL_MAX_ELEMENT_INDEX
     int32_t maxVertexAttribs;              // GL_MAX_VERTEX_ATTRIBS

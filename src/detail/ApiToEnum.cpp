@@ -206,6 +206,7 @@ namespace Fwog::detail
     case SampleCount::SAMPLES_4: return 4;
     case SampleCount::SAMPLES_8: return 8;
     case SampleCount::SAMPLES_16: return 16;
+    case SampleCount::SAMPLES_32: return 32;
     default: FWOG_UNREACHABLE; return 0;
     }
   }
