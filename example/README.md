@@ -3,7 +3,7 @@
 ## 01_hello_triangle
 
 A simple example showing how to render an RGB triangle.
-![hello_triangle](media/hello_triangle.png "A large triangle with red, blue, and green vertices with a violet background")
+![hello_triangle](media/hello_triangle.png "A large triangle with red, blue, and green vertices on a magenta background")
 
 ## 02_deferred
 
@@ -24,3 +24,8 @@ A ray-marched volumetric fog implementation using a frustum-aligned 3D grid. Sup
 
 An example using bindless textures, GPU-driven fragment shader occlusion culling, and indirect multidraw to minimize draw calls.
 ![gpu_driven](media/gpu_driven.png "A forest scene with wireframe bounding boxes around each object")
+
+## 06_msaa
+
+Shows how to render a spinning triangle to a multisample image and resolve it.
+![msaa](media/msaa.png "An RGB triangle with smooth, antialiased edges on a magenta background")
