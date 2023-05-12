@@ -1,6 +1,5 @@
 #include "SceneLoader.h"
 #include <iostream>
-#include <bit>
 #include <numeric>
 #include <execution>
 #include <stack>
@@ -132,7 +131,7 @@ namespace Utility
     {
       int x, y, comp;
       stbi_info_from_memory(bytes, size, &x, &y, &comp);
-      auto* data = reinterpret_cast<std::vector<RawImageData>*>(user_data);
+      auto* data = static_cast<std::vector<RawImageData>*>(user_data);
       auto* bytes2 = new unsigned char[size];
       memcpy(bytes2, bytes, size);
       data->emplace_back(RawImageData{image_idx, err, warn, req_width, req_height, bytes2, size});
@@ -573,8 +572,7 @@ namespace Utility
       if (node->mesh >= 0)
       {
         // TODO: get a reference to the mesh instead of loading it from scratch
-        const tinygltf::Mesh& mesh = model.meshes[node->mesh];
-        for (const auto& primitive : mesh.primitives)
+        for (const tinygltf::Mesh& mesh = model.meshes[node->mesh]; const auto& primitive : mesh.primitives)
         {
           auto vertices = ConvertVertexBufferFormat(model, primitive);
           auto indices = ConvertIndexBufferFormat(model, primitive);

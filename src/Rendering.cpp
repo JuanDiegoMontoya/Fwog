@@ -195,6 +195,7 @@ namespace Fwog
         context->lastColorMask[0] = ColorComponentFlag::RGBA_BITS;
       }
       glClearNamedFramebufferfv(0, GL_COLOR, 0, std::get_if<std::array<float, 4>>(&ri.clearColorValue.data)->data());
+      break;
     }
     case AttachmentLoadOp::DONT_CARE:
     {
@@ -216,6 +217,7 @@ namespace Fwog
         context->lastDepthMask = true;
       }
       glClearNamedFramebufferfv(0, GL_DEPTH, 0, &ri.clearDepthValue);
+      break;
     }
     case AttachmentLoadOp::DONT_CARE:
     {
@@ -238,6 +240,7 @@ namespace Fwog
         context->lastStencilMask[1] = true;
       }
       glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
+      break;
     }
     case AttachmentLoadOp::DONT_CARE:
     {
@@ -414,11 +417,13 @@ namespace Fwog
       if (ri.depthAttachment)
       {
         drawRect.extent.width = std::min(drawRect.extent.width, ri.depthAttachment->texture->GetCreateInfo().extent.width);
-        drawRect.extent.height = std::min(drawRect.extent.height, ri.depthAttachment->texture->GetCreateInfo().extent.height);
+        drawRect.extent.height =
+          std::min(drawRect.extent.height, ri.depthAttachment->texture->GetCreateInfo().extent.height);
       }
       if (ri.stencilAttachment)
       {
-        drawRect.extent.width = std::min(drawRect.extent.width, ri.stencilAttachment->texture->GetCreateInfo().extent.width);
+        drawRect.extent.width =
+          std::min(drawRect.extent.width, ri.stencilAttachment->texture->GetCreateInfo().extent.width);
         drawRect.extent.height =
           std::min(drawRect.extent.height, ri.stencilAttachment->texture->GetCreateInfo().extent.height);
       }
@@ -771,12 +776,14 @@ namespace Fwog
 
       //////////////////////////////////////////////////////////////// multisample
       const auto& ms = pipelineState->multisampleState;
-      if (!context->lastGraphicsPipeline || ms.sampleShadingEnable != context->lastGraphicsPipeline->multisampleState.sampleShadingEnable)
+      if (!context->lastGraphicsPipeline ||
+          ms.sampleShadingEnable != context->lastGraphicsPipeline->multisampleState.sampleShadingEnable)
       {
         GLEnableOrDisable(GL_SAMPLE_SHADING, ms.sampleShadingEnable);
       }
 
-      if (!context->lastGraphicsPipeline || ms.minSampleShading != context->lastGraphicsPipeline->multisampleState.minSampleShading)
+      if (!context->lastGraphicsPipeline ||
+          ms.minSampleShading != context->lastGraphicsPipeline->multisampleState.minSampleShading)
       {
         glMinSampleShading(ms.minSampleShading);
       }
@@ -786,13 +793,15 @@ namespace Fwog
         GLEnableOrDisable(GL_SAMPLE_MASK, ms.sampleMask != 0xFFFFFFFF);
         glSampleMaski(0, ms.sampleMask);
       }
-      
-      if (!context->lastGraphicsPipeline || ms.alphaToCoverageEnable != context->lastGraphicsPipeline->multisampleState.alphaToCoverageEnable)
+
+      if (!context->lastGraphicsPipeline ||
+          ms.alphaToCoverageEnable != context->lastGraphicsPipeline->multisampleState.alphaToCoverageEnable)
       {
         GLEnableOrDisable(GL_SAMPLE_ALPHA_TO_COVERAGE, ms.alphaToCoverageEnable);
       }
 
-      if (!context->lastGraphicsPipeline || ms.alphaToOneEnable != context->lastGraphicsPipeline->multisampleState.alphaToOneEnable)
+      if (!context->lastGraphicsPipeline ||
+          ms.alphaToOneEnable != context->lastGraphicsPipeline->multisampleState.alphaToOneEnable)
       {
         GLEnableOrDisable(GL_SAMPLE_ALPHA_TO_ONE, ms.alphaToOneEnable);
       }

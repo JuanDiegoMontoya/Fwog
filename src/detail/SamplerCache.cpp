@@ -27,11 +27,13 @@ namespace Fwog::detail
     GLint minFilter{};
     switch (samplerState.mipmapFilter)
     {
-    case (Filter::NONE): minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST; break;
-    case (Filter::NEAREST):
+    case Filter::NONE:
+      minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+      break;
+    case Filter::NEAREST:
       minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
       break;
-    case (Filter::LINEAR):
+    case Filter::LINEAR:
       minFilter = samplerState.minFilter == Filter::LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
       break;
     default: FWOG_UNREACHABLE;
@@ -101,7 +103,7 @@ namespace Fwog::detail
 
   size_t SamplerCache::Size() const
   {
-    return size_t();
+    return samplerCache_.size();
   }
 
   void SamplerCache::Clear()
@@ -115,7 +117,7 @@ namespace Fwog::detail
   }
 } // namespace Fwog::detail
 
-std::size_t std::hash<Fwog::SamplerState>::operator()(const Fwog::SamplerState& k) const
+std::size_t std::hash<Fwog::SamplerState>::operator()(const Fwog::SamplerState& k) const noexcept
 {
   auto rtup = std::make_tuple(k.minFilter,
                               k.magFilter,

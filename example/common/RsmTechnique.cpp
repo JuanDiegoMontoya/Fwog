@@ -250,7 +250,7 @@ namespace RSM
           Fwog::Cmd::BindSampledImage(0, gDepth, nearestSampler);
           Fwog::Cmd::BindImage(0, gDepthSmall.value(), 0);
           Fwog::Cmd::DispatchInvocations(workSize);
-
+          
           Fwog::Cmd::BindSampledImage(0, gDepthPrev, nearestSampler);
           Fwog::Cmd::BindImage(0, gDepthPrevSmall.value(), 0);
           Fwog::Cmd::DispatchInvocations(workSize);

@@ -498,8 +498,8 @@ namespace Fwog
 
   enum class ClipDepthRange
   {
-    NegativeOneToOne, // OpenGL default
-    ZeroToOne         // D3D and Vulkan
+    NEGATIVE_ONE_TO_ONE, // OpenGL default
+    ZERO_TO_ONE         // D3D and Vulkan
   };
   // clang-format on
 } // namespace Fwog

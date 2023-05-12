@@ -432,7 +432,7 @@ int ImageTypeToDimension(ImageType imageType)
 
   GLenum DepthRangeToGL(ClipDepthRange depthRange)
   {
-    if (depthRange == ClipDepthRange::NegativeOneToOne)
+    if (depthRange == ClipDepthRange::NEGATIVE_ONE_TO_ONE)
       return GL_NEGATIVE_ONE_TO_ONE;
     return GL_ZERO_TO_ONE;
   }
@@ -757,6 +757,7 @@ int ImageTypeToDimension(ImageType imageType)
     case PrimitiveTopology::TRIANGLE_LIST: return GL_TRIANGLES;
     case PrimitiveTopology::TRIANGLE_STRIP: return GL_TRIANGLE_STRIP;
     case PrimitiveTopology::TRIANGLE_FAN: return GL_TRIANGLE_FAN;
+    case PrimitiveTopology::PATCH_LIST: return GL_PATCHES;
     default: FWOG_UNREACHABLE; return 0;
     }
   }

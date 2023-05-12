@@ -52,8 +52,6 @@
 #include <stb_image.h>
 
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 
 ////////////////////////////////////// Types
 
@@ -140,7 +138,7 @@ static constexpr std::array<Fwog::VertexInputBindingDescription, 3> sceneInputBi
   },
 };
 
-Fwog::GraphicsPipeline CreateScenePipeline()
+static Fwog::GraphicsPipeline CreateScenePipeline()
 {
   auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
   auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.frag.glsl"));
@@ -153,7 +151,7 @@ Fwog::GraphicsPipeline CreateScenePipeline()
   });
 }
 
-Fwog::GraphicsPipeline CreateShadowPipeline()
+static Fwog::GraphicsPipeline CreateShadowPipeline()
 {
   auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
 
@@ -170,7 +168,7 @@ Fwog::GraphicsPipeline CreateShadowPipeline()
   });
 }
 
-Fwog::GraphicsPipeline CreateShadingPipeline()
+static Fwog::GraphicsPipeline CreateShadingPipeline()
 {
   auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
   auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/ShadeDeferredSimple.frag.glsl"));
@@ -183,7 +181,7 @@ Fwog::GraphicsPipeline CreateShadingPipeline()
   });
 }
 
-Fwog::GraphicsPipeline CreateDebugTexturePipeline()
+static Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 {
   auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
   auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/Texture.frag.glsl"));
@@ -196,19 +194,19 @@ Fwog::GraphicsPipeline CreateDebugTexturePipeline()
   });
 }
 
-Fwog::ComputePipeline CreateCopyToEsmPipeline()
+static Fwog::ComputePipeline CreateCopyToEsmPipeline()
 {
   auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
-Fwog::ComputePipeline CreateGaussianBlurPipeline()
+static Fwog::ComputePipeline CreateGaussianBlurPipeline()
 {
   auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
-Fwog::ComputePipeline CreatePostprocessingPipeline()
+static Fwog::ComputePipeline CreatePostprocessingPipeline()
 {
   auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
@@ -540,9 +538,9 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
   }
 
   std::vector<ObjectUniforms> meshUniforms;
-  for (size_t i = 0; i < scene.meshes.size(); i++)
+  for (const auto& mesh : scene.meshes)
   {
-    meshUniforms.push_back({scene.meshes[i].transform});
+    meshUniforms.push_back({mesh.transform});
   }
 
   std::vector<Light> lights;
@@ -557,7 +555,7 @@ VolumetricApplication::VolumetricApplication(const Application::CreateInfo& crea
 
   int x = 0;
   int y = 0;
-  auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
+  const auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
   assert(noise);
   noiseTexture = Fwog::CreateTexture2D({static_cast<uint32_t>(x), static_cast<uint32_t>(y)}, Fwog::Format::R8G8B8A8_UNORM);
   noiseTexture->UpdateImage({
@@ -628,7 +626,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   auto sceneViewport = Fwog::Viewport{
     .drawRect = {.extent=frame.gAlbedo->Extent()},
-    .depthRange = Fwog::ClipDepthRange::ZeroToOne,
+    .depthRange = Fwog::ClipDepthRange::ZERO_TO_ONE,
   };
 
   // geometry buffer pass
@@ -690,7 +688,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
     auto shadowViewport = Fwog::Viewport{
       .drawRect = {.extent = shadowDepth.Extent()},
-      .depthRange = Fwog::ClipDepthRange::ZeroToOne,
+      .depthRange = Fwog::ClipDepthRange::ZERO_TO_ONE,
     };
     Fwog::RenderInfo shadowRenderInfo{
       .viewport = &shadowViewport,

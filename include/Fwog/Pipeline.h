@@ -147,7 +147,7 @@ namespace Fwog
   struct GraphicsPipeline
   {
     /// @throws PipelineCompilationException
-    GraphicsPipeline(const GraphicsPipelineInfo& info);
+    explicit GraphicsPipeline(const GraphicsPipelineInfo& info);
     ~GraphicsPipeline();
     GraphicsPipeline(GraphicsPipeline&& old) noexcept;
     GraphicsPipeline& operator=(GraphicsPipeline&& old) noexcept;
@@ -171,7 +171,7 @@ namespace Fwog
   struct ComputePipeline
   {
     /// @throws PipelineCompilationException
-    ComputePipeline(const ComputePipelineInfo& info);
+    explicit ComputePipeline(const ComputePipelineInfo& info);
     ~ComputePipeline();
     ComputePipeline(ComputePipeline&& old) noexcept;
     ComputePipeline& operator=(ComputePipeline&& old) noexcept;

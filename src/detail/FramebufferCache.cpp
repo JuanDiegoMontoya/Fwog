@@ -119,7 +119,7 @@ namespace Fwog::detail
         return false;
     }
 
-    // Nullness of the attachments differ
+    // Nullity of the attachments differ
     if ((depthAttachment && !rhs.depthAttachment) || (!depthAttachment && rhs.depthAttachment))
       return false;
     // Both attachments are non-null, but have different values

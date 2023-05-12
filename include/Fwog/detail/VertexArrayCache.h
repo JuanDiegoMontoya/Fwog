@@ -10,11 +10,24 @@ namespace Fwog::detail
   class VertexArrayCache
   {
   public:
+    VertexArrayCache() = default;
+    VertexArrayCache(const VertexArrayCache&) = delete;
+    VertexArrayCache& operator=(const VertexArrayCache&) = delete;
+    VertexArrayCache(VertexArrayCache&&) noexcept = default;
+    VertexArrayCache& operator=(VertexArrayCache&&) noexcept = default;
+
+    ~VertexArrayCache()
+    {
+      Clear();
+    }
+
     uint32_t CreateOrGetCachedVertexArray(const VertexInputStateOwning& inputState);
-    size_t Size() const
+
+    [[nodiscard]] size_t Size() const
     {
       return vertexArrayCache_.size();
     }
+
     void Clear();
 
   private:

@@ -22,7 +22,7 @@ namespace Fwog
   /// the render target format may result in undefined behavior.
   struct ClearColorValue
   {
-    ClearColorValue() {};
+    ClearColorValue() = default;
 
     template<typename... Args>
     requires (sizeof...(Args) <= 4)
@@ -74,7 +74,7 @@ namespace Fwog
     float maxDepth = 1.0f; // glDepthRangef
     ClipDepthRange depthRange = // glClipControl
 #ifdef FWOG_DEFAULT_CLIP_DEPTH_RANGE_NEGATIVE_ONE_TO_ONE
-      Fwog::ClipDepthRange::NegativeOneToOne;
+      Fwog::ClipDepthRange::NEGATIVE_ONE_TO_ONE;
 #else
       Fwog::ClipDepthRange::ZeroToOne;
 #endif

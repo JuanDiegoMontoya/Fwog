@@ -62,10 +62,10 @@ namespace Fwog
   public:
     explicit Buffer(size_t size, BufferStorageFlags storageFlags = BufferStorageFlag::NONE);
     explicit Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE);
-
-    Buffer(Buffer&& other) noexcept;
-    Buffer& operator=(Buffer&& other) noexcept;
-    Buffer(const Buffer& other) = delete;
+    
+    Buffer(Buffer&& old) noexcept;
+    Buffer& operator=(Buffer&& old) noexcept;
+    Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
     ~Buffer();
 
@@ -156,12 +156,12 @@ namespace Fwog
 
     [[nodiscard]] T* GetMappedPointer() noexcept
     {
-      return reinterpret_cast<T*>(mappedMemory_);
+      return static_cast<T*>(mappedMemory_);
     }
 
     [[nodiscard]] const T* GetMappedPointer() const noexcept
     {
-      return reinterpret_cast<T*>(mappedMemory_);
+      return static_cast<T*>(mappedMemory_);
     }
 
   private:

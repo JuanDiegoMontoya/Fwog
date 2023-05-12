@@ -3,7 +3,6 @@
 #include "Fwog/Texture.h"
 
 #include <cstdint>
-#include <unordered_map>
 #include <vector>
 #include <optional>
 
@@ -29,9 +28,15 @@ namespace Fwog::detail
   class FramebufferCache
   {
   public:
+    FramebufferCache() = default;
+    FramebufferCache(const FramebufferCache&) = delete;
+    FramebufferCache& operator=(const FramebufferCache&) = delete;
+    FramebufferCache(FramebufferCache&&) noexcept = default;
+    FramebufferCache& operator=(FramebufferCache&&) noexcept = default;
+
     uint32_t CreateOrGetCachedFramebuffer(const RenderInfo& renderInfo);
-    
-    std::size_t Size() const
+
+    [[nodiscard]] std::size_t Size() const
     {
       return framebufferCacheKey_.size();
     }
