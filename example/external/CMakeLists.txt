@@ -30,8 +30,25 @@ FetchContent_Declare(
     GIT_TAG        v1.88
 )
 
+
+option(GFX_API_DX12 "" OFF)
+option(GFX_API_VK "" OFF)
+option(GFX_API_GL "" ON)
+option(FFX_FSR2_API_DX12 "" OFF)
+option(FFX_FSR2_API_VK "" OFF)
+option(FFX_FSR2_API_GL "" ON)
+FetchContent_Declare(
+    fsr2
+    GIT_REPOSITORY https://github.com/JuanDiegoMontoya/FidelityFX-FSR2.git
+    GIT_TAG        3312ca8c3ee25377d515512e54e72697dc62f251
+    GIT_SUBMODULES ""
+)
+
 FetchContent_MakeAvailable(glm)
 FetchContent_MakeAvailable(tinygltf)
+FetchContent_MakeAvailable(fsr2)
+
+set(FSR2_SOURCE ${fsr2_SOURCE_DIR} PARENT_SCOPE)
 
 FetchContent_GetProperties(imgui)
 if(NOT imgui_POPULATED)

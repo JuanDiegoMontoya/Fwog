@@ -12,24 +12,6 @@
 
 namespace Fwog
 {
-  namespace
-  {
-    void clearImage(uint32_t texture, const TextureClearInfo& info)
-    {
-      glClearTexSubImage(texture,
-                         info.level,
-                         info.offset.x,
-                         info.offset.y,
-                         info.offset.z,
-                         info.extent.width,
-                         info.extent.height,
-                         info.extent.depth,
-                         detail::UploadFormatToGL(info.format),
-                         detail::UploadTypeToGL(info.type),
-                         info.data);
-    }
-  } // namespace
-
   namespace detail
   {
     uint32_t GetHandle(const Texture& texture)
@@ -283,7 +265,37 @@ namespace Fwog
 
   void Texture::ClearImage(const TextureClearInfo& info)
   {
-    clearImage(id_, info);
+    GLenum format{};
+    if (info.format == UploadFormat::INFER_FORMAT)
+    {
+      format = detail::UploadFormatToGL(detail::FormatToUploadFormat(createInfo_.format));
+    }
+    else
+    {
+      format = detail::UploadFormatToGL(info.format);
+    }
+
+    GLenum type{};
+    if (info.type == UploadType::INFER_TYPE)
+    {
+      type = detail::FormatToTypeGL(createInfo_.format);
+    }
+    else
+    {
+      type = detail::UploadTypeToGL(info.type);
+    }
+
+    glClearTexSubImage(id_,
+                       info.level,
+                       info.offset.x,
+                       info.offset.y,
+                       info.offset.z,
+                       info.extent.width,
+                       info.extent.height,
+                       info.extent.depth,
+                       format,
+                       type,
+                       info.data);
   }
 
   void Texture::GenMipmaps()
