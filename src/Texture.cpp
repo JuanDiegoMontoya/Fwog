@@ -265,6 +265,7 @@ namespace Fwog
 
   void Texture::ClearImage(const TextureClearInfo& info)
   {
+    // Infer format
     GLenum format{};
     if (info.format == UploadFormat::INFER_FORMAT)
     {
@@ -275,6 +276,7 @@ namespace Fwog
       format = detail::UploadFormatToGL(info.format);
     }
 
+    // Infer type
     GLenum type{};
     if (info.type == UploadType::INFER_TYPE)
     {
@@ -285,14 +287,21 @@ namespace Fwog
       type = detail::UploadTypeToGL(info.type);
     }
 
+    // Infer extent
+    Extent3D extent = info.extent;
+    if (extent == Extent3D{})
+    {
+      extent = createInfo_.extent;
+    }
+
     glClearTexSubImage(id_,
                        info.level,
                        info.offset.x,
                        info.offset.y,
                        info.offset.z,
-                       info.extent.width,
-                       info.extent.height,
-                       info.extent.depth,
+                       extent.width,
+                       extent.height,
+                       extent.depth,
                        format,
                        type,
                        info.data);
