@@ -60,7 +60,7 @@ layout(binding = 0, std430) readonly buffer LightBuffer
 
 vec3 UnprojectUV(float depth, vec2 uv, mat4 invXProj)
 {
-  float z = depth;// * 2.0 - 1.0; // OpenGL Z convention
+  float z = depth * 2.0 - 1.0; // OpenGL Z convention
   vec4 ndc = vec4(uv * 2.0 - 1.0, z, 1.0);
   vec4 world = invXProj * ndc;
   return world.xyz / world.w;

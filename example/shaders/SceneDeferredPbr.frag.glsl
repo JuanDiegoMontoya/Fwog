@@ -37,5 +37,6 @@ void main()
   
   o_color = color.rgb;
   o_normal = normalize(v_normal);
-  o_motion = (v_oldPos.xy / v_oldPos.w) - (v_curPos.xy / v_curPos.w);
+  // motion in uv space [0, 1]
+  o_motion = ((v_oldPos.xy / v_oldPos.w) - (v_curPos.xy / v_curPos.w)) * 0.5;
 }

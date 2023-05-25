@@ -356,10 +356,10 @@ namespace Utility
     return indices;
   }
 
-  std::pair<std::vector<Fwog::Texture>, std::vector<Fwog::Sampler>> LoadTextureSamplers(const tinygltf::Model& model)
+  std::pair<std::vector<Fwog::Texture>, std::vector<Fwog::SamplerState>> LoadTextureSamplers(const tinygltf::Model& model)
   {
     std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::Sampler> samplers;
+    std::vector<Fwog::SamplerState> samplers;
 
     for (const auto& texture : model.textures)
     {
@@ -371,6 +371,7 @@ namespace Utility
       if (texture.sampler >= 0)
       {
         const tinygltf::Sampler& baseColorSampler = model.samplers[texture.sampler];
+
         samplerState.addressModeU = ConvertGlAddressMode(baseColorSampler.wrapS);
         samplerState.addressModeV = ConvertGlAddressMode(baseColorSampler.wrapT);
         samplerState.minFilter = ConvertGlFilterMode(baseColorSampler.minFilter);
@@ -381,8 +382,6 @@ namespace Utility
           samplerState.anisotropy = Fwog::SampleCount::SAMPLES_16;
         }
       }
-
-      auto sampler = Fwog::Sampler(samplerState);
 
       FWOG_ASSERT(image.component == 4);
       FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
@@ -409,19 +408,19 @@ namespace Utility
       textureData.GenMipmaps();
       
       textures.emplace_back(std::move(textureData));
-      samplers.emplace_back(std::move(sampler));
+      samplers.emplace_back(samplerState);
     }
 
     return std::make_pair(std::move(textures), std::move(samplers));
   }
 
-  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex, std::span<Fwog::Texture> textures, std::span<const Fwog::Sampler> samplers)
+  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex, std::span<Fwog::Texture> textures, std::span<const Fwog::SamplerState> samplers)
   {
     std::vector<Material> materials;
 
     for (const auto& loaderMaterial : model.materials)
     {
-      int baseColorTextureIndex = baseTextureSamplerIndex + loaderMaterial.pbrMetallicRoughness.baseColorTexture.index;
+      int baseColorTextureIndex = loaderMaterial.pbrMetallicRoughness.baseColorTexture.index;
       
       glm::vec4 baseColorFactor{};
       for (int i = 0; i < 4; i++)
@@ -480,7 +479,7 @@ namespace Utility
     std::vector<CpuMesh> meshes;
     std::vector<Material> materials;
     std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::Sampler> samplers;
+    std::vector<Fwog::SamplerState> samplers;
   };
 
   std::optional<LoadModelResult> LoadModelFromFileBase(std::string_view fileName, 
@@ -559,7 +558,7 @@ namespace Utility
       const auto& [node, parentGlobalTransform] = top;
       nodeStack.pop();
 
-      std::cout << "Node: " << node->name << '\n';
+      //std::cout << "Node: " << node->name << '\n';
 
       glm::mat4 localTransform = NodeToMat4(*node);
       glm::mat4 globalTransform = parentGlobalTransform * localTransform;
@@ -673,7 +672,7 @@ namespace Utility
       if (material.gpuMaterial.flags & MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         auto& [texture, sampler] = material.albedoTextureSampler.value();
-        bindlessMaterial.baseColorTextureHandle = texture.GetBindlessHandle(sampler);
+        bindlessMaterial.baseColorTextureHandle = texture.GetBindlessHandle(Fwog::Sampler(sampler));
       }
       scene.materials.emplace_back(bindlessMaterial);
     }

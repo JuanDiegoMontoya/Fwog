@@ -666,7 +666,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
       if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         const auto& textureSampler = material.albedoTextureSampler.value();
-        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, textureSampler.sampler);
+        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, Fwog::Sampler(textureSampler.sampler));
       }
       Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);

@@ -25,6 +25,8 @@ namespace RSM
   public:
     RsmTechnique(uint32_t width, uint32_t height);
 
+    void SetResolution(uint32_t newWidth, uint32_t newHeight);
+
     // Input: camera uniforms, g-buffers, RSM buffers, previous g-buffer depth (for reprojection)
     void ComputeIndirectLighting(const glm::mat4& lightViewProj,
                                  const CameraUniforms& cameraUniforms,
@@ -35,20 +37,23 @@ namespace RSM
                                  const Fwog::Texture& rsmNormal,
                                  const Fwog::Texture& rsmDepth,
                                  const Fwog::Texture& gDepthPrev,
-                                 const Fwog::Texture& gNormalPrev);
+                                 const Fwog::Texture& gNormalPrev,
+                                 const Fwog::Texture& gMotion);
 
     Fwog::Texture& GetIndirectLighting();
 
     void DrawGui();
 
+    int inverseResolutionScale = 1;
+    int smallRsmSize = 512;
     int rsmSamples = 400;
-    int rsmFilteredSamples = 1;
+    int rsmFilteredSamples = 8;
     float rMax = 0.2f;
     float spatialFilterStep = 1.0f;
     float alphaIlluminance = 0.05f;
     float phiNormal = 0.3f;
     float phiDepth = 0.2f;
-    bool rsmFiltered = false;
+    bool rsmFiltered = true;
     bool rsmFilteredSkipAlbedoModulation = false;
     bool seedEachFrame = true;
     bool useSeparableFilter = true;
@@ -97,8 +102,8 @@ namespace RSM
       uint32_t _padding01;
     };
 
-    static constexpr uint32_t SMALL_RSM_SIZE = 512;
-    int inverseResolutionScale;
+    uint32_t width;
+    uint32_t height;
     uint32_t internalWidth;
     uint32_t internalHeight;
     glm::mat4 viewProjPrevious{1};
@@ -116,15 +121,15 @@ namespace RSM
     Fwog::ComputePipeline modulatePipeline;
     Fwog::ComputePipeline modulateUpscalePipeline;
     Fwog::ComputePipeline blitPipeline;
-    Fwog::Texture indirectUnfilteredTex;
-    Fwog::Texture indirectUnfilteredTexPrev; // for temporal accumulation
-    Fwog::Texture indirectFilteredTex;
-    Fwog::Texture indirectFilteredTexPingPong;
-    Fwog::Texture historyLengthTex;
-    Fwog::Texture illuminationUpscaled;
-    Fwog::Texture rsmFluxSmall;
-    Fwog::Texture rsmNormalSmall;
-    Fwog::Texture rsmDepthSmall;
+    std::optional<Fwog::Texture> indirectUnfilteredTex;
+    std::optional<Fwog::Texture> indirectUnfilteredTexPrev; // for temporal accumulation
+    std::optional<Fwog::Texture> indirectFilteredTex;
+    std::optional<Fwog::Texture> indirectFilteredTexPingPong;
+    std::optional<Fwog::Texture> historyLengthTex;
+    std::optional<Fwog::Texture> illuminationUpscaled;
+    std::optional<Fwog::Texture> rsmFluxSmall;
+    std::optional<Fwog::Texture> rsmNormalSmall;
+    std::optional<Fwog::Texture> rsmDepthSmall;
     std::optional<Fwog::Texture> noiseTex;
     std::optional<Fwog::Texture> gNormalSmall;
     std::optional<Fwog::Texture> gDepthSmall;

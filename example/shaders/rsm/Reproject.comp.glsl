@@ -13,6 +13,7 @@ layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2D s_gDepthPrev;
 layout(binding = 4) uniform sampler2D s_gNormal;
 layout(binding = 5) uniform sampler2D s_gNormalPrev;
+layout(binding = 6) uniform sampler2D s_gMotion;
 
 layout(binding = 0) uniform restrict writeonly image2D i_outIndirect;
 layout(binding = 1, r8ui) uniform restrict uimage2D i_historyLength;
@@ -70,7 +71,8 @@ void main()
   // From OpenGL Z convention [-1, 1] -> [0, 1].
   // In other APIs (or with glClipControl(..., GL_ZERO_TO_ONE)) you would not do this.
   reprojectedUV.z = ndcPosPrev.z * .5 + .5;
-  
+  reprojectedUV.xy = uv + textureLod(s_gMotion, uv, 0.0).xy;
+
   //ivec2 centerPos = ivec2(reprojectedUV.xy * uniforms.targetDim);
 
   vec3 rayDir = normalize(worldPosCur - uniforms.viewPos);
