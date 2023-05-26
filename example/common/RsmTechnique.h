@@ -18,6 +18,7 @@ namespace RSM
     glm::vec4 cameraPos;
     glm::vec3 viewDir;
     uint32_t _padding00;
+    glm::vec2 jitterOffset{};
   };
 
   class RsmTechnique
@@ -84,8 +85,7 @@ namespace RSM
       float phiDepth;
       float phiNormal;
       uint32_t _padding00;
-      uint32_t _padding01;
-      uint32_t _padding02;
+      glm::vec2 jitterOffset;
     };
 
     struct FilterUniforms

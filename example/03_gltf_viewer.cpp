@@ -613,11 +613,12 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   Fwog::EndRendering();
 
   auto rsmCameraUniforms = RSM::CameraUniforms{
-    .viewProj = projJittered * mainCamera.GetViewMatrix(),
-    .invViewProj = mainCameraUniforms.invViewProj,
-    .proj = projJittered,
+    .viewProj = projUnjittered * mainCamera.GetViewMatrix(),
+    .invViewProj = glm::inverse(viewProjUnjittered),
+    .proj = projUnjittered,
     .cameraPos = glm::vec4(mainCamera.position, 0),
     .viewDir = mainCamera.GetForwardDir(),
+    .jitterOffset = {jitterOffsetX, jitterOffsetY},
   };
 
   {

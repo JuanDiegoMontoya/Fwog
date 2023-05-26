@@ -30,6 +30,7 @@ layout(binding = 0, std140) uniform ReprojectionUniforms
   float alphaIlluminance;
   float phiDepth;
   float phiNormal;
+  vec2 jitterOffset;
 }uniforms;
 
 bool InBounds(ivec2 pos)
@@ -61,17 +62,21 @@ void main()
 
   // Reproject this pixel
   float depthCur = texelFetch(s_gDepth, gid, 0).x;
+
   // NDC_curFrame -> world
   vec3 worldPosCur = UnprojectUV(depthCur, uv, uniforms.invViewProjCurrent);
-  // world -> NDC_prevFrame
-  vec4 clipPosPrev = uniforms.viewProjPrevious * vec4(worldPosCur, 1.0);
-  vec3 ndcPosPrev = clipPosPrev.xyz / clipPosPrev.w;
-  vec3 reprojectedUV = ndcPosPrev;
-  reprojectedUV.xy = ndcPosPrev.xy * .5 + .5;
-  // From OpenGL Z convention [-1, 1] -> [0, 1].
-  // In other APIs (or with glClipControl(..., GL_ZERO_TO_ONE)) you would not do this.
-  reprojectedUV.z = ndcPosPrev.z * .5 + .5;
-  reprojectedUV.xy = uv + textureLod(s_gMotion, uv, 0.0).xy;
+  
+  // Reprojection with old camera
+  // // world -> NDC_prevFrame
+  // vec4 clipPosPrev = uniforms.viewProjPrevious * vec4(worldPosCur, 1.0);
+  // vec3 ndcPosPrev = clipPosPrev.xyz / clipPosPrev.w;
+  // vec3 reprojectedUV = ndcPosPrev;
+  // reprojectedUV.xy = ndcPosPrev.xy * .5 + .5;
+  // // From OpenGL Z convention [-1, 1] -> [0, 1].
+  // // In other APIs (or with glClipControl(..., GL_ZERO_TO_ONE)) you would not do this.
+  // reprojectedUV.z = ndcPosPrev.z * .5 + .5;
+
+  vec2 reprojectedUV = uv + textureLod(s_gMotion, uv, 0.0).xy + uniforms.jitterOffset;
 
   //ivec2 centerPos = ivec2(reprojectedUV.xy * uniforms.targetDim);
 

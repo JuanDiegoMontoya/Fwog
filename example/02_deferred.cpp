@@ -260,6 +260,7 @@ private:
     std::optional<Fwog::Texture> gDepth;
     std::optional<Fwog::Texture> gNormalPrev;
     std::optional<Fwog::Texture> gDepthPrev;
+    std::optional<Fwog::Texture> gMotion;
     std::optional<RSM::RsmTechnique> rsm;
 
     // For debug drawing with ImGui
@@ -286,6 +287,8 @@ private:
   Fwog::TextureView rsmDepthSwizzled;
 
   ShadingUniforms shadingUniforms;
+  GlobalUniforms globalUniforms{};
+  uint64_t frameIndex = 0;
 
   Fwog::TypedBuffer<GlobalUniforms> globalUniformsBuffer;
   Fwog::TypedBuffer<ShadingUniforms> shadingUniformsBuffer;
@@ -361,6 +364,7 @@ void DeferredApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
   frame.gDepth = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
   frame.gNormalPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepthPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
+  frame.gMotion = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16_FLOAT);
 
   frame.rsm = RSM::RsmTechnique(newWidth, newHeight);
 
@@ -371,7 +375,10 @@ void DeferredApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
   frame.gRsmIlluminanceSwizzled = frame.rsm->GetIndirectLighting().CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
 }
 
-void DeferredApplication::OnUpdate([[maybe_unused]] double dt) {}
+void DeferredApplication::OnUpdate([[maybe_unused]] double dt)
+{
+  frameIndex++;
+}
 
 void DeferredApplication::OnRender([[maybe_unused]] double dt)
 {
@@ -384,10 +391,10 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .sunStrength = glm::vec4{2, 2, 2, 0},
   };
 
-  auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 5.f);
+  const auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 5.f);
   glm::mat4 viewProj = proj * mainCamera.GetViewMatrix();
 
-  auto globalUniforms = GlobalUniforms{};
+  globalUniforms.oldViewProj = frameIndex == 1 ? viewProj : globalUniforms.viewProj;
   globalUniforms.proj = proj;
   globalUniforms.viewProj = viewProj;
   globalUniformsBuffer.UpdateData(globalUniforms);
@@ -416,12 +423,17 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .texture = &frame.gNormal.value(),
     .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
+  Fwog::RenderColorAttachment gMotionAttachment{
+    .texture = &frame.gMotion.value(),
+    .loadOp = Fwog::AttachmentLoadOp::CLEAR,
+    .clearValue = {0.f, 0.f},
+  };
   Fwog::RenderDepthStencilAttachment gDepthAttachment{
     .texture = &frame.gDepth.value(),
     .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.depth = 1.0f},
   };
-  Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
+  Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment, gMotionAttachment};
   Fwog::BeginRendering({
     .name = "Base Pass",
     .colorAttachments = cgAttachments,
@@ -482,7 +494,6 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     if (auto t = timer.PopTimestamp())
     {
       illuminationTime = *t / 10e5;
-      // printf("Indirect Illumination: %f ms\n", *t / 10e5);
     }
     Fwog::TimerScoped scopedTimer(timer);
 
@@ -503,7 +514,8 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
                                        rsmNormal,
                                        rsmDepth,
                                        frame.gDepthPrev.value(),
-                                       frame.gNormalPrev.value());
+                                       frame.gNormalPrev.value(),
+                                       frame.gMotion.value());
   }
 
   // shading pass (full screen tri)

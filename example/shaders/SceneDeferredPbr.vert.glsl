@@ -42,12 +42,6 @@ vec3 oct_to_float32x3(vec2 e)
   return normalize(v);
 }
 
-vec2 GetNdcPos(mat4 vp, vec3 worldPos)
-{
-  vec4 clip = (vp * vec4(worldPos, 1.0));
-  return clip.xy / clip.w;
-}
-
 void main()
 {
   int i = gl_InstanceID + gl_BaseInstance;
