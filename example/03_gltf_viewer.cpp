@@ -54,6 +54,30 @@
  * TODO: add clustered light culling
  */
 
+static glm::uint pcg_hash(glm::uint seed)
+{
+  glm::uint state = seed * 747796405u + 2891336453u;
+  glm::uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+// Used to advance the PCG state.
+static glm::uint rand_pcg(glm::uint& rng_state)
+{
+  glm::uint state = rng_state;
+  rng_state = rng_state * 747796405u + 2891336453u;
+  glm::uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+// Advances the prng state and returns the corresponding random float.
+static float rng(glm::uint& state)
+{
+  glm::uint x = rand_pcg(state);
+  state = x;
+  return float(x) * glm::uintBitsToFloat(0x2f800004u);
+}
+
 ////////////////////////////////////// Types
 
 struct ObjectUniforms
@@ -78,6 +102,7 @@ struct ShadingUniforms
   glm::vec4 sunStrength;
   glm::mat4 sunView;
   glm::mat4 sunProj;
+  glm::vec2 random;
 };
 
 struct ShadowUniforms
@@ -214,6 +239,7 @@ private:
   float sunPosition2 = 0;
   float sunStrength = 15;
   glm::vec3 sunColor = {1, 1, 1};
+  uint32_t seed = pcg_hash(17);
 
   // Resources tied to the swapchain/output size
   struct Frame
@@ -423,7 +449,7 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
   frame.gNormalPrev = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R16G16B16_SNORM);
   frame.gDepthPrev = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::D32_FLOAT);
   frame.gMotion = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R16G16_FLOAT, "gMotion");
-  frame.colorHdrRenderRes = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R16G16B16A16_FLOAT, "colorHdrRenderRes");
+  frame.colorHdrRenderRes = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R11G11B10_FLOAT, "colorHdrRenderRes");
   frame.colorHdrWindowRes = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R11G11B10_FLOAT, "colorHdrWindowRes");
   frame.colorLdrWindowRes = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_SRGB, "colorLdrWindowRes");
 
@@ -447,6 +473,23 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
 void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt)
 {
   frameIndex++;
+
+  if (fsr2Enable)
+  {
+    shadingUniforms.random = {rng(seed), rng(seed)};
+}
+  else
+  {
+    shadingUniforms.random = {0, 0};
+  }
+}
+
+static glm::vec2 GetJitterOffset(uint32_t frameIndex, uint32_t renderWidth, uint32_t renderHeight, uint32_t windowWidth)
+{
+  float jitterX{};
+  float jitterY{};
+  ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
+  return {2.0f * jitterX / static_cast<float>(renderWidth), 2.0f * jitterY / static_cast<float>(renderHeight)};
 }
 
 void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
@@ -454,12 +497,11 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   std::swap(frame.gDepth, frame.gDepthPrev);
   std::swap(frame.gNormal, frame.gNormalPrev);
 
-  shadingUniforms = ShadingUniforms{
-    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0}),
-    .sunStrength = glm::vec4{sunStrength * sunColor, 0},
-  };
+  shadingUniforms.sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) *
+                                          glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0});
+  shadingUniforms.sunStrength = glm::vec4{sunStrength * sunColor, 0};
 
-  const float fsr2LodBias = log2(float(renderWidth) / float(windowWidth)) - 1.0;
+  const float fsr2LodBias = fsr2Enable ? log2(float(renderWidth) / float(windowWidth)) - 1.0 : 0;
 
   Fwog::SamplerState ss;
 
@@ -477,12 +519,8 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   constexpr float cameraNear = 0.1f;
   constexpr float cameraFar = 100.0f;
   constexpr float cameraFovY = glm::radians(70.f);
-  float jitterX{};
-  float jitterY{};
-  ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
-  const float jitterOffsetX = fsr2Enable ? 2.0f * jitterX / (float)renderWidth : 0;
-  const float jitterOffsetY = fsr2Enable ? 2.0f * jitterY / (float)renderHeight : 0;
-  const auto jitterMatrix = glm::translate(glm::mat4(1), glm::vec3(jitterOffsetX, jitterOffsetY, 0));
+  const auto jitterOffset = fsr2Enable ? GetJitterOffset(frameIndex, renderWidth, renderHeight, windowWidth) : glm::vec2{};
+  const auto jitterMatrix = glm::translate(glm::mat4(1), glm::vec3(jitterOffset, 0));
   const auto projUnjittered = glm::perspectiveNO(cameraFovY, renderWidth / (float)renderHeight, cameraNear, cameraFar);
   const auto projJittered = jitterMatrix * projUnjittered;
 
@@ -618,7 +656,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     .proj = projUnjittered,
     .cameraPos = glm::vec4(mainCamera.position, 0),
     .viewDir = mainCamera.GetForwardDir(),
-    .jitterOffset = {jitterOffsetX, jitterOffsetY},
+    .jitterOffset = jitterOffset,
+    .lastFrameJitterOffset =
+      fsr2Enable ? GetJitterOffset(frameIndex - 1, renderWidth, renderHeight, windowWidth) : glm::vec2{},
   };
 
   {
@@ -694,8 +734,12 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
         dt = 17.0 / 1000.0;
       }
 
+      float jitterX{};
+      float jitterY{};
+      ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
+
       FfxFsr2DispatchDescription dispatchDesc{
-        .color = ffxGetTextureResourceGL(&fsr2Context, frame.colorHdrRenderRes->Handle(), renderWidth, renderHeight, GL_RGBA16F),
+        .color = ffxGetTextureResourceGL(&fsr2Context, frame.colorHdrRenderRes->Handle(), renderWidth, renderHeight, GL_R11F_G11F_B10F),
         .depth = ffxGetTextureResourceGL(&fsr2Context, frame.gDepth->Handle(), renderWidth, renderHeight, GL_DEPTH_COMPONENT32F),
         .motionVectors = ffxGetTextureResourceGL(&fsr2Context, frame.gMotion->Handle(), renderWidth, renderHeight, GL_RG16F),
         .exposure = {},

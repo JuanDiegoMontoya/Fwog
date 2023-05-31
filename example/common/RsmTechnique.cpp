@@ -319,6 +319,7 @@ namespace RSM
             .phiDepth = phiDepth,
             .phiNormal = phiNormal,
             .jitterOffset = cameraUniforms.jitterOffset,
+            .lastFrameJitterOffset = cameraUniforms.lastFrameJitterOffset,
           };
           viewProjPrevious = cameraUniforms.viewProj;
           reprojectionUniformBuffer.UpdateData(reprojectionUniforms);

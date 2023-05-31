@@ -40,7 +40,7 @@ option(FFX_FSR2_API_GL "" ON)
 FetchContent_Declare(
     fsr2
     GIT_REPOSITORY https://github.com/JuanDiegoMontoya/FidelityFX-FSR2.git
-    GIT_TAG        d92ec5d136fda8d6d147985f5ecb80aa4b85541e
+    GIT_TAG        db9491a31e990d2faa6a033ee80452d925a298f1
     GIT_SUBMODULES ""
 )
 

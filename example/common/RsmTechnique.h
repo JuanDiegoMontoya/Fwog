@@ -19,6 +19,7 @@ namespace RSM
     glm::vec3 viewDir;
     uint32_t _padding00;
     glm::vec2 jitterOffset{};
+    glm::vec2 lastFrameJitterOffset{};
   };
 
   class RsmTechnique
@@ -86,6 +87,7 @@ namespace RSM
       float phiNormal;
       uint32_t _padding00;
       glm::vec2 jitterOffset;
+      glm::vec2 lastFrameJitterOffset;
     };
 
     struct FilterUniforms

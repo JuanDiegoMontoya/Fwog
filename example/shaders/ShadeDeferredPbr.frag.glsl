@@ -28,6 +28,7 @@ layout(binding = 1, std140) uniform ShadingUniforms
   vec4 sunStrength;
   mat4 sunView;
   mat4 sunProj;
+  vec2 random;
 }shadingUniforms;
 
 layout(binding = 2, std140) uniform ShadowUniforms
@@ -106,7 +107,7 @@ float ShadowPCF(vec2 uv, float viewDepth, float bias)
 
   for (uint i = 0; i < shadowUniforms.pcfSamples; i++)
   {
-    vec2 xi = fract(Hammersley(i, shadowUniforms.pcfSamples) + hash(gl_FragCoord.xy));
+    vec2 xi = fract(Hammersley(i, shadowUniforms.pcfSamples) + hash(gl_FragCoord.xy) + shadingUniforms.random);
     float r = sqrt(xi.x);
     float theta = xi.y * 2.0 * 3.14159;
     vec2 offset = shadowUniforms.pcfRadius * vec2(r * cos(theta), r * sin(theta));
@@ -164,7 +165,7 @@ float ShadowRayTraced(vec3 fragWorldPos, vec3 lightDir, float bias)
   for (int rayIdx = 0; rayIdx < shadowUniforms.shadowRays; rayIdx++)
   {
     vec2 xi = Hammersley(rayIdx, shadowUniforms.shadowRays);
-    xi = fract(xi + hash(gl_FragCoord.xy));
+    xi = fract(xi + hash(gl_FragCoord.xy) + shadingUniforms.random);
     vec3 newLightDir = RandVecInCone(xi, lightDir, shadowUniforms.sourceAngleRad);
 
     vec3 rayLightViewDir = (shadingUniforms.sunView * vec4(newLightDir, 0.0)).xyz;

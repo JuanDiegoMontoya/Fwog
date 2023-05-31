@@ -31,6 +31,7 @@ layout(binding = 0, std140) uniform ReprojectionUniforms
   float phiDepth;
   float phiNormal;
   vec2 jitterOffset;
+  vec2 lastFrameJitterOffset;
 }uniforms;
 
 bool InBounds(ivec2 pos)
@@ -76,7 +77,8 @@ void main()
   // // In other APIs (or with glClipControl(..., GL_ZERO_TO_ONE)) you would not do this.
   // reprojectedUV.z = ndcPosPrev.z * .5 + .5;
 
-  vec2 reprojectedUV = uv + textureLod(s_gMotion, uv, 0.0).xy + uniforms.jitterOffset;
+  // According to my math, this is how you account for jitter when reprojecting
+  vec2 reprojectedUV = uv + textureLod(s_gMotion, uv, 0.0).xy - uniforms.jitterOffset + uniforms.lastFrameJitterOffset;
 
   //ivec2 centerPos = ivec2(reprojectedUV.xy * uniforms.targetDim);
 
@@ -122,9 +124,10 @@ void main()
   float lum = Luminance(curColor);
   vec2 curMoments = { lum, lum * lum };
 
-  if (validCount > 0)
+  // Requiring at least 3 valid samples (instead of 1) is a hack to deal with a jitter bug (no pun intended)
+  if (validCount > 2)
   {
-    // Use weighted bilinear filter if any of its samples 
+    // Use weighted bilinear filter if any of its samples are valid
     float factor = max(0.01, Bilerp(valid[0][0], valid[0][1], valid[1][0], valid[1][1], weight));
     vec3 prevColor = Bilerp(colors[0][0], colors[0][1], colors[1][0], colors[1][1], weight) / factor;
 
@@ -174,7 +177,7 @@ void main()
     }
     else
     {
-      // Disocclusion ocurred
+      // Disocclusion occurred
       imageStore(i_outIndirect, gid, vec4(curColor, 0.0));
       imageStore(i_historyLength, gid, uvec4(0));
 
