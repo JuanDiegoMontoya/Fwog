@@ -77,6 +77,7 @@ struct Vertex
 struct GlobalUniforms
 {
   glm::mat4 viewProj;
+  glm::mat4 oldViewProj;
   glm::mat4 invViewProj;
   glm::mat4 proj;
   glm::vec4 cameraPos;
