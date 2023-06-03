@@ -11,9 +11,12 @@
 #include <Fwog/Texture.h>
 #include <Fwog/Timer.h>
 
-#include "src/ffx-fsr2-api/ffx_fsr2.h"
-#include "src/ffx-fsr2-api/gl/ffx_fsr2_gl.h"
+#ifdef FWOG_FSR2_ENABLE
+  #include "src/ffx-fsr2-api/ffx_fsr2.h"
+  #include "src/ffx-fsr2-api/gl/ffx_fsr2_gl.h"
+#endif
 
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <stb_image.h>
@@ -239,7 +242,6 @@ private:
   float sunPosition2 = 0;
   float sunStrength = 15;
   glm::vec3 sunColor = {1, 1, 1};
-  uint32_t seed = pcg_hash(17);
 
   // Resources tied to the swapchain/output size
   struct Frame
@@ -301,14 +303,19 @@ private:
 
   uint32_t renderWidth;
   uint32_t renderHeight;
+  uint32_t frameIndex = 0;
+  uint32_t seed = pcg_hash(17);
 
+#ifdef FWOG_FSR2_ENABLE
   // FSR 2
   bool fsr2Enable = true;
   bool fsr2FirstInit = true;
   FfxFsr2QualityMode fsr2Quality = FFX_FSR2_QUALITY_MODE_BALANCED;
   FfxFsr2Context fsr2Context;
   std::unique_ptr<char[]> fsr2ScratchMemory;
-  uint32_t frameIndex = 0;
+#else
+  const bool fsr2Enable = false;
+#endif
 
   // Magnifier
   bool magnifierLock = false;
@@ -409,6 +416,7 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
 void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
 {
+#ifdef FWOG_FSR2_ENABLE
   // create FSR 2 context
   if (fsr2Enable)
   {
@@ -437,6 +445,7 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
     ffxFsr2ContextCreate(&fsr2Context, &contextDesc);
   }
   else
+#endif
   {
     renderWidth = newWidth;
     renderHeight = newHeight;
@@ -477,7 +486,7 @@ void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt)
   if (fsr2Enable)
   {
     shadingUniforms.random = {rng(seed), rng(seed)};
-}
+  }
   else
   {
     shadingUniforms.random = {0, 0};
@@ -486,10 +495,14 @@ void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt)
 
 static glm::vec2 GetJitterOffset(uint32_t frameIndex, uint32_t renderWidth, uint32_t renderHeight, uint32_t windowWidth)
 {
+#ifdef FWOG_FSR2_ENABLE
   float jitterX{};
   float jitterY{};
   ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
   return {2.0f * jitterX / static_cast<float>(renderWidth), 2.0f * jitterY / static_cast<float>(renderHeight)};
+#else
+  return {0, 0};
+#endif
 }
 
 void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
@@ -501,7 +514,11 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
                                           glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0});
   shadingUniforms.sunStrength = glm::vec4{sunStrength * sunColor, 0};
 
+#ifdef FWOG_FSR2_ENABLE
   const float fsr2LodBias = fsr2Enable ? log2(float(renderWidth) / float(windowWidth)) - 1.0 : 0;
+#else
+  const float fsr2LodBias = 0;
+#endif
 
   Fwog::SamplerState ss;
 
@@ -718,6 +735,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   }
   Fwog::EndRendering();
 
+#ifdef FWOG_FSR2_ENABLE
   if (fsr2Enable)
   {
     Fwog::BeginCompute("FSR 2");
@@ -767,9 +785,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       }
     }
     Fwog::EndCompute();
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
   }
-
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+#endif  
 
   const auto ppAttachment = Fwog::RenderColorAttachment{.texture = &frame.colorLdrWindowRes.value(), .loadOp = Fwog::AttachmentLoadOp::DONT_CARE};
 
@@ -833,6 +851,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::Separator();
 
   ImGui::Text("FSR 2");
+#ifdef FWOG_FSR2_ENABLE
   if (ImGui::Checkbox("Enable FSR 2", &fsr2Enable))
   {
     OnWindowResize(windowWidth, windowHeight);
@@ -861,6 +880,9 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
     ImGui::PopStyleVar();
     ImGui::PopItemFlag();
   }
+#else
+  ImGui::Text("Compile with FWOG_FSR2_ENABLE defined to see FSR 2 options");
+#endif
 
   ImGui::Separator();
 
@@ -936,7 +958,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::EndTabBar();
   ImGui::End();
 
-  ImGui::Begin(("Magnifier: " + std::string(magnifierLock ? "Locked (L)" : "Unlocked (L)") + "###mag").c_str());
+  ImGui::Begin(("Magnifier: " + std::string(magnifierLock ? "Locked (L, Space)" : "Unlocked (L, Space)") + "###mag").c_str());
   if (ImGui::GetKeyPressedAmount(ImGuiKey_KeypadSubtract, 10000, 1))
   {
     magnifierScale *= 1.5f;
@@ -948,7 +970,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   float scale = 1.0f / magnifierScale;
   ImGui::SliderFloat("Scale (+, -)", &scale, 2.0f, 250.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
   magnifierScale = 1.0f / scale;
-  if (ImGui::GetKeyPressedAmount(ImGuiKey_L, 10000, 1))
+  if (ImGui::GetKeyPressedAmount(ImGuiKey_L, 10000, 1) || ImGui::GetKeyPressedAmount(ImGuiKey_Space, 10000, 1))
   {
     magnifierLock = !magnifierLock;
   }
@@ -965,7 +987,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   uv1 = glm::clamp(uv1, glm::vec2(0), glm::vec2(1));
   glTextureParameteri(frame.colorLdrWindowResUnorm.value().Handle(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.colorLdrWindowResUnorm.value().Handle())),
-               ImVec2(300, 300),
+               ImVec2(400, 400),
                ImVec2(uv0.x, uv0.y),
                ImVec2(uv1.x, uv1.y));
   ImGui::End();
