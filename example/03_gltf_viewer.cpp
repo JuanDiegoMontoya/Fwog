@@ -11,12 +11,18 @@
 #include <Fwog/Texture.h>
 #include <Fwog/Timer.h>
 
-#include FWOG_OPENGL_HEADER
+#ifdef FWOG_FSR2_ENABLE
+  #include "src/ffx-fsr2-api/ffx_fsr2.h"
+  #include "src/ffx-fsr2-api/gl/ffx_fsr2_gl.h"
+#endif
+
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <stb_image.h>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <glm/gtx/transform.hpp>
 #include <glm/mat4x4.hpp>
@@ -29,6 +35,7 @@
 #include <cstring>
 #include <exception>
 #include <optional>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -50,6 +57,30 @@
  * TODO: add clustered light culling
  */
 
+static glm::uint pcg_hash(glm::uint seed)
+{
+  glm::uint state = seed * 747796405u + 2891336453u;
+  glm::uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+// Used to advance the PCG state.
+static glm::uint rand_pcg(glm::uint& rng_state)
+{
+  glm::uint state = rng_state;
+  rng_state = rng_state * 747796405u + 2891336453u;
+  glm::uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+// Advances the prng state and returns the corresponding random float.
+static float rng(glm::uint& state)
+{
+  glm::uint x = rand_pcg(state);
+  state = x;
+  return float(x) * glm::uintBitsToFloat(0x2f800004u);
+}
+
 ////////////////////////////////////// Types
 
 struct ObjectUniforms
@@ -60,6 +91,8 @@ struct ObjectUniforms
 struct GlobalUniforms
 {
   glm::mat4 viewProj;
+  glm::mat4 oldViewProjUnjittered;
+  glm::mat4 viewProjUnjittered;
   glm::mat4 invViewProj;
   glm::mat4 proj;
   glm::vec4 cameraPos;
@@ -72,6 +105,7 @@ struct ShadingUniforms
   glm::vec4 sunStrength;
   glm::mat4 sunView;
   glm::mat4 sunProj;
+  glm::vec2 random;
 };
 
 struct ShadowUniforms
@@ -159,6 +193,17 @@ static Fwog::GraphicsPipeline CreateShadingPipeline()
   });
 }
 
+static Fwog::GraphicsPipeline CreatePostprocessingPipeline()
+{
+  auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
+  auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/TonemapAndDither.frag.glsl"));
+  return Fwog::GraphicsPipeline({
+    .vertexShader = &vs,
+    .fragmentShader = &fs,
+    .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
+  });
+}
+
 static Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 {
   auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
@@ -190,6 +235,7 @@ private:
   static constexpr int gShadowmapHeight = 2048;
 
   double illuminationTime = 0;
+  double fsr2Time = 0;
 
   // scene parameters
   float sunPosition = -1.127f;
@@ -206,6 +252,10 @@ private:
     std::optional<Fwog::Texture> gDepth;
     std::optional<Fwog::Texture> gNormalPrev;
     std::optional<Fwog::Texture> gDepthPrev;
+    std::optional<Fwog::Texture> gMotion;
+    std::optional<Fwog::Texture> colorHdrRenderRes;
+    std::optional<Fwog::Texture> colorHdrWindowRes;
+    std::optional<Fwog::Texture> colorLdrWindowRes;
     std::optional<RSM::RsmTechnique> rsm;
 
     // For debug drawing with ImGui
@@ -213,6 +263,7 @@ private:
     std::optional<Fwog::TextureView> gNormalSwizzled;
     std::optional<Fwog::TextureView> gDepthSwizzled;
     std::optional<Fwog::TextureView> gRsmIlluminanceSwizzled;
+    std::optional<Fwog::TextureView> colorLdrWindowResUnorm;
   };
   Frame frame{};
 
@@ -226,23 +277,50 @@ private:
   Fwog::TextureView rsmNormalSwizzled;
   Fwog::TextureView rsmDepthSwizzled;
 
-  ShadingUniforms shadingUniforms;
-  ShadowUniforms shadowUniforms;
+  ShadingUniforms shadingUniforms{};
+  ShadowUniforms shadowUniforms{};
+  GlobalUniforms mainCameraUniforms{};
 
   Fwog::TypedBuffer<GlobalUniforms> globalUniformsBuffer;
   Fwog::TypedBuffer<ShadingUniforms> shadingUniformsBuffer;
   Fwog::TypedBuffer<ShadowUniforms> shadowUniformsBuffer;
   Fwog::TypedBuffer<Utility::GpuMaterial> materialUniformsBuffer;
+  Fwog::TypedBuffer<glm::mat4> rsmUniforms;
 
   Fwog::GraphicsPipeline scenePipeline;
   Fwog::GraphicsPipeline rsmScenePipeline;
   Fwog::GraphicsPipeline shadingPipeline;
+  Fwog::GraphicsPipeline postprocessingPipeline;
   Fwog::GraphicsPipeline debugTexturePipeline;
 
   // Scene
   Utility::Scene scene;
   std::optional<Fwog::TypedBuffer<Light>> lightBuffer;
   std::optional<Fwog::TypedBuffer<ObjectUniforms>> meshUniformBuffer;
+
+  // Post processing
+  std::optional<Fwog::Texture> noiseTexture;
+
+  uint32_t renderWidth;
+  uint32_t renderHeight;
+  uint32_t frameIndex = 0;
+  uint32_t seed = pcg_hash(17);
+
+#ifdef FWOG_FSR2_ENABLE
+  // FSR 2
+  bool fsr2Enable = true;
+  bool fsr2FirstInit = true;
+  FfxFsr2QualityMode fsr2Quality = FFX_FSR2_QUALITY_MODE_BALANCED;
+  FfxFsr2Context fsr2Context;
+  std::unique_ptr<char[]> fsr2ScratchMemory;
+#else
+  const bool fsr2Enable = false;
+#endif
+
+  // Magnifier
+  bool magnifierLock = false;
+  float magnifierScale = 0.0173f;
+  glm::vec2 lastCursorPos = {};
 };
 
 GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& createInfo,
@@ -262,12 +340,27 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
     shadingUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     shadowUniformsBuffer(shadowUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     materialUniformsBuffer(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
+    rsmUniforms(Fwog::BufferStorageFlag::DYNAMIC_STORAGE),
     // Create the pipelines used in the application
     scenePipeline(CreateScenePipeline()),
     rsmScenePipeline(CreateShadowPipeline()),
     shadingPipeline(CreateShadingPipeline()),
+    postprocessingPipeline(CreatePostprocessingPipeline()),
     debugTexturePipeline(CreateDebugTexturePipeline())
 {
+  int x = 0;
+  int y = 0;
+  const auto noise = stbi_load("textures/bluenoise32.png", &x, &y, nullptr, 4);
+  assert(noise);
+  noiseTexture = Fwog::CreateTexture2D({static_cast<uint32_t>(x), static_cast<uint32_t>(y)}, Fwog::Format::R8G8B8A8_UNORM);
+  noiseTexture->UpdateImage({
+    .extent = {static_cast<uint32_t>(x), static_cast<uint32_t>(y)},
+    .format = Fwog::UploadFormat::RGBA,
+    .type = Fwog::UploadType::UBYTE,
+    .pixels = noise,
+  });
+  stbi_image_free(noise);
+
   ImGui::GetIO().Fonts->AddFontFromFileTTF("textures/RobotoCondensed-Regular.ttf", 18);
 
   cursorIsActive = true;
@@ -323,53 +416,139 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
 void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight)
 {
-  // create gbuffer textures and render info
-  frame.gAlbedo = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_SRGB);
-  frame.gNormal = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
-  frame.gDepth = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
-  frame.gNormalPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R16G16B16_SNORM);
-  frame.gDepthPrev = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::D32_UNORM);
+#ifdef FWOG_FSR2_ENABLE
+  // create FSR 2 context
+  if (fsr2Enable)
+  {
+    if (!fsr2FirstInit)
+    {
+      ffxFsr2ContextDestroy(&fsr2Context);
+    }
+    frameIndex = 0;
+    fsr2FirstInit = false;
+    ffxFsr2GetRenderResolutionFromQualityMode(&renderWidth, &renderHeight, newWidth, newHeight, fsr2Quality);
+    FfxFsr2ContextDescription contextDesc{
+      .flags = FFX_FSR2_ENABLE_DEBUG_CHECKING | FFX_FSR2_ENABLE_AUTO_EXPOSURE | FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE | FFX_FSR2_ALLOW_NULL_DEVICE_AND_COMMAND_LIST,
+      .maxRenderSize = {renderWidth, renderHeight},
+      .displaySize = {newWidth, newHeight},
+      .fpMessage =
+        [](FfxFsr2MsgType type, const wchar_t* message)
+      {
+        char cstr[256] = {};
+        wcstombs_s(nullptr, cstr, sizeof(cstr), message, sizeof(cstr));
+        cstr[255] = '\0';
+        printf("FSR 2 message (type=%d): %s\n", type, cstr);
+      },
+    };
+    fsr2ScratchMemory = std::make_unique<char[]>(ffxFsr2GetScratchMemorySizeGL());
+    ffxFsr2GetInterfaceGL(&contextDesc.callbacks, fsr2ScratchMemory.get(), ffxFsr2GetScratchMemorySizeGL(), glfwGetProcAddress);
+    ffxFsr2ContextCreate(&fsr2Context, &contextDesc);
+  }
+  else
+#endif
+  {
+    renderWidth = newWidth;
+    renderHeight = newHeight;
+  }
 
-  frame.rsm = RSM::RsmTechnique(newWidth, newHeight);
+  // create gbuffer textures and render info
+  frame.gAlbedo = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R8G8B8A8_SRGB, "gAlbedo");
+  frame.gNormal = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R16G16B16_SNORM, "gNormal");
+  frame.gDepth = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::D32_FLOAT, "gDepth");
+  frame.gNormalPrev = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R16G16B16_SNORM);
+  frame.gDepthPrev = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::D32_FLOAT);
+  frame.gMotion = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R16G16_FLOAT, "gMotion");
+  frame.colorHdrRenderRes = Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R11G11B10_FLOAT, "colorHdrRenderRes");
+  frame.colorHdrWindowRes = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R11G11B10_FLOAT, "colorHdrWindowRes");
+  frame.colorLdrWindowRes = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_SRGB, "colorLdrWindowRes");
+
+  if (!frame.rsm)
+  {
+    frame.rsm = RSM::RsmTechnique(renderWidth, renderHeight);
+  }
+  else
+  {
+    frame.rsm->SetResolution(renderWidth, renderHeight);
+  }
 
   // create debug views
   frame.gAlbedoSwizzled = frame.gAlbedo->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
   frame.gNormalSwizzled = frame.gNormal->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
   frame.gDepthSwizzled = frame.gDepth->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
   frame.gRsmIlluminanceSwizzled = frame.rsm->GetIndirectLighting().CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
+  frame.colorLdrWindowResUnorm = frame.colorLdrWindowRes.value().CreateFormatView(Fwog::Format::R8G8B8A8_UNORM);
 }
 
-void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt) {}
+void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt)
+{
+  frameIndex++;
+
+  if (fsr2Enable)
+  {
+    shadingUniforms.random = {rng(seed), rng(seed)};
+  }
+  else
+  {
+    shadingUniforms.random = {0, 0};
+  }
+}
+
+static glm::vec2 GetJitterOffset(uint32_t frameIndex, uint32_t renderWidth, uint32_t renderHeight, uint32_t windowWidth)
+{
+#ifdef FWOG_FSR2_ENABLE
+  float jitterX{};
+  float jitterY{};
+  ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
+  return {2.0f * jitterX / static_cast<float>(renderWidth), 2.0f * jitterY / static_cast<float>(renderHeight)};
+#else
+  return {0, 0};
+#endif
+}
 
 void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 {
   std::swap(frame.gDepth, frame.gDepthPrev);
   std::swap(frame.gNormal, frame.gNormalPrev);
 
-  shadingUniforms = ShadingUniforms{
-    .sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) * glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0}),
-    .sunStrength = glm::vec4{sunStrength * sunColor, 0},
-  };
+  shadingUniforms.sunDir = glm::normalize(glm::rotate(sunPosition, glm::vec3{1, 0, 0}) *
+                                          glm::rotate(sunPosition2, glm::vec3(0, 1, 0)) * glm::vec4{-.1, -.3, -.6, 0});
+  shadingUniforms.sunStrength = glm::vec4{sunStrength * sunColor, 0};
+
+#ifdef FWOG_FSR2_ENABLE
+  const float fsr2LodBias = fsr2Enable ? log2(float(renderWidth) / float(windowWidth)) - 1.0 : 0;
+#else
+  const float fsr2LodBias = 0;
+#endif
 
   Fwog::SamplerState ss;
+
   ss.minFilter = Fwog::Filter::NEAREST;
   ss.magFilter = Fwog::Filter::NEAREST;
   ss.addressModeU = Fwog::AddressMode::REPEAT;
   ss.addressModeV = Fwog::AddressMode::REPEAT;
   auto nearestSampler = Fwog::Sampler(ss);
 
-  ss.minFilter = Fwog::Filter::LINEAR;
-  ss.magFilter = Fwog::Filter::LINEAR;
+  ss.lodBias = 0;
   ss.compareEnable = true;
   ss.compareOp = Fwog::CompareOp::LESS;
   auto shadowSampler = Fwog::Sampler(ss);
 
-  auto proj = glm::perspective(glm::radians(70.f), windowWidth / (float)windowHeight, 0.1f, 100.f);
+  constexpr float cameraNear = 0.1f;
+  constexpr float cameraFar = 100.0f;
+  constexpr float cameraFovY = glm::radians(70.f);
+  const auto jitterOffset = fsr2Enable ? GetJitterOffset(frameIndex, renderWidth, renderHeight, windowWidth) : glm::vec2{};
+  const auto jitterMatrix = glm::translate(glm::mat4(1), glm::vec3(jitterOffset, 0));
+  const auto projUnjittered = glm::perspectiveNO(cameraFovY, renderWidth / (float)renderHeight, cameraNear, cameraFar);
+  const auto projJittered = jitterMatrix * projUnjittered;
 
-  GlobalUniforms mainCameraUniforms{};
-  mainCameraUniforms.viewProj = proj * mainCamera.GetViewMatrix();
+  // Set global uniforms
+  const auto viewProj = projJittered * mainCamera.GetViewMatrix();
+  const auto viewProjUnjittered = projUnjittered * mainCamera.GetViewMatrix();
+  mainCameraUniforms.oldViewProjUnjittered = frameIndex == 1 ? viewProjUnjittered : mainCameraUniforms.viewProjUnjittered;
+  mainCameraUniforms.viewProjUnjittered = viewProjUnjittered;
+  mainCameraUniforms.viewProj = viewProj;
   mainCameraUniforms.invViewProj = glm::inverse(mainCameraUniforms.viewProj);
-  mainCameraUniforms.proj = proj;
+  mainCameraUniforms.proj = projJittered;
   mainCameraUniforms.cameraPos = glm::vec4(mainCamera.position, 0.0);
 
   globalUniformsBuffer.UpdateData(mainCameraUniforms);
@@ -379,7 +558,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   glm::vec3 eye = glm::vec3{shadingUniforms.sunDir * -5.f};
   float eyeWidth = 7.0f;
   // shadingUniforms.viewPos = glm::vec4(camera.position, 0);
-  shadingUniforms.sunProj = glm::ortho(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f);
+  shadingUniforms.sunProj = glm::orthoZO(-eyeWidth, eyeWidth, -eyeWidth, eyeWidth, -100.0f, 100.f);
   shadingUniforms.sunView = glm::lookAt(eye, glm::vec3(0), glm::vec3{0, 1, 0});
   shadingUniforms.sunViewProj = shadingUniforms.sunProj * shadingUniforms.sunView;
   shadingUniformsBuffer.UpdateData(shadingUniforms);
@@ -394,14 +573,25 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       .texture = &frame.gNormal.value(),
       .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
     };
+    Fwog::RenderColorAttachment gMotionAttachment{
+      .texture = &frame.gMotion.value(),
+      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
+      .clearValue = {0.f, 0.f, 0.f, 0.f},
+    };
     Fwog::RenderDepthStencilAttachment gDepthAttachment{
       .texture = &frame.gDepth.value(),
       .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.depth = 1.0f},
     };
-    Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
+    Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment, gMotionAttachment};
+    auto viewport = Fwog::Viewport
+    {
+      .drawRect = {{0, 0}, {renderWidth, renderHeight}},
+      .depthRange = Fwog::ClipDepthRange::NEGATIVE_ONE_TO_ONE,
+    };
     Fwog::BeginRendering({
       .name = "Base Pass",
+      .viewport = &viewport,
       .colorAttachments = cgAttachments,
       .depthAttachment = &gDepthAttachment,
       .stencilAttachment = nullptr,
@@ -419,7 +609,9 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         const auto& textureSampler = material.albedoTextureSampler.value();
-        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, textureSampler.sampler);
+        auto sampler = textureSampler.sampler;
+        sampler.lodBias = fsr2LodBias; 
+        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, Fwog::Sampler(sampler));
       }
       Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
@@ -427,9 +619,8 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     }
   }
   Fwog::EndRendering();
-
-  mainCameraUniforms.viewProj = shadingUniforms.sunViewProj;
-  globalUniformsBuffer.UpdateData(mainCameraUniforms);
+  
+  rsmUniforms.UpdateData(shadingUniforms.sunViewProj);
 
   // Shadow map (RSM) scene pass
   {
@@ -454,7 +645,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       .stencilAttachment = nullptr,
     });
     Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+    Fwog::Cmd::BindUniformBuffer(0, rsmUniforms);
     Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
     Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer);
 
@@ -467,7 +658,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
         const auto& textureSampler = material.albedoTextureSampler.value();
-        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, textureSampler.sampler);
+        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, Fwog::Sampler(textureSampler.sampler));
       }
       Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
@@ -476,14 +667,15 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
   }
   Fwog::EndRendering();
 
-  globalUniformsBuffer.UpdateData(mainCameraUniforms);
-
   auto rsmCameraUniforms = RSM::CameraUniforms{
-    .viewProj = proj * mainCamera.GetViewMatrix(),
-    .invViewProj = mainCameraUniforms.invViewProj,
-    .proj = proj,
+    .viewProj = projUnjittered * mainCamera.GetViewMatrix(),
+    .invViewProj = glm::inverse(viewProjUnjittered),
+    .proj = projUnjittered,
     .cameraPos = glm::vec4(mainCamera.position, 0),
     .viewDir = mainCamera.GetForwardDir(),
+    .jitterOffset = jitterOffset,
+    .lastFrameJitterOffset =
+      fsr2Enable ? GetJitterOffset(frameIndex - 1, renderWidth, renderHeight, windowWidth) : glm::vec2{},
   };
 
   {
@@ -502,7 +694,8 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
                                        rsmNormal,
                                        rsmDepth,
                                        frame.gDepthPrev.value(),
-                                       frame.gNormalPrev.value());
+                                       frame.gNormalPrev.value(),
+                                       frame.gMotion.value());
   }
 
   // clear cluster indices atomic counter
@@ -517,18 +710,14 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   // shading pass (full screen tri)
 
-  Fwog::BeginSwapchainRendering({
+  Fwog::RenderColorAttachment shadingColorAttachment{
+    .texture = &frame.colorHdrRenderRes.value(),
+    .loadOp = Fwog::AttachmentLoadOp::CLEAR,
+    .clearValue = {.1f, .3f, .5f, 0.0f},
+  };
+  Fwog::BeginRendering({
     .name = "Shading",
-    .viewport =
-      Fwog::Viewport{
-        .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f,
-      },
-    .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
-    .clearColorValue = {.1f, .3f, .5f, 0.0f},
-    .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
-    .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+    .colorAttachments = {&shadingColorAttachment, 1},
   });
   {
     Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
@@ -543,8 +732,88 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
     Fwog::Cmd::BindUniformBuffer(2, shadowUniformsBuffer);
     Fwog::Cmd::BindStorageBuffer(0, *lightBuffer);
     Fwog::Cmd::Draw(3, 1, 0, 0);
+  }
+  Fwog::EndRendering();
 
-    const Fwog::Texture* tex{};
+#ifdef FWOG_FSR2_ENABLE
+  if (fsr2Enable)
+  {
+    Fwog::BeginCompute("FSR 2");
+    {
+      static Fwog::TimerQueryAsync timer(5);
+      if (auto t = timer.PopTimestamp())
+      {
+        fsr2Time = *t / 10e5;
+      }
+      Fwog::TimerScoped scopedTimer(timer);
+
+      if (frameIndex == 1)
+      {
+        dt = 17.0 / 1000.0;
+      }
+
+      float jitterX{};
+      float jitterY{};
+      ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
+
+      FfxFsr2DispatchDescription dispatchDesc{
+        .color = ffxGetTextureResourceGL(&fsr2Context, frame.colorHdrRenderRes->Handle(), renderWidth, renderHeight, GL_R11F_G11F_B10F),
+        .depth = ffxGetTextureResourceGL(&fsr2Context, frame.gDepth->Handle(), renderWidth, renderHeight, GL_DEPTH_COMPONENT32F),
+        .motionVectors = ffxGetTextureResourceGL(&fsr2Context, frame.gMotion->Handle(), renderWidth, renderHeight, GL_RG16F),
+        .exposure = {},
+        .reactive = {},
+        .transparencyAndComposition = {},
+        .output = ffxGetTextureResourceGL(&fsr2Context, frame.colorHdrWindowRes->Handle(), windowWidth, windowHeight, GL_R11F_G11F_B10F),
+        .jitterOffset = {jitterX, jitterY},
+        .motionVectorScale = {float(renderWidth), float(renderHeight)},
+        .renderSize = {renderWidth, renderHeight},
+        .enableSharpening = false,
+        .sharpness = 0,
+        .frameTimeDelta = static_cast<float>(dt * 1000.0),
+        .preExposure = 1,
+        .reset = false,
+        .cameraNear = cameraNear,
+        .cameraFar = cameraFar,
+        .cameraFovAngleVertical = cameraFovY,
+        .viewSpaceToMetersFactor = 1,
+        .deviceDepthNegativeOneToOne = false,
+      };
+
+      if (auto err = ffxFsr2ContextDispatch(&fsr2Context, &dispatchDesc); err != FFX_OK)
+      {
+        printf("FSR 2 error: %d\n", err);
+      }
+    }
+    Fwog::EndCompute();
+    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+  }
+#endif  
+
+  const auto ppAttachment = Fwog::RenderColorAttachment{.texture = &frame.colorLdrWindowRes.value(), .loadOp = Fwog::AttachmentLoadOp::DONT_CARE};
+
+  Fwog::BeginRendering({.name = "Postprocessing", .colorAttachments = {&ppAttachment, 1}});
+  {
+    Fwog::Cmd::BindGraphicsPipeline(postprocessingPipeline);
+    Fwog::Cmd::BindSampledImage(0, fsr2Enable ? frame.colorHdrWindowRes.value() : frame.colorHdrRenderRes.value(), nearestSampler);
+    Fwog::Cmd::BindSampledImage(1, noiseTexture.value(), nearestSampler);
+    Fwog::Cmd::Draw(3, 1, 0, 0);
+  }
+  Fwog::EndRendering();
+
+  Fwog::BeginSwapchainRendering({
+    .name = "Shading",
+    .viewport =
+      Fwog::Viewport{
+        .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f,
+      },
+    .colorLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+    .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+    .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+  });
+  {
+    const Fwog::Texture* tex = &frame.colorLdrWindowRes.value();
     if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
       tex = &frame.gAlbedo.value();
     if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
@@ -568,6 +837,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::Begin("glTF Viewer");
   ImGui::Text("Framerate: %.0f Hertz", 1 / dt);
   ImGui::Text("Indirect Illumination: %f ms", illuminationTime);
+  ImGui::Text("FSR 2: %f ms", fsr2Time);
 
   ImGui::SliderFloat("Sun Angle", &sunPosition, -2.7f, 0.5f);
   ImGui::SliderFloat("Sun Angle 2", &sunPosition2, -3.142f, 3.142f);
@@ -577,6 +847,42 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::Separator();
 
   frame.rsm->DrawGui();
+
+  ImGui::Separator();
+
+  ImGui::Text("FSR 2");
+#ifdef FWOG_FSR2_ENABLE
+  if (ImGui::Checkbox("Enable FSR 2", &fsr2Enable))
+  {
+    OnWindowResize(windowWidth, windowHeight);
+  }
+
+  if (!fsr2Enable)
+  {
+    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+  }
+
+  int quality = fsr2Quality;
+  ImGui::RadioButton("Quality", &quality, FFX_FSR2_QUALITY_MODE_QUALITY);
+  ImGui::RadioButton("Balanced", &quality, FFX_FSR2_QUALITY_MODE_BALANCED);
+  ImGui::RadioButton("Performance", &quality, FFX_FSR2_QUALITY_MODE_PERFORMANCE);
+  ImGui::RadioButton("Ultra Performance", &quality, FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE);
+
+  if (fsr2Quality != quality)
+  {
+    fsr2Quality = FfxFsr2QualityMode(quality);
+    OnWindowResize(windowWidth, windowHeight);
+  }
+
+  if (!fsr2Enable)
+  {
+    ImGui::PopStyleVar();
+    ImGui::PopItemFlag();
+  }
+#else
+  ImGui::Text("Compile with FWOG_FSR2_ENABLE defined to see FSR 2 options");
+#endif
 
   ImGui::Separator();
 
@@ -616,7 +922,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::BeginTabBar("tabbed");
   if (ImGui::BeginTabItem("G-Buffers"))
   {
-    float aspect = float(windowWidth) / windowHeight;
+    float aspect = float(renderWidth) / renderHeight;
     ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.gAlbedoSwizzled.value().Handle())),
                  {100 * aspect, 100},
                  {0, 1},
@@ -650,6 +956,40 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
     ImGui::EndTabItem();
   }
   ImGui::EndTabBar();
+  ImGui::End();
+
+  ImGui::Begin(("Magnifier: " + std::string(magnifierLock ? "Locked (L, Space)" : "Unlocked (L, Space)") + "###mag").c_str());
+  if (ImGui::GetKeyPressedAmount(ImGuiKey_KeypadSubtract, 10000, 1))
+  {
+    magnifierScale *= 1.5f;
+  }
+  if (ImGui::GetKeyPressedAmount(ImGuiKey_KeypadAdd, 10000, 1))
+  {
+    magnifierScale /= 1.5f;
+  }
+  float scale = 1.0f / magnifierScale;
+  ImGui::SliderFloat("Scale (+, -)", &scale, 2.0f, 250.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
+  magnifierScale = 1.0f / scale;
+  if (ImGui::GetKeyPressedAmount(ImGuiKey_L, 10000, 1) || ImGui::GetKeyPressedAmount(ImGuiKey_Space, 10000, 1))
+  {
+    magnifierLock = !magnifierLock;
+  }
+  double x{}, y{};
+  glfwGetCursorPos(window, &x, &y);
+  glm::vec2 mp = magnifierLock ? lastCursorPos : glm::vec2{x, y};
+  lastCursorPos = mp;
+  mp.y = windowHeight - mp.y;
+  mp /= glm::vec2(windowWidth, windowHeight);
+  float ar = (float)windowWidth / (float)windowHeight;
+  glm::vec2 uv0{mp.x - magnifierScale, mp.y + magnifierScale * ar};
+  glm::vec2 uv1{mp.x + magnifierScale, mp.y - magnifierScale * ar};
+  uv0 = glm::clamp(uv0, glm::vec2(0), glm::vec2(1));
+  uv1 = glm::clamp(uv1, glm::vec2(0), glm::vec2(1));
+  glTextureParameteri(frame.colorLdrWindowResUnorm.value().Handle(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.colorLdrWindowResUnorm.value().Handle())),
+               ImVec2(400, 400),
+               ImVec2(uv0.x, uv0.y),
+               ImVec2(uv1.x, uv1.y));
   ImGui::End();
 }
 
@@ -686,7 +1026,7 @@ int main(int argc, const char* const* argv)
     return -1;
   }
 
-  auto appInfo = Application::CreateInfo{.name = "glTF Viewer Example"};
+  auto appInfo = Application::CreateInfo{.name = "glTF Viewer Example", .vsync = false};
   auto app = GltfViewerApplication(appInfo, filename, scale, binary);
   app.Run();
 

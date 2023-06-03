@@ -32,7 +32,7 @@ namespace Utility
   struct CombinedTextureSampler
   {
     Fwog::TextureView texture;
-    Fwog::Sampler sampler;
+    Fwog::SamplerState sampler;
   };
 
   enum class MaterialFlagBit
@@ -78,7 +78,7 @@ namespace Utility
     std::vector<Mesh> meshes;
     std::vector<Material> materials;
     std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::Sampler> samplers;
+    std::vector<Fwog::SamplerState> samplers;
   };
 
   struct MeshBindless
@@ -98,7 +98,7 @@ namespace Utility
     std::vector<index_t> indices;
     std::vector<GpuMaterialBindless> materials;
     std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::Sampler> samplers;
+    std::vector<Fwog::SamplerState> samplers;
   };
 
   bool LoadModelFromFile(Scene& scene, 

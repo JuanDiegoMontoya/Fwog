@@ -8,10 +8,16 @@ layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec2 v_uv;
 layout(location = 3) out vec3 v_color;
+layout(location = 4) out vec4 v_curPos;
+layout(location = 5) out vec4 v_oldPos;
 
-layout(binding = 0, std140) uniform UBO0
+layout(binding = 0, std140) uniform GlobalUniforms
 {
   mat4 viewProj;
+  mat4 oldViewProj;
+  mat4 invViewProj;
+  mat4 proj;
+  vec4 cameraPos;
 };
 
 struct ObjectUniforms
@@ -33,4 +39,6 @@ void main()
   v_uv = a_uv;
   v_color = objects[i].color.rgb;
   gl_Position = viewProj * vec4(v_position, 1.0);
+  v_curPos = gl_Position;
+  v_oldPos = oldViewProj * vec4(v_position, 1.0);
 }

@@ -1,3 +1,5 @@
+option(FWOG_FSR2_ENABLE "Enable FSR2 for examples that support it (currently 03_gltf_viewer). Windows only!" FALSE)
+
 add_subdirectory(external)
 
 add_custom_target(copy_shaders ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
@@ -13,8 +15,14 @@ target_link_libraries(02_deferred PRIVATE glfw lib_glad fwog glm lib_imgui)
 add_dependencies(02_deferred copy_shaders copy_textures)
 
 add_executable(03_gltf_viewer "03_gltf_viewer.cpp" common/Application.cpp common/Application.h common/SceneLoader.cpp common/SceneLoader.h "common/RsmTechnique.h" "common/RsmTechnique.cpp")
-target_include_directories(03_gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR} vendor)
-target_link_libraries(03_gltf_viewer PRIVATE glfw lib_glad fwog glm lib_imgui)
+if (FWOG_FSR2_ENABLE)
+    set(FSR2_LIBS ffx_fsr2_api_x64 ffx_fsr2_api_gl_x64)
+    target_compile_definitions(03_gltf_viewer PUBLIC FWOG_FSR2_ENABLE)
+else()
+    set(FSR2_LIBS "")
+endif()
+target_include_directories(03_gltf_viewer PUBLIC ${tinygltf_SOURCE_DIR} ${FSR2_SOURCE} vendor)
+target_link_libraries(03_gltf_viewer PRIVATE glfw lib_glad fwog glm lib_imgui ${FSR2_LIBS})
 add_dependencies(03_gltf_viewer copy_shaders copy_models copy_textures)
 
 add_executable(04_volumetric "04_volumetric.cpp" common/Application.cpp common/Application.h common/SceneLoader.cpp common/SceneLoader.h)

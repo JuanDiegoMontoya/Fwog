@@ -7,10 +7,17 @@ layout(location = 2) in vec2 a_uv;
 layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec2 v_uv;
+layout(location = 3) out vec4 v_curPos;
+layout(location = 4) out vec4 v_oldPos;
 
 layout(binding = 0, std140) uniform UBO0
 {
   mat4 viewProj;
+  mat4 oldViewProjUnjittered;
+  mat4 viewProjUnjittered;
+  mat4 invViewProj;
+  mat4 proj;
+  vec4 cameraPos;
 };
 
 struct ObjectUniforms
@@ -42,4 +49,6 @@ void main()
   v_normal = normalize(inverse(transpose(mat3(objects[i].model))) * oct_to_float32x3(a_normal));
   v_uv = a_uv;
   gl_Position = viewProj * vec4(v_position, 1.0);
+  v_curPos = viewProjUnjittered * vec4(v_position, 1.0);
+  v_oldPos = oldViewProjUnjittered * vec4(v_position, 1.0);
 }

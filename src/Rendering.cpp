@@ -1142,7 +1142,7 @@ namespace Fwog
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
       FWOG_ASSERT(level < texture.GetCreateInfo().mipLevels);
       FWOG_ASSERT(IsValidImageFormat(texture.GetCreateInfo().format));
-
+      
       glBindImageTexture(index,
                          const_cast<Texture&>(texture).Handle(),
                          level,

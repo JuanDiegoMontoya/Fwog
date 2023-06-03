@@ -13,6 +13,7 @@ layout(binding = 2) uniform sampler2D s_gDepth;
 layout(binding = 3) uniform sampler2D s_gDepthPrev;
 layout(binding = 4) uniform sampler2D s_gNormal;
 layout(binding = 5) uniform sampler2D s_gNormalPrev;
+layout(binding = 6) uniform sampler2D s_gMotion;
 
 layout(binding = 0) uniform restrict writeonly image2D i_outIndirect;
 layout(binding = 1, r8ui) uniform restrict uimage2D i_historyLength;
@@ -29,6 +30,8 @@ layout(binding = 0, std140) uniform ReprojectionUniforms
   float alphaIlluminance;
   float phiDepth;
   float phiNormal;
+  vec2 jitterOffset;
+  vec2 lastFrameJitterOffset;
 }uniforms;
 
 bool InBounds(ivec2 pos)
@@ -60,17 +63,23 @@ void main()
 
   // Reproject this pixel
   float depthCur = texelFetch(s_gDepth, gid, 0).x;
+
   // NDC_curFrame -> world
   vec3 worldPosCur = UnprojectUV(depthCur, uv, uniforms.invViewProjCurrent);
-  // world -> NDC_prevFrame
-  vec4 clipPosPrev = uniforms.viewProjPrevious * vec4(worldPosCur, 1.0);
-  vec3 ndcPosPrev = clipPosPrev.xyz / clipPosPrev.w;
-  vec3 reprojectedUV = ndcPosPrev;
-  reprojectedUV.xy = ndcPosPrev.xy * .5 + .5;
-  // From OpenGL Z convention [-1, 1] -> [0, 1].
-  // In other APIs (or with glClipControl(..., GL_ZERO_TO_ONE)) you would not do this.
-  reprojectedUV.z = ndcPosPrev.z * .5 + .5;
   
+  // Reprojection with old camera
+  // // world -> NDC_prevFrame
+  // vec4 clipPosPrev = uniforms.viewProjPrevious * vec4(worldPosCur, 1.0);
+  // vec3 ndcPosPrev = clipPosPrev.xyz / clipPosPrev.w;
+  // vec3 reprojectedUV = ndcPosPrev;
+  // reprojectedUV.xy = ndcPosPrev.xy * .5 + .5;
+  // // From OpenGL Z convention [-1, 1] -> [0, 1].
+  // // In other APIs (or with glClipControl(..., GL_ZERO_TO_ONE)) you would not do this.
+  // reprojectedUV.z = ndcPosPrev.z * .5 + .5;
+
+  // According to my math, this is how you account for jitter when reprojecting
+  vec2 reprojectedUV = uv + textureLod(s_gMotion, uv, 0.0).xy - uniforms.jitterOffset + uniforms.lastFrameJitterOffset;
+
   //ivec2 centerPos = ivec2(reprojectedUV.xy * uniforms.targetDim);
 
   vec3 rayDir = normalize(worldPosCur - uniforms.viewPos);
@@ -115,9 +124,10 @@ void main()
   float lum = Luminance(curColor);
   vec2 curMoments = { lum, lum * lum };
 
-  if (validCount > 0)
+  // Requiring at least 3 valid samples (instead of 1) is a hack to deal with a jitter bug (no pun intended)
+  if (validCount > 2)
   {
-    // Use weighted bilinear filter if any of its samples 
+    // Use weighted bilinear filter if any of its samples are valid
     float factor = max(0.01, Bilerp(valid[0][0], valid[0][1], valid[1][0], valid[1][1], weight));
     vec3 prevColor = Bilerp(colors[0][0], colors[0][1], colors[1][0], colors[1][1], weight) / factor;
 
@@ -167,7 +177,7 @@ void main()
     }
     else
     {
-      // Disocclusion ocurred
+      // Disocclusion occurred
       imageStore(i_outIndirect, gid, vec4(curColor, 0.0));
       imageStore(i_historyLength, gid, uvec4(0));
 
