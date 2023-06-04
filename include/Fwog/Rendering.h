@@ -76,7 +76,7 @@ namespace Fwog
 #ifdef FWOG_DEFAULT_CLIP_DEPTH_RANGE_NEGATIVE_ONE_TO_ONE
       Fwog::ClipDepthRange::NEGATIVE_ONE_TO_ONE;
 #else
-      Fwog::ClipDepthRange::ZeroToOne;
+      Fwog::ClipDepthRange::ZERO_TO_ONE;
 #endif
 
     bool operator==(const Viewport&) const noexcept = default;
