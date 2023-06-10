@@ -664,6 +664,15 @@ namespace Fwog
       auto pipelineState = detail::GetGraphicsPipelineInternal(pipeline.Handle());
       FWOG_ASSERT(pipelineState);
 
+      //////////////////////////////////////////////////////////////// shader program
+      if (context->lastGraphicsPipeline != pipelineState || context->lastPipelineWasCompute)
+      {
+        glUseProgram(static_cast<GLuint>(pipeline.Handle()));
+      }
+
+      context->lastPipelineWasCompute = false;
+
+      // Early-out if this was the last pipeline bound
       if (context->lastGraphicsPipeline == pipelineState)
       {
         return;
@@ -690,9 +699,6 @@ namespace Fwog
       {
         glEnable(GL_FRAMEBUFFER_SRGB);
       }
-
-      //////////////////////////////////////////////////////////////// shader program
-      glUseProgram(static_cast<GLuint>(pipeline.Handle()));
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipelineState->inputAssemblyState;
@@ -948,6 +954,7 @@ namespace Fwog
       auto pipelineState = detail::GetComputePipelineInternal(pipeline.Handle());
 
       context->lastComputePipelineWorkgroupSize = pipeline.WorkgroupSize();
+      context->lastPipelineWasCompute = true;
 
       if (context->isPipelineDebugGroupPushed)
       {

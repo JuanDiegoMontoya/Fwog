@@ -44,6 +44,7 @@ namespace Fwog::detail
     // A shared_ptr is needed as the user can delete pipelines at any time, but we need to ensure it stays alive until
     // the next pipeline is bound.
     std::shared_ptr<const detail::GraphicsPipelineInfoOwning> lastGraphicsPipeline{};
+    bool lastPipelineWasCompute = false;
 
     Extent3D lastComputePipelineWorkgroupSize{};
 
