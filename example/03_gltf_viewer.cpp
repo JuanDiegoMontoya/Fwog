@@ -757,13 +757,13 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       ffxFsr2GetJitterOffset(&jitterX, &jitterY, frameIndex, ffxFsr2GetJitterPhaseCount(renderWidth, windowWidth));
 
       FfxFsr2DispatchDescription dispatchDesc{
-        .color = ffxGetTextureResourceGL(&fsr2Context, frame.colorHdrRenderRes->Handle(), renderWidth, renderHeight, GL_R11F_G11F_B10F),
-        .depth = ffxGetTextureResourceGL(&fsr2Context, frame.gDepth->Handle(), renderWidth, renderHeight, GL_DEPTH_COMPONENT32F),
-        .motionVectors = ffxGetTextureResourceGL(&fsr2Context, frame.gMotion->Handle(), renderWidth, renderHeight, GL_RG16F),
+        .color = ffxGetTextureResourceGL(frame.colorHdrRenderRes->Handle(), renderWidth, renderHeight, GL_R11F_G11F_B10F),
+        .depth = ffxGetTextureResourceGL(frame.gDepth->Handle(), renderWidth, renderHeight, GL_DEPTH_COMPONENT32F),
+        .motionVectors = ffxGetTextureResourceGL(frame.gMotion->Handle(), renderWidth, renderHeight, GL_RG16F),
         .exposure = {},
         .reactive = {},
         .transparencyAndComposition = {},
-        .output = ffxGetTextureResourceGL(&fsr2Context, frame.colorHdrWindowRes->Handle(), windowWidth, windowHeight, GL_R11F_G11F_B10F),
+        .output = ffxGetTextureResourceGL(frame.colorHdrWindowRes->Handle(), windowWidth, windowHeight, GL_R11F_G11F_B10F),
         .jitterOffset = {jitterX, jitterY},
         .motionVectorScale = {float(renderWidth), float(renderHeight)},
         .renderSize = {renderWidth, renderHeight},
