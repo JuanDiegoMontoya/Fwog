@@ -134,10 +134,14 @@ namespace Fwog::detail
     case Format::BC1_RGBA_UNORM:     return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
     case Format::BC1_RGB_SRGB:       return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
     case Format::BC1_RGBA_SRGB:      return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
-    case Format::BC3_RGBA_UNORM:     return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-    case Format::BC3_RGBA_SRGB:      return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
-    case Format::BC5_RGBA_UNORM:     return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-    case Format::BC5_RGBA_SRGB:      return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+    case Format::BC2_RGBA_UNORM:     return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    case Format::BC2_RGBA_SRGB:      return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+    case Format::BC3_RGBA_UNORM:     return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    case Format::BC3_RGBA_SRGB:      return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+    case Format::BC4_R_UNORM:        return GL_COMPRESSED_RED_RGTC1;
+    case Format::BC4_R_SNORM:        return GL_COMPRESSED_SIGNED_RED_RGTC1;
+    case Format::BC5_RG_UNORM:       return GL_COMPRESSED_RG_RGTC2;
+    case Format::BC5_RG_SNORM:       return GL_COMPRESSED_SIGNED_RG_RGTC2;
     case Format::BC6H_RGB_UFLOAT:    return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT;
     case Format::BC6H_RGB_SFLOAT:    return GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT;
     case Format::BC7_RGBA_UNORM:     return GL_COMPRESSED_RGBA_BPTC_UNORM;
@@ -351,12 +355,16 @@ int ImageTypeToDimension(ImageType imageType)
     {
     case Format::BC1_RGB_UNORM:
     case Format::BC1_RGBA_UNORM:
-    case Format::BC3_RGBA_UNORM:
-    case Format::BC5_RGBA_UNORM:
     case Format::BC1_RGB_SRGB:
     case Format::BC1_RGBA_SRGB:
+    case Format::BC2_RGBA_UNORM:
+    case Format::BC2_RGBA_SRGB:
+    case Format::BC3_RGBA_UNORM:
     case Format::BC3_RGBA_SRGB:
-    case Format::BC5_RGBA_SRGB:
+    case Format::BC4_R_UNORM:
+    case Format::BC4_R_SNORM:
+    case Format::BC5_RG_UNORM:
+    case Format::BC5_RG_SNORM:
     case Format::BC6H_RGB_UFLOAT:
     case Format::BC6H_RGB_SFLOAT:
     case Format::BC7_RGBA_UNORM:

@@ -31,18 +31,22 @@ namespace Fwog
 
       switch (format)
       {
-      // BC1 stores 4x4 blocks with 64 bits (8 bytes)
+      // BC1 and BC4 store 4x4 blocks with 64 bits (8 bytes)
       case Format::BC1_RGB_UNORM:
       case Format::BC1_RGBA_UNORM:
       case Format::BC1_RGB_SRGB:
       case Format::BC1_RGBA_SRGB:
+      case Format::BC4_R_UNORM:
+      case Format::BC4_R_SNORM:
         return width * height * depth / 2;
 
       // BC3, BC5, BC6, and BC7 store 4x4 blocks with 128 bits (16 bytes)
+      case Format::BC2_RGBA_UNORM:
+      case Format::BC2_RGBA_SRGB:
       case Format::BC3_RGBA_UNORM:
       case Format::BC3_RGBA_SRGB:
-      case Format::BC5_RGBA_UNORM:
-      case Format::BC5_RGBA_SRGB:
+      case Format::BC5_RG_UNORM:
+      case Format::BC5_RG_SNORM:
       case Format::BC6H_RGB_UFLOAT:
       case Format::BC6H_RGB_SFLOAT:
       case Format::BC7_RGBA_UNORM:
