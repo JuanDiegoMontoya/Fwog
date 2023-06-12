@@ -30,6 +30,18 @@ FetchContent_Declare(
     GIT_TAG        v1.88
 )
 
+option(KTX_FEATURE_TESTS "" OFF)
+option(KTX_FEATURE_VULKAN "" OFF)
+option(KTX_FEATURE_GL_UPLOAD "" OFF)
+option(KTX_FEATURE_VK_UPLOAD "" OFF)
+option(KTX_FEATURE_WRITE "" OFF)
+option(KTX_FEATURE_TOOLS "" OFF)
+FetchContent_Declare(
+    ktx
+    GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
+    GIT_TAG        v4.1.0
+)
+
 if(FWOG_FSR2_ENABLE)
     option(GFX_API_DX12 "" OFF)
     option(GFX_API_VK "" OFF)
@@ -48,6 +60,16 @@ endif()
 
 FetchContent_MakeAvailable(glm)
 FetchContent_MakeAvailable(tinygltf)
+FetchContent_MakeAvailable(ktx)
+
+# Disable warnings for libktx
+target_compile_options(ktx
+	PRIVATE
+	$<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
+	-Wno-everything>
+	$<$<CXX_COMPILER_ID:MSVC>:
+	-w>
+)
 
 set(FSR2_SOURCE ${fsr2_SOURCE_DIR} PARENT_SCOPE)
 
@@ -75,4 +97,3 @@ endif()
 FetchContent_MakeAvailable(glfw)
 
 target_compile_definitions(glm INTERFACE GLM_FORCE_SILENT_WARNINGS)
-# add_subdirectory(glad)

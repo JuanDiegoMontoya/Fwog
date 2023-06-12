@@ -113,7 +113,7 @@ struct ShadowUniforms
   uint32_t shadowMode = 0; // 0 = PCF, 1 = SMRT
 
   // PCF stuff
-  uint32_t pcfSamples = 4;
+  uint32_t pcfSamples = 8;
   float pcfRadius = 0.002f;
 
   // SMRT stuff

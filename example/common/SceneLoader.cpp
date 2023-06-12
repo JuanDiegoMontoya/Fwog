@@ -8,8 +8,11 @@
 #include <chrono>
 #include <algorithm>
 #include <ranges>
+#include <span>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
+
+#include "ktx.h"
 
 #include FWOG_OPENGL_HEADER
 
@@ -114,41 +117,100 @@ namespace Utility
       }
     }
 
+    auto LoadCompressedTexture(const tinygltf::Image& image) -> Fwog::Texture
+    {
+      return Fwog::Texture(Fwog::TextureCreateInfo{});
+    }
+
     struct RawImageData
     {
-      const int image_idx;
-      std::string* err;
-      std::string* warn;
-      int req_width;
-      int req_height;
-      const unsigned char* bytes;
-      int size;
+      // Used for ktx and non-ktx images alike
+      std::unique_ptr<unsigned char[]> encodedPixelData = {};
+      size_t encodedPixelSize = 0;
+
+      bool isKtx = false;
+      int width = 0;
+      int height = 0;
+      int pixel_type = GL_UNSIGNED_BYTE;
+      int bits = 8;
+      int components = 0;
+      std::string name;
+
+      // Non-ktx. Raw decoded pixel data
+      std::unique_ptr<unsigned char[]> data = {};
+
+      // ktx
+      std::unique_ptr<ktxTexture2, decltype([](ktxTexture2* p) { ktxTexture_Destroy(ktxTexture(p)); })> ktx = {};
+
+      //std::optional<Fwog::Texture> texture;
     };
 
-    bool LoadImageData([[maybe_unused]] tinygltf::Image* image, const int image_idx, std::string* err,
-      std::string* warn, int req_width, int req_height,
-      const unsigned char* bytes, int size, void* user_data)
+    bool LoadImageData(
+      tinygltf::Image* image,
+      [[maybe_unused]] const int image_idx,
+      [[maybe_unused]] std::string* err,
+      [[maybe_unused]] std::string* warn,
+      [[maybe_unused]] int req_width,
+      [[maybe_unused]] int req_height,
+      const unsigned char* bytes,
+      int size,
+      void* user_data)
     {
-      int x, y, comp;
-      stbi_info_from_memory(bytes, size, &x, &y, &comp);
       auto* data = static_cast<std::vector<RawImageData>*>(user_data);
-      auto* bytes2 = new unsigned char[size];
-      memcpy(bytes2, bytes, size);
-      data->emplace_back(RawImageData{image_idx, err, warn, req_width, req_height, bytes2, size});
+      FWOG_ASSERT(image_idx == data->size()); // Assume that traversed image indices are monotonically increasing (0, 1, 2, ..., n - 1)
 
-      // TODO: this should return false if the image is unloadable (but how?)
+      auto encodedPixelData = std::make_unique<unsigned char[]>(size);
+      memcpy(encodedPixelData.get(), bytes, size);
+
+      data->emplace_back(RawImageData{
+        .encodedPixelData = std::move(encodedPixelData),
+        .encodedPixelSize = static_cast<size_t>(size),
+        .isKtx = image->mimeType == "image/ktx2",
+        .name = image->name,
+      });
+
+      // This function cannot fail early, since we aren't actually loading the image here
       return true;
     }
 
-    bool LoadImageDataParallel(std::vector<RawImageData>& rawImageData, std::vector<tinygltf::Image>& images, tinygltf::LoadImageDataOption options)
+    bool LoadImageDataParallel(std::span<RawImageData> rawImageData)
     {
-      return std::all_of(std::execution::par, rawImageData.begin(), rawImageData.end(), [&](RawImageData& rawImage) mutable
+      return std::all_of(std::execution::seq, rawImageData.begin(), rawImageData.end(), [&](RawImageData& rawImage)
+      {
+        if (rawImage.isKtx)
         {
-          auto& [image_idx, err, warn, req_width, req_height, bytes, size] = rawImage;
-          bool success = tinygltf::LoadImageData(&images[image_idx], image_idx, err, warn, req_width, req_height, bytes, size, &options);
-          delete[] bytes;
-          return success;
-        });
+          ktxTexture2* ktx{};
+          if (auto result = ktxTexture2_CreateFromMemory(rawImage.encodedPixelData.get(),
+                                                         rawImage.encodedPixelSize,
+                                                         KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                                         &ktx); result != KTX_SUCCESS)
+          {
+            return false;
+          }
+          
+          rawImage.width = ktx->baseWidth;
+          rawImage.height = ktx->baseHeight;
+          rawImage.components = ktxTexture2_GetNumComponents(ktx);
+          rawImage.ktx.reset(ktx);
+        }
+        else
+        {
+          int x, y, comp;
+          auto* pixels = stbi_load_from_memory(rawImage.encodedPixelData.get(), rawImage.encodedPixelSize, &x, &y, &comp, 4);
+          if (!pixels)
+          {
+            return false;
+          }
+
+          rawImage.width = x;
+          rawImage.height = y;
+          //rawImage.components = comp;
+          rawImage.components = 4; // If forced 4 components
+          rawImage.data.reset(pixels);
+        }
+
+        return true;
+      });
     }
 
     glm::mat4 NodeToMat4(const tinygltf::Node& node)
@@ -255,22 +317,32 @@ namespace Utility
         }
         else if (accessor.normalized == true) // normalized elements require conversion
         {
-          auto AddElementsNorm = [&]<typename Vec>()
+          auto AddElementsNorm = [&]<typename Vec, bool Signed>()
           {
             for (size_t i = 0; i < accessor.count; i++)
             {
-              // this doesn't actually work exactly for signed types
-              attributeBuffer[i] = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride)) / Fvec(static_cast<float>(std::numeric_limits<typename Vec::value_type>::max()));
+              // Unsigned: c / (2^b - 1)
+              // Signed: max(c / (2^(b-1) - 1), -1.0)
+              const auto vec = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride));
+              constexpr auto divisor = Fvec(static_cast<float>(std::numeric_limits<typename Vec::value_type>::max()));
+              if constexpr (Signed)
+              {
+                attributeBuffer[i] = glm::max(vec / divisor, Fvec(-1));
+              }
+              else
+              {
+                attributeBuffer[i] = vec / divisor;
+              }
             }
           };
 
           switch (accessor.componentType)
           {
-          //case GL_BYTE:           AddElementsNorm.template operator()<Bvec>(); break;
-          case GL_UNSIGNED_BYTE:  AddElementsNorm.template operator()<UBvec>(); break;
-          //case GL_SHORT:          AddElementsNorm.template operator()<Svec>(); break;
-          case GL_UNSIGNED_SHORT: AddElementsNorm.template operator()<USvec>(); break;
-          case GL_UNSIGNED_INT:   AddElementsNorm.template operator()<UIvec>(); break;
+          case GL_BYTE:           AddElementsNorm.template operator()<Bvec, true>(); break;
+          case GL_UNSIGNED_BYTE:  AddElementsNorm.template operator()<UBvec, false>(); break;
+          case GL_SHORT:          AddElementsNorm.template operator()<Svec, true>(); break;
+          case GL_UNSIGNED_SHORT: AddElementsNorm.template operator()<USvec, false>(); break;
+          case GL_UNSIGNED_INT:   AddElementsNorm.template operator()<UIvec, false>(); break;
           //case GL_FLOAT:          AddElementsNorm.template operator()<Fvec>(); break;
           default: FWOG_UNREACHABLE;
           }
@@ -356,59 +428,113 @@ namespace Utility
     return indices;
   }
 
-  std::pair<std::vector<Fwog::Texture>, std::vector<Fwog::SamplerState>> LoadTextureSamplers(const tinygltf::Model& model)
+  std::pair<std::vector<Fwog::Texture>, std::vector<Fwog::SamplerState>> LoadTextureSamplers(const tinygltf::Model& model, std::span<const RawImageData> images)
   {
     std::vector<Fwog::Texture> textures;
     std::vector<Fwog::SamplerState> samplers;
 
     for (const auto& texture : model.textures)
     {
-      const tinygltf::Image& image = model.images[texture.source];
-
-      Fwog::SamplerState samplerState;
-
-      // sampler isn't null
-      if (texture.sampler >= 0)
+      int textureSource = texture.source;
+      if (auto it = texture.extensions.find("KHR_texture_basisu"); it != texture.extensions.end())
       {
-        const tinygltf::Sampler& baseColorSampler = model.samplers[texture.sampler];
-
-        samplerState.addressModeU = ConvertGlAddressMode(baseColorSampler.wrapS);
-        samplerState.addressModeV = ConvertGlAddressMode(baseColorSampler.wrapT);
-        samplerState.minFilter = ConvertGlFilterMode(baseColorSampler.minFilter);
-        samplerState.magFilter = ConvertGlFilterMode(baseColorSampler.magFilter);
-        samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
-        if (GetGlMipmapFilter(baseColorSampler.minFilter) != Fwog::Filter::NONE)
+        struct Hack : tinygltf::Value
         {
-          samplerState.anisotropy = Fwog::SampleCount::SAMPLES_16;
+          Hack(const tinygltf::Value& basisuExtension)
+            : Value(basisuExtension) {}
+
+          int GetTextureSource() const
+          {
+            return this->object_value_.at("source").GetNumberAsInt();
+          }
+        };
+        textureSource = Hack {it->second}.GetTextureSource();
+        //printf("source: %d\n", textureSource);
+      }
+      const auto& image = images[textureSource];
+
+      // Load sampler
+      {
+        Fwog::SamplerState samplerState{};
+
+        // sampler isn't null
+        if (texture.sampler >= 0)
+        {
+          const tinygltf::Sampler& baseColorSampler = model.samplers[texture.sampler];
+
+          samplerState.addressModeU = ConvertGlAddressMode(baseColorSampler.wrapS);
+          samplerState.addressModeV = ConvertGlAddressMode(baseColorSampler.wrapT);
+          samplerState.minFilter = ConvertGlFilterMode(baseColorSampler.minFilter);
+          samplerState.magFilter = ConvertGlFilterMode(baseColorSampler.magFilter);
+          samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
+          if (GetGlMipmapFilter(baseColorSampler.minFilter) != Fwog::Filter::NONE)
+          {
+            samplerState.anisotropy = Fwog::SampleCount::SAMPLES_16;
+          }
         }
+
+        samplers.emplace_back(samplerState);
       }
 
-      FWOG_ASSERT(image.component == 4);
-      FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
-      FWOG_ASSERT(image.bits == 8);
-
-      Fwog::Extent2D dims = { static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height) };
-
-      auto textureData = Fwog::CreateTexture2DMip(
-        dims,
-        Fwog::Format::R8G8B8A8_UNORM,
-        uint32_t(1 + floor(log2(glm::max(dims.width, dims.height)))),
-        image.name);
-
-      Fwog::TextureUpdateInfo updateInfo
+      // Load texture
       {
-        .level = 0,
-        .offset = {},
-        .extent = { dims.width, dims.height, 1 },
-        .format = Fwog::UploadFormat::RGBA,
-        .type = Fwog::UploadType::UBYTE,
-        .pixels = image.image.data()
-      };
-      textureData.UpdateImage(updateInfo);
-      textureData.GenMipmaps();
-      
-      textures.emplace_back(std::move(textureData));
-      samplers.emplace_back(samplerState);
+
+        Fwog::Extent2D dims = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height)};
+
+        if (image.isKtx)
+        {
+          auto* ktx = image.ktx.get();
+          if (ktxTexture2_NeedsTranscoding(ktx))
+          {
+            if (auto result = ktxTexture2_TranscodeBasis(ktx, KTX_TTF_BC7_RGBA, KTX_TF_HIGH_QUALITY); result != KTX_SUCCESS)
+            {
+              FWOG_ASSERT(0);
+            }
+          }
+
+          auto textureData = Fwog::CreateTexture2DMip(dims, Fwog::Format::BC7_RGBA_UNORM, ktx->numLevels, image.name);
+
+          for (uint32_t level = 0; level < ktx->numLevels; level++)
+          {
+            size_t offset{};
+            ktxTexture_GetImageOffset(ktxTexture(ktx), level, 0, 0, &offset);
+            //auto imageSize = ktxTexture_GetImageSize(ktxTexture(ktx), level);
+
+            uint32_t width = std::max(dims.width >> level, 1u);
+            uint32_t height = std::max(dims.height >> level, 1u);
+
+            textureData.UpdateCompressedImage({
+              .level = level,
+              .extent = {width, height, 1},
+              .data = ktx->pData + offset,
+            });
+          }
+
+          textures.emplace_back(std::move(textureData));
+        }
+        else
+        {
+          FWOG_ASSERT(image.components == 4);
+          FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
+          FWOG_ASSERT(image.bits == 8);
+
+          auto textureData = Fwog::CreateTexture2DMip(dims,
+                                                      Fwog::Format::R8G8B8A8_UNORM,
+                                                      uint32_t(1 + floor(log2(glm::max(dims.width, dims.height)))),
+                                                      image.name);
+
+          Fwog::TextureUpdateInfo updateInfo{.level = 0,
+                                             .offset = {},
+                                             .extent = {dims.width, dims.height, 1},
+                                             .format = Fwog::UploadFormat::RGBA,
+                                             .type = Fwog::UploadType::UBYTE,
+                                             .pixels = image.data.get()};
+          textureData.UpdateImage(updateInfo);
+          textureData.GenMipmaps();
+
+          textures.emplace_back(std::move(textureData));
+        }
+      }
     }
 
     return std::make_pair(std::move(textures), std::move(samplers));
@@ -432,10 +558,12 @@ namespace Utility
 
       if (baseColorTextureIndex >= 0)
       {
+        auto& tex = textures[baseColorTextureIndex];
+        auto texFormat = tex.GetCreateInfo().format;
         material.gpuMaterial.flags |= MaterialFlagBit::HAS_BASE_COLOR_TEXTURE;
         material.albedoTextureSampler = 
         {
-          textures[baseColorTextureIndex].CreateFormatView(Fwog::Format::R8G8B8A8_SRGB),
+          tex.CreateFormatView(texFormat == Fwog::Format::BC7_RGBA_UNORM ? Fwog::Format::BC7_RGBA_SRGB : Fwog::Format::R8G8B8A8_SRGB),
           samplers[baseColorTextureIndex]
         };
       }
@@ -518,13 +646,20 @@ namespace Utility
       std::cout << "glTF error: " << error << '\n';
     }
 
+    if (std::ranges::find(model.extensionsUsed, "KHR_texture_transform") != model.extensionsUsed.end())
+    {
+      std::cout << "glTF contains unsupported extension: "
+                   "KHR_texture_transform\n";
+      result = false;
+    }
+
     if (result == false)
     {
       std::cout << "Failed to load glTF: " << fileName << '\n';
       return std::nullopt;
     }
 
-    bool loadImageResult = LoadImageDataParallel(rawImageData, model.images, { .preserve_channels = false });
+    bool loadImageResult = LoadImageDataParallel(rawImageData);
     if (loadImageResult == false)
     {
       std::cout << "Failed to load glTF images" << '\n';
@@ -539,7 +674,7 @@ namespace Utility
 
     LoadModelResult scene;
 
-    std::tie(scene.textures, scene.samplers) = LoadTextureSamplers(model);
+    std::tie(scene.textures, scene.samplers) = LoadTextureSamplers(model, rawImageData);
 
     auto materials = LoadMaterials(model, baseTextureSamplerIndex, scene.textures, scene.samplers);
     std::ranges::move(materials, std::back_inserter(scene.materials));
