@@ -52,7 +52,7 @@ if(FWOG_FSR2_ENABLE)
     FetchContent_Declare(
         fsr2
         GIT_REPOSITORY https://github.com/JuanDiegoMontoya/FidelityFX-FSR2.git
-        GIT_TAG        c894360c183c94e12ee1b520193dc0f906f21502
+        GIT_TAG        25cf567f7c365a923b1f71095c322e834e5f903b
         GIT_SUBMODULES ""
     )
     FetchContent_MakeAvailable(fsr2)
