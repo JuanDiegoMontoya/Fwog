@@ -32,6 +32,8 @@ namespace Fwog::detail
 
   UploadFormat FormatToUploadFormat(Format format);
 
+  bool IsBlockCompressedFormat(Format format);
+
   ////////////////////////////////////////////////////////// pipeline
   GLenum CullModeToGL(CullMode mode);
   GLenum PolygonModeToGL(PolygonMode mode);

@@ -151,6 +151,8 @@ namespace Fwog
   enum class Format : uint32_t
   {
     UNDEFINED,
+
+    // Color formats
     R8_UNORM,
     R8_SNORM,
     R16_UNORM,
@@ -214,13 +216,30 @@ namespace Fwog
     R32G32B32A32_SINT,
     R32G32B32A32_UINT,
 
+    // Depth & stencil formats
     D32_FLOAT,
     D32_UNORM,
     D24_UNORM,
     D16_UNORM,
     D32_FLOAT_S8_UINT,
     D24_UNORM_S8_UINT,
-    // TODO: compressed formats
+
+    // Compressed formats
+    // DXT
+    BC1_RGB_UNORM,
+    BC1_RGB_SRGB,
+    BC1_RGBA_UNORM,
+    BC1_RGBA_SRGB,
+    BC3_RGBA_UNORM,
+    BC3_RGBA_SRGB,
+    BC5_RGBA_UNORM,
+    BC5_RGBA_SRGB,
+    // BPTC
+    BC6H_RGB_UFLOAT,
+    BC6H_RGB_SFLOAT,
+    BC7_RGBA_UNORM,
+    BC7_RGBA_SRGB,
+
     // TODO: 64-bits-per-component formats
   };
 

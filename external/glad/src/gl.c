@@ -1,3 +1,6 @@
+/**
+ * SPDX-License-Identifier: (WTFPL OR CC0-1.0) AND Apache-2.0
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +43,9 @@ int GLAD_GL_VERSION_4_4 = 0;
 int GLAD_GL_VERSION_4_5 = 0;
 int GLAD_GL_VERSION_4_6 = 0;
 int GLAD_GL_ARB_bindless_texture = 0;
+int GLAD_GL_EXT_texture_compression_s3tc = 0;
+int GLAD_GL_EXT_texture_sRGB = 0;
+int GLAD_GL_KHR_shader_subgroup = 0;
 
 
 
@@ -1468,9 +1474,9 @@ static int glad_gl_get_extensions( int version, const char **out_exts, unsigned 
 #if GLAD_GL_IS_SOME_NEW_VERSION
     if(GLAD_VERSION_MAJOR(version) < 3) {
 #else
-    (void) version;
-    (void) out_num_exts_i;
-    (void) out_exts_i;
+    GLAD_UNUSED(version);
+    GLAD_UNUSED(out_num_exts_i);
+    GLAD_UNUSED(out_exts_i);
 #endif
         if (glad_glGetString == NULL) {
             return 0;
@@ -1563,6 +1569,9 @@ static int glad_gl_find_extensions_gl( int version) {
     if (!glad_gl_get_extensions(version, &exts, &num_exts_i, &exts_i)) return 0;
 
     GLAD_GL_ARB_bindless_texture = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_ARB_bindless_texture");
+    GLAD_GL_EXT_texture_compression_s3tc = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_EXT_texture_compression_s3tc");
+    GLAD_GL_EXT_texture_sRGB = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_EXT_texture_sRGB");
+    GLAD_GL_KHR_shader_subgroup = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_KHR_shader_subgroup");
 
     glad_gl_free_extensions(exts_i, num_exts_i);
 

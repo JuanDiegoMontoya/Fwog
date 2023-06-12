@@ -18,9 +18,40 @@ namespace Fwog
     {
       return const_cast<Texture&>(texture).Handle();
     }
-  }
 
-  Texture::Texture() {}
+    uint64_t GetBlockCompressedImageSize(Format format, uint32_t width, uint32_t height, uint32_t depth)
+    {
+      FWOG_ASSERT(detail::IsBlockCompressedFormat(format));
+
+      // BCn formats store 4x4 blocks of pixels, even if the dimensions aren't a multiple of 4
+      // We round up to the nearest multiple of 4 for width and height, but not depth, since
+      // 3D BCn images are just multiple 2D images stacked
+      width = (width + 4 - 1) & -4;
+      height = (height + 4 - 1) & -4;
+
+      switch (format)
+      {
+      // BC1 stores 4x4 blocks with 64 bits (8 bytes)
+      case Format::BC1_RGB_UNORM:
+      case Format::BC1_RGBA_UNORM:
+      case Format::BC1_RGB_SRGB:
+      case Format::BC1_RGBA_SRGB:
+        return width * height * depth / 2;
+
+      // BC3, BC5, BC6, and BC7 store 4x4 blocks with 128 bits (16 bytes)
+      case Format::BC3_RGBA_UNORM:
+      case Format::BC3_RGBA_SRGB:
+      case Format::BC5_RGBA_UNORM:
+      case Format::BC5_RGBA_SRGB:
+      case Format::BC6H_RGB_UFLOAT:
+      case Format::BC6H_RGB_SFLOAT:
+      case Format::BC7_RGBA_UNORM:
+      case Format::BC7_RGBA_SRGB:
+        return width * height * depth;
+      default: FWOG_UNREACHABLE; return 0;
+      }
+    }
+  } // namespace detail
 
   Texture::Texture(const TextureCreateInfo& createInfo, std::string_view name) : createInfo_(createInfo)
   {
@@ -200,8 +231,15 @@ namespace Fwog
     subImageInternal(info);
   }
 
+  void Texture::UpdateCompressedImage(const CompressedTextureUpdateInfo& info)
+  {
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    subCompressedImageInternal(info);
+  }
+
   void Texture::subImageInternal(const TextureUpdateInfo& info)
   {
+    FWOG_ASSERT(!detail::IsBlockCompressedFormat(createInfo_.format));
     GLenum format{};
     if (info.format == UploadFormat::INFER_FORMAT)
     {
@@ -221,21 +259,14 @@ namespace Fwog
     {
       type = detail::UploadTypeToGL(info.type);
     }
-    
+
     glPixelStorei(GL_UNPACK_ROW_LENGTH, info.rowLength);
     glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, info.imageHeight);
 
     switch (detail::ImageTypeToDimension(createInfo_.imageType))
     {
     case 1:
-      glTextureSubImage1D(id_,
-                          info.level,
-                          info.offset.x,
-                          info.extent.width,
-                          format,
-                          type,
-                          info.pixels);
-      break;
+      glTextureSubImage1D(id_, info.level, info.offset.x, info.extent.width, format, type, info.pixels); break;
     case 2:
       glTextureSubImage2D(id_,
                           info.level,
@@ -260,6 +291,46 @@ namespace Fwog
                           type,
                           info.pixels);
       break;
+    }
+  }
+
+  void Texture::subCompressedImageInternal(const CompressedTextureUpdateInfo& info)
+  {
+    FWOG_ASSERT(detail::IsBlockCompressedFormat(createInfo_.format));
+    const GLenum format = detail::FormatToGL(createInfo_.format);
+
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, 0);
+
+    switch (detail::ImageTypeToDimension(createInfo_.imageType))
+    {
+    case 2:
+      glCompressedTextureSubImage2D(
+        id_,
+        info.level,
+        info.offset.x,
+        info.offset.y,
+        info.extent.width,
+        info.extent.height,
+        format,
+        static_cast<uint32_t>(detail::GetBlockCompressedImageSize(createInfo_.format, info.extent.width, info.extent.height, 1)),
+        info.data);
+      break;
+    case 3:
+      glCompressedTextureSubImage3D(
+        id_,
+        info.level,
+        info.offset.x,
+        info.offset.y,
+        info.offset.z,
+        info.extent.width,
+        info.extent.height,
+        info.extent.depth,
+        format,
+        static_cast<uint32_t>(detail::GetBlockCompressedImageSize(createInfo_.format, info.extent.width, info.extent.height, info.extent.depth)),
+        info.data);
+      break;
+    default: FWOG_UNREACHABLE;
     }
   }
 

@@ -71,6 +71,15 @@ namespace Fwog
     uint32_t imageHeight = 0;
   };
 
+  /// @brief Parameters for Texture::UpdateCompressedImage
+  struct CompressedTextureUpdateInfo
+  {
+    uint32_t level = 0;
+    Offset3D offset = {};
+    Extent3D extent = {};
+    const void* data = nullptr;
+  };
+
   /// @brief Parameters for Texture::ClearImage
   struct TextureClearInfo
   {
@@ -124,7 +133,14 @@ namespace Fwog
 
     /// @brief Updates a subresource of the image
     /// @param info The subresource and data to upload
+    /// @note info.format must not be a compressed image format
     void UpdateImage(const TextureUpdateInfo& info);
+
+    /// @brief Updates a subresource of the image
+    /// @param info The subresource and data to upload
+    /// @note Image must be in a compressed image format
+    /// @note info.data must be in a compatible compressed image format
+    void UpdateCompressedImage(const CompressedTextureUpdateInfo& info);
 
     /// @brief Clears a subresource of the image to a specified value
     /// @param info The subresource and value to clear it with
@@ -177,7 +193,9 @@ namespace Fwog
 
     void subImageInternal(const TextureUpdateInfo& info);
 
-    Texture();
+    void subCompressedImageInternal(const CompressedTextureUpdateInfo& info);
+
+    Texture() = default;
     uint32_t id_{};
     TextureCreateInfo createInfo_{};
     uint64_t bindlessHandle_ = 0;
