@@ -163,6 +163,13 @@ namespace Fwog
 
   void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
   {
+    static bool isInitalizedCheckedAlready = false;
+    if (!isInitalizedCheckedAlready)
+    {
+        FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
+        isInitalizedCheckedAlready = true;
+    }
+   
     FWOG_ASSERT(!context->isRendering && "Cannot call BeginRendering when rendering");
     FWOG_ASSERT(!context->isComputeActive && "Cannot nest compute and rendering");
     context->isRendering = true;
@@ -266,6 +273,14 @@ namespace Fwog
 
   void BeginRendering(const RenderInfo& renderInfo)
   {
+      static bool isInitalizedCheckedAlready = false;
+      if (!isInitalizedCheckedAlready)
+      {
+          FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
+          isInitalizedCheckedAlready = true;
+      }
+
+
     FWOG_ASSERT(!context->isRendering && "Cannot call BeginRendering when rendering");
     FWOG_ASSERT(!context->isComputeActive && "Cannot nest compute and rendering");
     context->isRendering = true;
