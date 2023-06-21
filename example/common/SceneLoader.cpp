@@ -61,6 +61,48 @@ namespace Utility
       timepoint_t timepoint_;
     };
 
+    // Converts a Vulkan BCn VkFormat name to Fwog
+    Fwog::Format VkBcFormatToFwog(uint32_t vkFormat)
+    {
+      // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkFormat.html
+      switch (vkFormat)
+      {
+      case 131: return Fwog::Format::BC1_RGB_UNORM;
+      case 132: return Fwog::Format::BC1_RGB_SRGB;
+      case 133: return Fwog::Format::BC1_RGBA_UNORM;
+      case 134: return Fwog::Format::BC1_RGBA_SRGB;
+      case 135: return Fwog::Format::BC2_RGBA_UNORM;
+      case 136: return Fwog::Format::BC2_RGBA_SRGB;
+      case 137: return Fwog::Format::BC3_RGBA_UNORM;
+      case 138: return Fwog::Format::BC3_RGBA_SRGB;
+      case 139: return Fwog::Format::BC4_R_UNORM;
+      case 140: return Fwog::Format::BC4_R_SNORM;
+      case 141: return Fwog::Format::BC5_RG_UNORM;
+      case 142: return Fwog::Format::BC5_RG_SNORM;
+      case 143: return Fwog::Format::BC6H_RGB_UFLOAT;
+      case 144: return Fwog::Format::BC6H_RGB_SFLOAT;
+      case 145: return Fwog::Format::BC7_RGBA_UNORM;
+      case 146: return Fwog::Format::BC7_RGBA_SRGB;
+      default: FWOG_UNREACHABLE; return {};
+      }
+    }
+
+    // Converts a format to the sRGB version of itself, for use in a texture view
+    Fwog::Format FormatToSrgb(Fwog::Format format)
+    {
+      switch (format)
+      {
+      case Fwog::Format::BC1_RGBA_UNORM: return Fwog::Format::BC1_RGBA_SRGB;
+      case Fwog::Format::BC1_RGB_UNORM: return Fwog::Format::BC1_RGB_SRGB;
+      case Fwog::Format::BC2_RGBA_UNORM: return Fwog::Format::BC3_RGBA_SRGB;
+      case Fwog::Format::BC3_RGBA_UNORM: return Fwog::Format::BC3_RGBA_SRGB;
+      case Fwog::Format::BC7_RGBA_UNORM: return Fwog::Format::BC7_RGBA_SRGB;
+      case Fwog::Format::R8G8B8A8_UNORM: return Fwog::Format::R8G8B8A8_SRGB;
+      case Fwog::Format::R8G8B8_UNORM: return Fwog::Format::R8G8B8_SRGB;
+      default: return format;
+      }
+    }
+
     glm::vec2 signNotZero(glm::vec2 v)
     {
       return glm::vec2((v.x >= 0.0f) ? +1.0f : -1.0f, (v.y >= 0.0f) ? +1.0f : -1.0f);
@@ -484,21 +526,29 @@ namespace Utility
         if (image.isKtx)
         {
           auto* ktx = image.ktx.get();
+
+          Fwog::Format format = Fwog::Format::BC7_RGBA_UNORM;
+
+          // If the image needs is in a supercompressed encoding, transcode it to a desired format
           if (ktxTexture2_NeedsTranscoding(ktx))
           {
             if (auto result = ktxTexture2_TranscodeBasis(ktx, KTX_TTF_BC7_RGBA, KTX_TF_HIGH_QUALITY); result != KTX_SUCCESS)
             {
-              FWOG_ASSERT(0);
+              FWOG_UNREACHABLE;
             }
           }
+          else
+          {
+            // Use the format that the image is already in
+            format = VkBcFormatToFwog(ktx->vkFormat);
+          }
 
-          auto textureData = Fwog::CreateTexture2DMip(dims, Fwog::Format::BC7_RGBA_UNORM, ktx->numLevels, image.name);
+          auto textureData = Fwog::CreateTexture2DMip(dims, format, ktx->numLevels, image.name);
 
           for (uint32_t level = 0; level < ktx->numLevels; level++)
           {
             size_t offset{};
             ktxTexture_GetImageOffset(ktxTexture(ktx), level, 0, 0, &offset);
-            //auto imageSize = ktxTexture_GetImageSize(ktxTexture(ktx), level);
 
             uint32_t width = std::max(dims.width >> level, 1u);
             uint32_t height = std::max(dims.height >> level, 1u);
@@ -559,11 +609,10 @@ namespace Utility
       if (baseColorTextureIndex >= 0)
       {
         auto& tex = textures[baseColorTextureIndex];
-        auto texFormat = tex.GetCreateInfo().format;
         material.gpuMaterial.flags |= MaterialFlagBit::HAS_BASE_COLOR_TEXTURE;
         material.albedoTextureSampler = 
         {
-          tex.CreateFormatView(texFormat == Fwog::Format::BC7_RGBA_UNORM ? Fwog::Format::BC7_RGBA_SRGB : Fwog::Format::R8G8B8A8_SRGB),
+          tex.CreateFormatView(FormatToSrgb(tex.GetCreateInfo().format)),
           samplers[baseColorTextureIndex]
         };
       }

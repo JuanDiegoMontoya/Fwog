@@ -64,11 +64,11 @@ FetchContent_MakeAvailable(ktx)
 
 # Disable warnings for libktx
 target_compile_options(ktx
-	PRIVATE
-	$<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
-	-Wno-everything>
-	$<$<CXX_COMPILER_ID:MSVC>:
-	-w>
+    PRIVATE
+    $<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
+    -Wno-everything>
+    $<$<CXX_COMPILER_ID:MSVC>:
+    -w>
 )
 
 set(FSR2_SOURCE ${fsr2_SOURCE_DIR} PARENT_SCOPE)
