@@ -81,7 +81,8 @@ static Fwog::ComputePipeline CreateModulatePipeline()
 
 static Fwog::ComputePipeline CreateModulateUpscalePipeline()
 {
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/ModulateUpscale.comp.glsl"));
+  auto cs =
+    Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, LoadFileWithInclude("shaders/rsm/ModulateUpscale.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
@@ -231,156 +232,138 @@ namespace RSM
 
     cameraUniformBuffer.UpdateData(cameraUniforms);
 
-    Fwog::BeginCompute();
-    {
-      Fwog::ScopedDebugMarker marker("Indirect Illumination");
-
-      Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
-      Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
-      Fwog::Cmd::BindSampledImage(2, gNormalSmall ? *gNormalSmall: gNormal, nearestSampler);
-      Fwog::Cmd::BindSampledImage(3, gDepthSmall ? *gDepthSmall : gDepth, nearestSampler);
-      Fwog::Cmd::BindSampledImage(4, *rsmFluxSmall, nearestSamplerClamped);
-      Fwog::Cmd::BindSampledImage(5, *rsmNormalSmall, nearestSampler);
-      Fwog::Cmd::BindSampledImage(6, *rsmDepthSmall, nearestSampler);
-      Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer);
-      Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer);
-
-      if (rsmFiltered)
+    Fwog::Compute(
+      "Indirect Illumination",
+      [&]
       {
-        const auto workSize = Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x, (uint32_t)rsmUniforms.targetDim.y, 1};
+        Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
+        Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
+        Fwog::Cmd::BindSampledImage(2, gNormalSmall ? *gNormalSmall : gNormal, nearestSampler);
+        Fwog::Cmd::BindSampledImage(3, gDepthSmall ? *gDepthSmall : gDepth, nearestSampler);
+        Fwog::Cmd::BindSampledImage(4, *rsmFluxSmall, nearestSamplerClamped);
+        Fwog::Cmd::BindSampledImage(5, *rsmNormalSmall, nearestSampler);
+        Fwog::Cmd::BindSampledImage(6, *rsmDepthSmall, nearestSampler);
+        Fwog::Cmd::BindUniformBuffer(0, cameraUniformBuffer);
+        Fwog::Cmd::BindUniformBuffer(1, rsmUniformBuffer);
 
-        if (inverseResolutionScale > 1)
+        if (rsmFiltered)
         {
-          Fwog::ScopedDebugMarker marker2("Downsample G-buffer");
+          const auto workSize = Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x, (uint32_t)rsmUniforms.targetDim.y, 1};
 
-          Fwog::Cmd::BindComputePipeline(blitPipeline);
-          Fwog::Cmd::BindSampledImage(0, gNormal, nearestSampler);
-          Fwog::Cmd::BindImage(0, *gNormalSmall, 0);
-          Fwog::Cmd::DispatchInvocations(workSize);
-
-          Fwog::Cmd::BindSampledImage(0, gNormalPrev, nearestSampler);
-          Fwog::Cmd::BindImage(0, *gNormalPrevSmall, 0);
-          Fwog::Cmd::DispatchInvocations(workSize);
-
-          Fwog::Cmd::BindSampledImage(0, gDepth, nearestSampler);
-          Fwog::Cmd::BindImage(0, *gDepthSmall, 0);
-          Fwog::Cmd::DispatchInvocations(workSize);
-          
-          Fwog::Cmd::BindSampledImage(0, gDepthPrev, nearestSampler);
-          Fwog::Cmd::BindImage(0, *gDepthPrevSmall, 0);
-          Fwog::Cmd::DispatchInvocations(workSize);
-        }
-
-        {
-          Fwog::ScopedDebugMarker marker2("Downsample RSM");
-
-          Fwog::Cmd::BindComputePipeline(blitPipeline);
-
-          Fwog::Cmd::BindSampledImage(0, rsmFlux, nearestSampler);
-          Fwog::Cmd::BindImage(0, *rsmFluxSmall, 0);
-          Fwog::Cmd::DispatchInvocations(rsmFluxSmall->Extent());
-
-          Fwog::Cmd::BindSampledImage(0, rsmNormal, nearestSampler);
-          Fwog::Cmd::BindImage(0, *rsmNormalSmall, 0);
-          Fwog::Cmd::DispatchInvocations(rsmNormalSmall->Extent());
-
-          Fwog::Cmd::BindSampledImage(0, rsmDepth, nearestSampler);
-          Fwog::Cmd::BindImage(0, *rsmDepthSmall, 0);
-          Fwog::Cmd::DispatchInvocations(rsmDepthSmall->Extent());
-        }
-
-        rsmUniforms.currentPass = 0;
-
-        // Evaluate indirect illumination (sample the reflective shadow map)
-        {
-          Fwog::ScopedDebugMarker marker2("Sample RSM");
-
-          Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
-          Fwog::Cmd::BindSampledImage(7, *noiseTex, nearestSampler);
-          rsmUniformBuffer.UpdateData(rsmUniforms);
-          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
-          Fwog::Cmd::BindImage(0, *indirectUnfilteredTex, 0);
-          Fwog::Cmd::DispatchInvocations(workSize);
-        }
-
-        // Temporally accumulate samples before filtering
-        {
-          Fwog::ScopedDebugMarker marker2("Temporal Accumulation");
-
-          ReprojectionUniforms reprojectionUniforms = {
-            .invViewProjCurrent = cameraUniforms.invViewProj,
-            .viewProjPrevious = viewProjPrevious,
-            .invViewProjPrevious = glm::inverse(viewProjPrevious),
-            .proj = cameraUniforms.proj,
-            .viewPos = cameraUniforms.cameraPos,
-            .temporalWeightFactor = spatialFilterStep,
-            .targetDim = {indirectUnfilteredTex->Extent().width, indirectUnfilteredTex->Extent().height},
-            .alphaIlluminance = alphaIlluminance,
-            .phiDepth = phiDepth,
-            .phiNormal = phiNormal,
-            .jitterOffset = cameraUniforms.jitterOffset,
-            .lastFrameJitterOffset = cameraUniforms.lastFrameJitterOffset,
-          };
-          viewProjPrevious = cameraUniforms.viewProj;
-          reprojectionUniformBuffer.UpdateData(reprojectionUniforms);
-          Fwog::Cmd::BindComputePipeline(rsmReprojectPipeline);
-          Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
-          Fwog::Cmd::BindSampledImage(1, *indirectUnfilteredTexPrev, linearSampler);
-          Fwog::Cmd::BindSampledImage(2, gDepthSmall ? *gDepthSmall : gDepth, nearestSampler);
-          Fwog::Cmd::BindSampledImage(3, gDepthPrevSmall ? *gDepthPrevSmall : gDepthPrev, linearSampler);
-          Fwog::Cmd::BindSampledImage(4, gNormalSmall ? *gNormalSmall : gNormal, nearestSampler);
-          Fwog::Cmd::BindSampledImage(5, gNormalPrevSmall ? *gNormalPrevSmall : gNormalPrev, linearSampler);
-          Fwog::Cmd::BindSampledImage(6, gMotion, linearSampler);
-          Fwog::Cmd::BindImage(0, *indirectFilteredTex, 0);
-          Fwog::Cmd::BindImage(1, *historyLengthTex, 0);
-          Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer);
-          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
-          Fwog::Cmd::DispatchInvocations(workSize);
-        }
-
-        FilterUniforms filterUniforms = {
-          .proj = cameraUniforms.proj,
-          .invViewProj = cameraUniforms.invViewProj,
-          .viewPos = cameraUniforms.cameraPos,
-          .targetDim = {indirectUnfilteredTex->Extent().width, indirectFilteredTex->Extent().height},
-          .phiNormal = phiNormal,
-          .phiDepth = phiDepth,
-        };
-
-        {
-          Fwog::ScopedDebugMarker marker2("Filter");
-
-          Fwog::Cmd::BindComputePipeline(bilateral5x5Pipeline);
-          Fwog::Cmd::BindSampledImage(1, gNormalSmall ? *gNormalSmall : gNormal, nearestSampler);
-          Fwog::Cmd::BindSampledImage(2, gDepthSmall ? *gDepthSmall : gDepth, nearestSampler);
-          Fwog::Cmd::BindSampledImage(3, *historyLengthTex, nearestSampler);
-          Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
-
-          if (useSeparableFilter)
+          if (inverseResolutionScale > 1)
           {
-            filterUniforms.stepWidth = 1 * spatialFilterStep;
+            Fwog::ScopedDebugMarker marker2("Downsample G-buffer");
 
-            filterUniforms.direction = {0, 1};
-            filterUniformBuffer.UpdateData(filterUniforms);
-            Fwog::Cmd::BindSampledImage(0, *indirectFilteredTex, nearestSampler);
+            Fwog::Cmd::BindComputePipeline(blitPipeline);
+            Fwog::Cmd::BindSampledImage(0, gNormal, nearestSampler);
+            Fwog::Cmd::BindImage(0, *gNormalSmall, 0);
+            Fwog::Cmd::DispatchInvocations(workSize);
+
+            Fwog::Cmd::BindSampledImage(0, gNormalPrev, nearestSampler);
+            Fwog::Cmd::BindImage(0, *gNormalPrevSmall, 0);
+            Fwog::Cmd::DispatchInvocations(workSize);
+
+            Fwog::Cmd::BindSampledImage(0, gDepth, nearestSampler);
+            Fwog::Cmd::BindImage(0, *gDepthSmall, 0);
+            Fwog::Cmd::DispatchInvocations(workSize);
+
+            Fwog::Cmd::BindSampledImage(0, gDepthPrev, nearestSampler);
+            Fwog::Cmd::BindImage(0, *gDepthPrevSmall, 0);
+            Fwog::Cmd::DispatchInvocations(workSize);
+          }
+
+          {
+            Fwog::ScopedDebugMarker marker2("Downsample RSM");
+
+            Fwog::Cmd::BindComputePipeline(blitPipeline);
+
+            Fwog::Cmd::BindSampledImage(0, rsmFlux, nearestSampler);
+            Fwog::Cmd::BindImage(0, *rsmFluxSmall, 0);
+            Fwog::Cmd::DispatchInvocations(rsmFluxSmall->Extent());
+
+            Fwog::Cmd::BindSampledImage(0, rsmNormal, nearestSampler);
+            Fwog::Cmd::BindImage(0, *rsmNormalSmall, 0);
+            Fwog::Cmd::DispatchInvocations(rsmNormalSmall->Extent());
+
+            Fwog::Cmd::BindSampledImage(0, rsmDepth, nearestSampler);
+            Fwog::Cmd::BindImage(0, *rsmDepthSmall, 0);
+            Fwog::Cmd::DispatchInvocations(rsmDepthSmall->Extent());
+          }
+
+          rsmUniforms.currentPass = 0;
+
+          // Evaluate indirect illumination (sample the reflective shadow map)
+          {
+            Fwog::ScopedDebugMarker marker2("Sample RSM");
+
+            Fwog::Cmd::BindComputePipeline(rsmIndirectFilteredPipeline);
+            Fwog::Cmd::BindSampledImage(7, *noiseTex, nearestSampler);
+            rsmUniformBuffer.UpdateData(rsmUniforms);
+            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
             Fwog::Cmd::BindImage(0, *indirectUnfilteredTex, 0);
-            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
             Fwog::Cmd::DispatchInvocations(workSize);
+          }
 
-            filterUniforms.direction = {1, 0};
-            filterUniformBuffer.UpdateData(filterUniforms);
+          // Temporally accumulate samples before filtering
+          {
+            Fwog::ScopedDebugMarker marker2("Temporal Accumulation");
+
+            ReprojectionUniforms reprojectionUniforms = {
+              .invViewProjCurrent = cameraUniforms.invViewProj,
+              .viewProjPrevious = viewProjPrevious,
+              .invViewProjPrevious = glm::inverse(viewProjPrevious),
+              .proj = cameraUniforms.proj,
+              .viewPos = cameraUniforms.cameraPos,
+              .temporalWeightFactor = spatialFilterStep,
+              .targetDim = {indirectUnfilteredTex->Extent().width, indirectUnfilteredTex->Extent().height},
+              .alphaIlluminance = alphaIlluminance,
+              .phiDepth = phiDepth,
+              .phiNormal = phiNormal,
+              .jitterOffset = cameraUniforms.jitterOffset,
+              .lastFrameJitterOffset = cameraUniforms.lastFrameJitterOffset,
+            };
+            viewProjPrevious = cameraUniforms.viewProj;
+            reprojectionUniformBuffer.UpdateData(reprojectionUniforms);
+            Fwog::Cmd::BindComputePipeline(rsmReprojectPipeline);
             Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
-            Fwog::Cmd::BindImage(0, *indirectUnfilteredTexPrev, 0);
-            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+            Fwog::Cmd::BindSampledImage(1, *indirectUnfilteredTexPrev, linearSampler);
+            Fwog::Cmd::BindSampledImage(2, gDepthSmall ? *gDepthSmall : gDepth, nearestSampler);
+            Fwog::Cmd::BindSampledImage(3, gDepthPrevSmall ? *gDepthPrevSmall : gDepthPrev, linearSampler);
+            Fwog::Cmd::BindSampledImage(4, gNormalSmall ? *gNormalSmall : gNormal, nearestSampler);
+            Fwog::Cmd::BindSampledImage(5, gNormalPrevSmall ? *gNormalPrevSmall : gNormalPrev, linearSampler);
+            Fwog::Cmd::BindSampledImage(6, gMotion, linearSampler);
+            Fwog::Cmd::BindImage(0, *indirectFilteredTex, 0);
+            Fwog::Cmd::BindImage(1, *historyLengthTex, 0);
+            Fwog::Cmd::BindUniformBuffer(0, reprojectionUniformBuffer);
+            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT | Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
             Fwog::Cmd::DispatchInvocations(workSize);
+          }
 
-            for (int i = 1; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
+          FilterUniforms filterUniforms = {
+            .proj = cameraUniforms.proj,
+            .invViewProj = cameraUniforms.invViewProj,
+            .viewPos = cameraUniforms.cameraPos,
+            .targetDim = {indirectUnfilteredTex->Extent().width, indirectFilteredTex->Extent().height},
+            .phiNormal = phiNormal,
+            .phiDepth = phiDepth,
+          };
+
+          {
+            Fwog::ScopedDebugMarker marker2("Filter");
+
+            Fwog::Cmd::BindComputePipeline(bilateral5x5Pipeline);
+            Fwog::Cmd::BindSampledImage(1, gNormalSmall ? *gNormalSmall : gNormal, nearestSampler);
+            Fwog::Cmd::BindSampledImage(2, gDepthSmall ? *gDepthSmall : gDepth, nearestSampler);
+            Fwog::Cmd::BindSampledImage(3, *historyLengthTex, nearestSampler);
+            Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
+
+            if (useSeparableFilter)
             {
-              filterUniforms.stepWidth = (1 << i) * spatialFilterStep;
+              filterUniforms.stepWidth = 1 * spatialFilterStep;
 
               filterUniforms.direction = {0, 1};
               filterUniformBuffer.UpdateData(filterUniforms);
-              Fwog::Cmd::BindSampledImage(0, i == 1 ? *indirectUnfilteredTexPrev : *indirectFilteredTex, nearestSampler);
+              Fwog::Cmd::BindSampledImage(0, *indirectFilteredTex, nearestSampler);
               Fwog::Cmd::BindImage(0, *indirectUnfilteredTex, 0);
               Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
               Fwog::Cmd::DispatchInvocations(workSize);
@@ -388,147 +371,165 @@ namespace RSM
               filterUniforms.direction = {1, 0};
               filterUniformBuffer.UpdateData(filterUniforms);
               Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
-              Fwog::Cmd::BindImage(0, *indirectFilteredTex, 0);
+              Fwog::Cmd::BindImage(0, *indirectUnfilteredTexPrev, 0);
               Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
               Fwog::Cmd::DispatchInvocations(workSize);
+
+              for (int i = 1; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
+              {
+                filterUniforms.stepWidth = (1 << i) * spatialFilterStep;
+
+                filterUniforms.direction = {0, 1};
+                filterUniformBuffer.UpdateData(filterUniforms);
+                Fwog::Cmd::BindSampledImage(0, i == 1 ? *indirectUnfilteredTexPrev : *indirectFilteredTex, nearestSampler);
+                Fwog::Cmd::BindImage(0, *indirectUnfilteredTex, 0);
+                Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                Fwog::Cmd::DispatchInvocations(workSize);
+
+                filterUniforms.direction = {1, 0};
+                filterUniformBuffer.UpdateData(filterUniforms);
+                Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
+                Fwog::Cmd::BindImage(0, *indirectFilteredTex, 0);
+                Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                Fwog::Cmd::DispatchInvocations(workSize);
+              }
+            }
+            else
+            {
+              filterUniforms.direction = {0, 0};
+
+              for (int i = 0; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
+              {
+                filterUniforms.stepWidth = (1 << i) * spatialFilterStep;
+                filterUniformBuffer.UpdateData(filterUniforms);
+
+                // The output of the first filter pass gets stored in the history
+                const Fwog::Texture* in{};
+                const Fwog::Texture* out{};
+                if (i == 0)
+                {
+                  in = &indirectFilteredTex.value();
+                  out = &indirectUnfilteredTexPrev.value();
+                }
+                else if (i == 1)
+                {
+                  in = &indirectUnfilteredTexPrev.value();
+                  out = &indirectUnfilteredTex.value();
+                }
+                else if (i % 2 == 0)
+                {
+                  in = &indirectUnfilteredTex.value();
+                  out = &indirectFilteredTex.value();
+                }
+                else
+                {
+                  in = &indirectFilteredTex.value();
+                  out = &indirectUnfilteredTex.value();
+                }
+
+                Fwog::Cmd::BindSampledImage(0, *in, nearestSampler);
+                Fwog::Cmd::BindImage(0, *out, 0);
+                Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                Fwog::Cmd::DispatchInvocations(workSize);
+              }
+            }
+          }
+
+          auto& illuminationOutTex = inverseResolutionScale == 1 ? indirectFilteredTexPingPong : illuminationUpscaled;
+          if (!rsmFilteredSkipAlbedoModulation)
+          {
+            // No upscale required
+            if (inverseResolutionScale == 1)
+            {
+              Fwog::ScopedDebugMarker marker2("Modulate Albedo");
+
+              Fwog::Cmd::BindComputePipeline(modulatePipeline);
+              Fwog::Cmd::BindSampledImage(0, *indirectFilteredTex, nearestSampler);
+              Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
+              Fwog::Cmd::BindImage(0, *illuminationOutTex, 0);
+              Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+              Fwog::Cmd::DispatchInvocations(illuminationOutTex->Extent());
+            }
+            else // Use bilateral upscale
+            {
+              Fwog::ScopedDebugMarker marker2("Modulate Albedo (Upscale)");
+
+              Fwog::Cmd::BindComputePipeline(modulateUpscalePipeline);
+
+              if (!useSeparableFilter && (5 - int(std::log2f(float(inverseResolutionScale)))) % 2 == 0)
+              {
+                Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
+              }
+              else
+              {
+                Fwog::Cmd::BindSampledImage(0, *indirectFilteredTex, nearestSampler);
+              }
+
+              Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
+              Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
+              Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
+              Fwog::Cmd::BindSampledImage(4, *gNormalSmall, nearestSampler);
+              Fwog::Cmd::BindSampledImage(5, *gDepthSmall, nearestSampler);
+              filterUniforms.targetDim = {illuminationOutTex->Extent().width, illuminationOutTex->Extent().height};
+              filterUniformBuffer.UpdateData(filterUniforms);
+              Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
+              Fwog::Cmd::BindImage(0, *illuminationOutTex, 0);
+              Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+              Fwog::Cmd::DispatchInvocations(illuminationOutTex->Extent());
             }
           }
           else
           {
-            filterUniforms.direction = {0, 0};
-
-            for (int i = 0; i < 5 - std::log2f(float(inverseResolutionScale)); i++)
-            {
-              filterUniforms.stepWidth = (1 << i) * spatialFilterStep;
-              filterUniformBuffer.UpdateData(filterUniforms);
-
-              // The output of the first filter pass gets stored in the history
-              const Fwog::Texture* in{};
-              const Fwog::Texture* out{};
-              if (i == 0)
-              {
-                in = &indirectFilteredTex.value();
-                out = &indirectUnfilteredTexPrev.value();
-              }
-              else if (i == 1)
-              {
-                in = &indirectUnfilteredTexPrev.value();
-                out = &indirectUnfilteredTex.value();
-              }
-              else if (i % 2 == 0)
-              {
-                in = &indirectUnfilteredTex.value();
-                out = &indirectFilteredTex.value();
-              }
-              else
-              {
-                in = &indirectFilteredTex.value();
-                out = &indirectUnfilteredTex.value();
-              }
-
-              Fwog::Cmd::BindSampledImage(0, *in, nearestSampler);
-              Fwog::Cmd::BindImage(0, *out, 0);
-              Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-              Fwog::Cmd::DispatchInvocations(workSize);
-            }
+            Fwog::BlitTexture(*indirectFilteredTex,
+                              *illuminationOutTex,
+                              {},
+                              {},
+                              indirectFilteredTex->Extent(),
+                              illuminationOutTex->Extent(),
+                              Fwog::Filter::NEAREST);
           }
         }
-
-        auto& illuminationOutTex = inverseResolutionScale == 1 ? indirectFilteredTexPingPong : illuminationUpscaled;
-        if (!rsmFilteredSkipAlbedoModulation)
+        else // Unfiltered RSM: the original paper
         {
-          // No upscale required
-          if (inverseResolutionScale == 1)
-          {
-            Fwog::ScopedDebugMarker marker2("Modulate Albedo");
+          Fwog::Cmd::BindComputePipeline(rsmIndirectPipeline);
+          Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
+          Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
+          Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
+          Fwog::Cmd::BindSampledImage(4, rsmFlux, nearestSamplerClamped);
+          Fwog::Cmd::BindSampledImage(5, rsmNormal, nearestSampler);
+          Fwog::Cmd::BindSampledImage(6, rsmDepth, nearestSampler);
+          Fwog::Cmd::BindSampledImage(0, *illuminationUpscaled, nearestSampler);
+          Fwog::Cmd::BindImage(0, *illuminationUpscaled, 0);
 
-            Fwog::Cmd::BindComputePipeline(modulatePipeline);
-            Fwog::Cmd::BindSampledImage(0, *indirectFilteredTex, nearestSampler);
-            Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
-            Fwog::Cmd::BindImage(0, *illuminationOutTex, 0);
-            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::DispatchInvocations(illuminationOutTex->Extent());
-          }
-          else // Use bilateral upscale
-          {
-            Fwog::ScopedDebugMarker marker2("Modulate Albedo (Upscale)");
+          const auto workgroupSize = rsmIndirectFilteredPipeline.WorkgroupSize();
+          const auto workSize =
+            Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x / 2, (uint32_t)rsmUniforms.targetDim.y / 2, 1};
 
-            Fwog::Cmd::BindComputePipeline(modulateUpscalePipeline);
+          // Quarter resolution indirect illumination pass
+          rsmUniforms.currentPass = 0;
+          rsmUniformBuffer.UpdateData(rsmUniforms);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::DispatchInvocations(workSize);
 
-            if (!useSeparableFilter && (5 - int(std::log2f(float(inverseResolutionScale)))) % 2 == 0)
-            {
-              Fwog::Cmd::BindSampledImage(0, *indirectUnfilteredTex, nearestSampler);
-            }
-            else
-            {
-              Fwog::Cmd::BindSampledImage(0, *indirectFilteredTex, nearestSampler);
-            }
+          // Reconstruction pass 1
+          rsmUniforms.currentPass = 1;
+          rsmUniformBuffer.UpdateData(rsmUniforms);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::DispatchInvocations(workSize);
 
-            Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
-            Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
-            Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
-            Fwog::Cmd::BindSampledImage(4, *gNormalSmall, nearestSampler);
-            Fwog::Cmd::BindSampledImage(5, *gDepthSmall, nearestSampler);
-            filterUniforms.targetDim = {illuminationOutTex->Extent().width, illuminationOutTex->Extent().height};
-            filterUniformBuffer.UpdateData(filterUniforms);
-            Fwog::Cmd::BindUniformBuffer(0, filterUniformBuffer);
-            Fwog::Cmd::BindImage(0, *illuminationOutTex, 0);
-            Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-            Fwog::Cmd::DispatchInvocations(illuminationOutTex->Extent());
-          }
+          // Reconstruction pass 2
+          rsmUniforms.currentPass = 2;
+          rsmUniformBuffer.UpdateData(rsmUniforms);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::DispatchInvocations(workSize);
+
+          // Reconstruction pass 3
+          rsmUniforms.currentPass = 3;
+          rsmUniformBuffer.UpdateData(rsmUniforms);
+          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+          Fwog::Cmd::DispatchInvocations(workSize);
         }
-        else
-        {
-          Fwog::BlitTexture(*indirectFilteredTex,
-                            *illuminationOutTex,
-                            {},
-                            {},
-                            indirectFilteredTex->Extent(),
-                            illuminationOutTex->Extent(),
-                            Fwog::Filter::NEAREST);
-        }
-      }
-      else // Unfiltered RSM: the original paper
-      {
-        Fwog::Cmd::BindComputePipeline(rsmIndirectPipeline);
-        Fwog::Cmd::BindSampledImage(1, gAlbedo, nearestSampler);
-        Fwog::Cmd::BindSampledImage(2, gNormal, nearestSampler);
-        Fwog::Cmd::BindSampledImage(3, gDepth, nearestSampler);
-        Fwog::Cmd::BindSampledImage(4, rsmFlux, nearestSamplerClamped);
-        Fwog::Cmd::BindSampledImage(5, rsmNormal, nearestSampler);
-        Fwog::Cmd::BindSampledImage(6, rsmDepth, nearestSampler);
-        Fwog::Cmd::BindSampledImage(0, *illuminationUpscaled, nearestSampler);
-        Fwog::Cmd::BindImage(0, *illuminationUpscaled, 0);
-
-        const auto workgroupSize = rsmIndirectFilteredPipeline.WorkgroupSize();
-        const auto workSize = Fwog::Extent3D{(uint32_t)rsmUniforms.targetDim.x / 2, (uint32_t)rsmUniforms.targetDim.y / 2, 1};
-
-        // Quarter resolution indirect illumination pass
-        rsmUniforms.currentPass = 0;
-        rsmUniformBuffer.UpdateData(rsmUniforms);
-        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::DispatchInvocations(workSize);
-
-        // Reconstruction pass 1
-        rsmUniforms.currentPass = 1;
-        rsmUniformBuffer.UpdateData(rsmUniforms);
-        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::DispatchInvocations(workSize);
-
-        // Reconstruction pass 2
-        rsmUniforms.currentPass = 2;
-        rsmUniformBuffer.UpdateData(rsmUniforms);
-        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::DispatchInvocations(workSize);
-
-        // Reconstruction pass 3
-        rsmUniforms.currentPass = 3;
-        rsmUniformBuffer.UpdateData(rsmUniforms);
-        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-        Fwog::Cmd::DispatchInvocations(workSize);
-      }
-    }
-    Fwog::EndCompute();
+      });
   }
 
   Fwog::Texture& RsmTechnique::GetIndirectLighting()
@@ -546,7 +547,7 @@ namespace RSM
     ImGui::Checkbox("Use Filtered RSM", &rsmFiltered);
 
     // This setting blows everything up, so it'll be hardcoded for now
-    //if (ImGui::SliderInt("Inverse Res. Scale", &inverseResolutionScale, 1, 4))
+    // if (ImGui::SliderInt("Inverse Res. Scale", &inverseResolutionScale, 1, 4))
     //{
     //  SetResolution(width, height);
     //}
@@ -556,7 +557,7 @@ namespace RSM
     }
     ImGui::SliderFloat("rMax", &rMax, 0.02f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
     ImGui::PushButtonRepeat(true);
-    
+
     if (!rsmFiltered)
     {
       ImGui::SliderInt("Samples##Uniltered", &rsmSamples, 1, 400);

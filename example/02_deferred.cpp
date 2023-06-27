@@ -435,21 +435,22 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .clearValue = {.depth = 1.0f},
   };
   Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment, gMotionAttachment};
-  Fwog::BeginRendering({
-    .name = "Base Pass",
-    .colorAttachments = cgAttachments,
-    .depthAttachment = &gDepthAttachment,
-    .stencilAttachment = nullptr,
-  });
-  {
-    Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
-    Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-    Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindStorageBuffer(1, *objectBuffer);
-    Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), sceneInstanceCount, 0, 0, 0);
-  }
-  Fwog::EndRendering();
+  Fwog::Render(
+    {
+      .name = "Base Pass",
+      .colorAttachments = cgAttachments,
+      .depthAttachment = &gDepthAttachment,
+      .stencilAttachment = nullptr,
+    },
+    [&]
+    {
+      Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
+      Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
+      Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+      Fwog::Cmd::BindStorageBuffer(1, *objectBuffer);
+      Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), sceneInstanceCount, 0, 0, 0);
+    });
 
   globalUniforms.viewProj = shadingUniforms.sunViewProj;
   globalUniformsBuffer.UpdateData(globalUniforms);
@@ -469,22 +470,23 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     .clearValue = {.depth = 1.0f},
   };
   Fwog::RenderColorAttachment crAttachments[] = {rcolorAttachment, rnormalAttachment};
-  Fwog::BeginRendering({
-    .name = "RSM Scene",
-    .colorAttachments = crAttachments,
-    .depthAttachment = &rdepthAttachment,
-    .stencilAttachment = nullptr,
-  });
-  {
-    Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
-    Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
-    Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
-    Fwog::Cmd::BindStorageBuffer(1, *objectBuffer);
-    Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), sceneInstanceCount, 0, 0, 0);
-  }
-  Fwog::EndRendering();
+  Fwog::Render(
+    {
+      .name = "RSM Scene",
+      .colorAttachments = crAttachments,
+      .depthAttachment = &rdepthAttachment,
+      .stencilAttachment = nullptr,
+    },
+    [&]
+    {
+      Fwog::Cmd::BindGraphicsPipeline(rsmScenePipeline);
+      Fwog::Cmd::BindVertexBuffer(0, *vertexBuffer, 0, sizeof(Vertex));
+      Fwog::Cmd::BindIndexBuffer(*indexBuffer, Fwog::IndexType::UNSIGNED_SHORT);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+      Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+      Fwog::Cmd::BindStorageBuffer(1, *objectBuffer);
+      Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(gCubeIndices.size()), sceneInstanceCount, 0, 0, 0);
+    });
 
   globalUniforms.viewProj = viewProj;
   globalUniforms.invViewProj = glm::inverse(viewProj);
@@ -520,47 +522,48 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   }
 
   // shading pass (full screen tri)
-  Fwog::BeginSwapchainRendering({
-    .name = "Shading",
-    .viewport =
-      Fwog::Viewport{
-        .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f,
-      },
-    .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
-    .clearColorValue = {.1f, .3f, .5f, 0.0f},
-    .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
-    .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
-  });
-  {
-    Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
-    Fwog::Cmd::BindSampledImage(0, *frame.gAlbedo, nearestSampler);
-    Fwog::Cmd::BindSampledImage(1, *frame.gNormal, nearestSampler);
-    Fwog::Cmd::BindSampledImage(2, *frame.gDepth, nearestSampler);
-    Fwog::Cmd::BindSampledImage(3, frame.rsm->GetIndirectLighting(), nearestSampler);
-    Fwog::Cmd::BindSampledImage(4, rsmDepth, nearestSampler);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
-    Fwog::Cmd::Draw(3, 1, 0, 0);
-
-    const Fwog::Texture* tex{};
-    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-      tex = &frame.gAlbedo.value();
-    if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-      tex = &frame.gNormal.value();
-    if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
-      tex = &frame.gDepth.value();
-    if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
-      tex = &frame.rsm->GetIndirectLighting();
-    if (tex)
+  Fwog::RenderToSwapchain(
     {
-      Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
-      Fwog::Cmd::BindSampledImage(0, *tex, nearestSampler);
+      .name = "Shading",
+      .viewport =
+        Fwog::Viewport{
+          .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},
+          .minDepth = 0.0f,
+          .maxDepth = 1.0f,
+        },
+      .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
+      .clearColorValue = {.1f, .3f, .5f, 0.0f},
+      .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+      .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+    },
+    [&]
+    {
+      Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
+      Fwog::Cmd::BindSampledImage(0, *frame.gAlbedo, nearestSampler);
+      Fwog::Cmd::BindSampledImage(1, *frame.gNormal, nearestSampler);
+      Fwog::Cmd::BindSampledImage(2, *frame.gDepth, nearestSampler);
+      Fwog::Cmd::BindSampledImage(3, frame.rsm->GetIndirectLighting(), nearestSampler);
+      Fwog::Cmd::BindSampledImage(4, rsmDepth, nearestSampler);
+      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+      Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
       Fwog::Cmd::Draw(3, 1, 0, 0);
-    }
-  }
-  Fwog::EndRendering();
+
+      const Fwog::Texture* tex{};
+      if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+        tex = &frame.gAlbedo.value();
+      if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
+        tex = &frame.gNormal.value();
+      if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
+        tex = &frame.gDepth.value();
+      if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
+        tex = &frame.rsm->GetIndirectLighting();
+      if (tex)
+      {
+        Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
+        Fwog::Cmd::BindSampledImage(0, *tex, nearestSampler);
+        Fwog::Cmd::Draw(3, 1, 0, 0);
+      }
+    });
 }
 
 void DeferredApplication::OnGui(double dt)

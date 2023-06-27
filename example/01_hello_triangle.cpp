@@ -91,7 +91,7 @@ static Fwog::GraphicsPipeline CreatePipeline()
     .format = Fwog::Format::R8G8B8_UNORM,
     .offset = 0,
   };
-  // Create an initializer list or array (or anything implicitly convertable to std::span) 
+  // Create an initializer list or array (or anything implicitly convertable to std::span)
   // of our input binding descriptions to send to the pipeline.
   auto inputDescs = {descPos, descColor};
 
@@ -131,30 +131,29 @@ TriangleApplication::TriangleApplication(const Application::CreateInfo& createIn
 void TriangleApplication::OnRender([[maybe_unused]] double dt)
 {
   // Before we are allowed to render anything, we must declare what we are rendering to.
-  // In this case we are rendering straight to the screen, so we can use BeginSwapchainRendering.
+  // In this case we are rendering straight to the screen, so we can use RenderToSwapchain.
   // We are also provided with an opportunity to clear any of the render targets here (by setting the load op to clear).
   // We will use it to clear the color buffer with a soothing dark magenta.
-  Fwog::BeginSwapchainRendering(Fwog::SwapchainRenderInfo{
-    .viewport = Fwog::Viewport{.drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}}},
-    .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
-    .clearColorValue = {.2f, .0f, .2f, 1.0f},
-  });
-  
-  // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
-  // Pipelines must be bound before we can issue drawing-related calls.
-  // This is where, under the hood, the actual GL program is bound and all the pipeline state is set.
-  Fwog::Cmd::BindGraphicsPipeline(pipeline);
+  Fwog::RenderToSwapchain(
+    Fwog::SwapchainRenderInfo{
+      .viewport = Fwog::Viewport{.drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}}},
+      .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
+      .clearColorValue = {.2f, .0f, .2f, 1.0f},
+    },
+    [&]
+    {
+      // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
+      // Pipelines must be bound before we can issue drawing-related calls.
+      // This is where, under the hood, the actual GL program is bound and all the pipeline state is set.
+      Fwog::Cmd::BindGraphicsPipeline(pipeline);
 
-  // Vertex buffers are bound at draw time, similar to Vulkan or with glBindVertexBuffer.
-  Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
-  Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+      // Vertex buffers are bound at draw time, similar to Vulkan or with glBindVertexBuffer.
+      Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
+      Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
 
-  // Let's draw 1 instance with 3 vertices.
-  Fwog::Cmd::Draw(3, 1, 0, 0);
-
-  // Ending the rendering scope means no more Cmds can be issued and no state will leak.
-  // It is required to not already be in a rendering scope when starting a new one.
-  Fwog::EndRendering();
+      // Let's draw 1 instance with 3 vertices.
+      Fwog::Cmd::Draw(3, 1, 0, 0);
+    });
 }
 
 int main()

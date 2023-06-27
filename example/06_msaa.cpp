@@ -158,19 +158,26 @@ void MultisampleApplication::OnRender(double dt)
     .clearValue = {.2f, .0f, .2f, 1.0f},
   };
 
-  Fwog::BeginRendering({.colorAttachments = {&attachment, 1}});
-  Fwog::Cmd::BindGraphicsPipeline(pipeline);
-  Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
-  Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
-  Fwog::Cmd::BindUniformBuffer(0, timeBuffer);
-  Fwog::Cmd::Draw(3, 1, 0, 0);
-  Fwog::EndRendering();
+  Fwog::Render({.colorAttachments = {&attachment, 1}},
+               [&]
+               {
+                 Fwog::Cmd::BindGraphicsPipeline(pipeline);
+                 Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
+                 Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+                 Fwog::Cmd::BindUniformBuffer(0, timeBuffer);
+                 Fwog::Cmd::Draw(3, 1, 0, 0);
+               });
 
   // Resolve multisample texture by blitting it to a same-size non-multisample texture
   Fwog::BlitTexture(*msColorTex, *resolveColorTex, {}, {}, msColorTex->Extent(), resolveColorTex->Extent(), Fwog::Filter::LINEAR);
 
   // Blit resolved texture to screen with nearest neighbor filter to make MSAA resolve more obvious
-  Fwog::BlitTextureToSwapchain(*resolveColorTex, {}, {}, resolveColorTex->Extent(), {windowWidth, windowHeight, 1}, Fwog::Filter::NEAREST);
+  Fwog::BlitTextureToSwapchain(*resolveColorTex,
+                               {},
+                               {},
+                               resolveColorTex->Extent(),
+                               {windowWidth, windowHeight, 1},
+                               Fwog::Filter::NEAREST);
 }
 
 void MultisampleApplication::OnGui(double dt)

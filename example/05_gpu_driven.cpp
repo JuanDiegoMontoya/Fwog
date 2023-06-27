@@ -318,33 +318,34 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
       .loadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearValue = {.1f, .3f, .5f, 0.0f},
     };
-    Fwog::BeginRendering({
-      .name = "Scene",
-      .colorAttachments = std::span(&gColorAttachment, 1),
-      .depthAttachment = &gDepthAttachment,
-      .stencilAttachment = nullptr,
-    });
+    Fwog::Render(
+      {
+        .name = "Scene",
+        .colorAttachments = std::span(&gColorAttachment, 1),
+        .depthAttachment = &gDepthAttachment,
+        .stencilAttachment = nullptr,
+      },
+      [&]
+      {
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::COMMAND_BUFFER_BIT | Fwog::MemoryBarrierBit::SHADER_STORAGE_BIT);
 
-    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::COMMAND_BUFFER_BIT | Fwog::MemoryBarrierBit::SHADER_STORAGE_BIT);
+        Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+        Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
+        Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
+        Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
+        Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
 
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
+        Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
+        Fwog::Cmd::BindVertexBuffer(0, vertexBuffer.value(), 0, sizeof(Utility::Vertex));
+        Fwog::Cmd::BindIndexBuffer(indexBuffer.value(), Fwog::IndexType::UNSIGNED_INT);
+        Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer.value(), 0, static_cast<uint32_t>(scene.meshes.size()), 0);
 
-    Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
-    Fwog::Cmd::BindVertexBuffer(0, vertexBuffer.value(), 0, sizeof(Utility::Vertex));
-    Fwog::Cmd::BindIndexBuffer(indexBuffer.value(), Fwog::IndexType::UNSIGNED_INT);
-    Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer.value(), 0, static_cast<uint32_t>(scene.meshes.size()), 0);
-
-    if (config.viewBoundingBoxes)
-    {
-      Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
-      Fwog::Cmd::Draw(14, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
-    }
-
-    Fwog::EndRendering();
+        if (config.viewBoundingBoxes)
+        {
+          Fwog::Cmd::BindGraphicsPipeline(boundingBoxDebugPipeline);
+          Fwog::Cmd::Draw(14, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
+        }
+      });
   }
 
   // Draw culling boxes. If any fragment is visible, objects have their instance count set to 1.
@@ -354,26 +355,26 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
   if (!config.freezeCulling)
   {
     gDepthAttachment.loadOp = Fwog::AttachmentLoadOp::LOAD;
-    Fwog::BeginRendering({.name = "Occlusion culling", .depthAttachment = &gDepthAttachment});
+    Fwog::Render({.name = "Occlusion culling", .depthAttachment = &gDepthAttachment},
+                 [&]
+                 {
+                   // Re-upload the draw commands buffer to reset the instance counts to 0 for culling.
+                   // Ideally, this would be a compute pass where the draw commands are completely regenerated (e.g.,
+                   // with frustum culling), or the instance counts are reset to 0.
+                   drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
 
-    // Re-upload the draw commands buffer to reset the instance counts to 0 for culling.
-    // Ideally, this would be a compute pass where the draw commands are completely regenerated (e.g., with frustum 
-    // culling), or the instance counts are reset to 0.
-    drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
+                   Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+                   Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
+                   Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
+                   Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
+                   Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
+                   Fwog::Cmd::BindStorageBuffer(4, drawCommandsBuffer.value());
 
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
-    Fwog::Cmd::BindStorageBuffer(4, drawCommandsBuffer.value());
-
-    // Draw visible bounding boxes.
-    Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
-    // TODO: upgrade to indirect draw after frustum culling is added.
-    Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
-
-    Fwog::EndRendering();
+                   // Draw visible bounding boxes.
+                   Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
+                   // TODO: upgrade to indirect draw after frustum culling is added.
+                   Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
+                 });
   }
 
   Fwog::BlitTextureToSwapchain(frame.gAlbedo.value(),

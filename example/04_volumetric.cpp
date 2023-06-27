@@ -32,7 +32,7 @@
 
 /* 04_volumetric
  *
- * A renderer with volumetric fog effects. The volumetric effect is computed in a volume texture, 
+ * A renderer with volumetric fog effects. The volumetric effect is computed in a volume texture,
  * independent of the screen resolution, then applied in a separate pass. The technique is largely
  * based on a presentation by Bart Wronski titled "Volumetric Fog".
  *
@@ -140,8 +140,10 @@ static constexpr std::array<Fwog::VertexInputBindingDescription, 3> sceneInputBi
 
 static Fwog::GraphicsPipeline CreateScenePipeline()
 {
-  auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
-  auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.frag.glsl"));
+  auto vs =
+    Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
+  auto fs =
+    Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.frag.glsl"));
 
   return Fwog::GraphicsPipeline({
     .vertexShader = &vs,
@@ -153,7 +155,8 @@ static Fwog::GraphicsPipeline CreateScenePipeline()
 
 static Fwog::GraphicsPipeline CreateShadowPipeline()
 {
-  auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
+  auto vs =
+    Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
 
   return Fwog::GraphicsPipeline({
     .vertexShader = &vs,
@@ -171,7 +174,8 @@ static Fwog::GraphicsPipeline CreateShadowPipeline()
 static Fwog::GraphicsPipeline CreateShadingPipeline()
 {
   auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
-  auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/ShadeDeferredSimple.frag.glsl"));
+  auto fs =
+    Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/ShadeDeferredSimple.frag.glsl"));
 
   return Fwog::GraphicsPipeline({
     .vertexShader = &vs,
@@ -196,19 +200,22 @@ static Fwog::GraphicsPipeline CreateDebugTexturePipeline()
 
 static Fwog::ComputePipeline CreateCopyToEsmPipeline()
 {
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
+                         Application::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
 static Fwog::ComputePipeline CreateGaussianBlurPipeline()
 {
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
+  auto cs =
+    Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
 static Fwog::ComputePipeline CreatePostprocessingPipeline()
 {
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
+  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
+                         Application::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
   return Fwog::ComputePipeline({.shader = &cs});
 }
 
@@ -274,17 +281,17 @@ public:
 
     scatteringTexture = Fwog::Texture(Fwog::TextureCreateInfo{
       .imageType = Fwog::ImageType::TEX_1D,
-                                                              .format = Fwog::Format::R16G16B16_FLOAT,
-                                                              .extent = {static_cast<uint32_t>(data.size())},
-                                                              .mipLevels = 1,
-                                                              .arrayLayers = 1,
+      .format = Fwog::Format::R16G16B16_FLOAT,
+      .extent = {static_cast<uint32_t>(data.size())},
+      .mipLevels = 1,
+      .arrayLayers = 1,
       .sampleCount = Fwog::SampleCount::SAMPLES_1,
     });
 
     scatteringTexture->UpdateImage({
       .extent = {static_cast<uint32_t>(data.size())},
-                                 .format = Fwog::UploadFormat::RGB,
-                                 .type = Fwog::UploadType::FLOAT,
+      .format = Fwog::UploadFormat::RGB,
+      .type = Fwog::UploadType::FLOAT,
       .pixels = data.data(),
     });
   }
@@ -362,16 +369,18 @@ public:
 
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-    Fwog::BeginCompute();
-    Fwog::Cmd::BindComputePipeline(*accumulateDensityPipeline);
-    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
-    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer);
-    Fwog::Cmd::BindStorageBuffer(0, lightBuffer);
-    Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
-    Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
-    Fwog::Cmd::BindImage(0, densityVolume, 0);
-    Fwog::Cmd::DispatchInvocations(densityVolume.Extent());
-    Fwog::EndCompute();
+    Fwog::Compute("Volume Accumulate Density",
+                  [&]
+                  {
+                    Fwog::Cmd::BindComputePipeline(*accumulateDensityPipeline);
+                    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
+                    Fwog::Cmd::BindUniformBuffer(1, esmUniformBuffer);
+                    Fwog::Cmd::BindStorageBuffer(0, lightBuffer);
+                    Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
+                    Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
+                    Fwog::Cmd::BindImage(0, densityVolume, 0);
+                    Fwog::Cmd::DispatchInvocations(densityVolume.Extent());
+                  });
   }
 
   void MarchVolume(const Fwog::Texture& sourceVolume, const Fwog::Texture& targetVolume)
@@ -381,15 +390,17 @@ public:
 
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-    Fwog::BeginCompute();
-    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
-    Fwog::Cmd::BindComputePipeline(*marchVolumePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
-    Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
-    Fwog::Cmd::BindImage(0, targetVolume, 0);
-    // We only want to invoke threads on the X and Y dimensions, but not the Z dimension
-    Fwog::Cmd::DispatchInvocations(targetVolume.Extent().width, targetVolume.Extent().height, 1);
-    Fwog::EndCompute();
+    Fwog::Compute("Volume March",
+                  [&]
+                  {
+                    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
+                    Fwog::Cmd::BindComputePipeline(*marchVolumePipeline);
+                    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
+                    Fwog::Cmd::BindSampledImage(0, sourceVolume, sampler);
+                    Fwog::Cmd::BindImage(0, targetVolume, 0);
+                    // We only want to invoke threads on the X and Y dimensions, but not the Z dimension
+                    Fwog::Cmd::DispatchInvocations(targetVolume.Extent().width, targetVolume.Extent().height, 1);
+                  });
   }
 
   void ApplyDeferred(const Fwog::Texture& gbufferColor,
@@ -403,17 +414,19 @@ public:
 
     auto sampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-    Fwog::BeginCompute();
-    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
-    Fwog::Cmd::BindComputePipeline(*applyDeferredPipeline);
-    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
-    Fwog::Cmd::BindSampledImage(0, gbufferColor, sampler);
-    Fwog::Cmd::BindSampledImage(1, gbufferDepth, sampler);
-    Fwog::Cmd::BindSampledImage(2, sourceVolume, sampler);
-    Fwog::Cmd::BindSampledImage(3, noise, sampler);
-    Fwog::Cmd::BindImage(0, targetColor, 0);
-    Fwog::Cmd::DispatchInvocations(targetColor.Extent());
-    Fwog::EndCompute();
+    Fwog::Compute("Volume Apply Deferred",
+                  [&]
+                  {
+                    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::IMAGE_ACCESS_BIT);
+                    Fwog::Cmd::BindComputePipeline(*applyDeferredPipeline);
+                    Fwog::Cmd::BindUniformBuffer(0, *uniformBuffer);
+                    Fwog::Cmd::BindSampledImage(0, gbufferColor, sampler);
+                    Fwog::Cmd::BindSampledImage(1, gbufferDepth, sampler);
+                    Fwog::Cmd::BindSampledImage(2, sourceVolume, sampler);
+                    Fwog::Cmd::BindSampledImage(3, noise, sampler);
+                    Fwog::Cmd::BindImage(0, targetColor, 0);
+                    Fwog::Cmd::DispatchInvocations(targetColor.Extent());
+                  });
   }
 
 private:
@@ -625,55 +638,55 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   shadingUniformsBuffer.UpdateData(shadingUniforms);
 
   auto sceneViewport = Fwog::Viewport{
-    .drawRect = {.extent=frame.gAlbedo->Extent()},
+    .drawRect = {.extent = frame.gAlbedo->Extent()},
     .depthRange = Fwog::ClipDepthRange::ZERO_TO_ONE,
   };
 
   // geometry buffer pass
-  {
-    Fwog::RenderColorAttachment gAlbedoAttachment{
-      .texture = &frame.gAlbedo.value(),
-      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
-    };
-    Fwog::RenderColorAttachment gNormalAttachment{
-      .texture = &frame.gNormal.value(),
-      .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
-    };
-    Fwog::RenderDepthStencilAttachment gDepthAttachment{
-      .texture = &frame.gDepth.value(),
-      .loadOp = Fwog::AttachmentLoadOp::CLEAR,
-      .clearValue = {.depth = 0.0f},
-    };
-    Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
-    Fwog::RenderInfo gbufferRenderInfo{
-      .viewport = &sceneViewport,
-      .colorAttachments = cgAttachments,
-      .depthAttachment = &gDepthAttachment,
-      .stencilAttachment = nullptr,
-    };
-    Fwog::BeginRendering(gbufferRenderInfo);
-    Fwog::ScopedDebugMarker marker("Geometry");
-    Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer);
+  Fwog::RenderColorAttachment gAlbedoAttachment{
+    .texture = &frame.gAlbedo.value(),
+    .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+  };
+  Fwog::RenderColorAttachment gNormalAttachment{
+    .texture = &frame.gNormal.value(),
+    .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+  };
+  Fwog::RenderDepthStencilAttachment gDepthAttachment{
+    .texture = &frame.gDepth.value(),
+    .loadOp = Fwog::AttachmentLoadOp::CLEAR,
+    .clearValue = {.depth = 0.0f},
+  };
+  Fwog::RenderColorAttachment cgAttachments[] = {gAlbedoAttachment, gNormalAttachment};
+  Fwog::RenderInfo gbufferRenderInfo{
+    .name = "Geometry",
+    .viewport = &sceneViewport,
+    .colorAttachments = cgAttachments,
+    .depthAttachment = &gDepthAttachment,
+    .stencilAttachment = nullptr,
+  };
+  Fwog::Render(gbufferRenderInfo,
+               [&]
+               {
+                 Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
+                 Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+                 Fwog::Cmd::BindUniformBuffer(2, materialUniformsBuffer);
 
-    Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
-    for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
-    {
-      const auto& mesh = scene.meshes[i];
-      const auto& material = scene.materials[mesh.materialIdx];
-      materialUniformsBuffer.UpdateData(material.gpuMaterial);
-      if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
-      {
-        const auto& textureSampler = material.albedoTextureSampler.value();
-        Fwog::Cmd::BindSampledImage(0, textureSampler.texture, Fwog::Sampler(textureSampler.sampler));
-      }
-      Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
-      Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-      Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer.Size()) / sizeof(uint32_t), 1, 0, 0, i);
-    }
-    Fwog::EndRendering();
-  }
+                 Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
+                 for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
+                 {
+                   const auto& mesh = scene.meshes[i];
+                   const auto& material = scene.materials[mesh.materialIdx];
+                   materialUniformsBuffer.UpdateData(material.gpuMaterial);
+                   if (material.gpuMaterial.flags & Utility::MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
+                   {
+                     const auto& textureSampler = material.albedoTextureSampler.value();
+                     Fwog::Cmd::BindSampledImage(0, textureSampler.texture, Fwog::Sampler(textureSampler.sampler));
+                   }
+                   Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
+                   Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
+                   Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer.Size()) / sizeof(uint32_t), 1, 0, 0, i);
+                 }
+               });
 
   mainCameraUniforms.viewProj = shadingUniforms.sunViewProj;
   globalUniformsBuffer.UpdateData(mainCameraUniforms);
@@ -690,84 +703,76 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
       .drawRect = {.extent = shadowDepth.Extent()},
       .depthRange = Fwog::ClipDepthRange::ZERO_TO_ONE,
     };
-    Fwog::RenderInfo shadowRenderInfo{
-      .viewport = &shadowViewport,
-      .depthAttachment = &depthAttachment,
-      .stencilAttachment = nullptr
-    };
-    Fwog::BeginRendering(shadowRenderInfo);
-    Fwog::ScopedDebugMarker marker("Shadow Scene");
-    Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
+    Fwog::Render(
+      {.name = "Shadow Scene", .viewport = &shadowViewport, .depthAttachment = &depthAttachment, .stencilAttachment = nullptr},
+      [&]
+      {
+        Fwog::ScopedDebugMarker marker("Shadow Scene");
+        Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);
+        Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+        Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
 
-    for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
-    {
-      const auto& mesh = scene.meshes[i];
-      Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
-      Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
-      Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer.Size()) / sizeof(uint32_t), 1, 0, 0, i);
-    }
-    Fwog::EndRendering();
+        for (uint32_t i = 0; i < static_cast<uint32_t>(scene.meshes.size()); i++)
+        {
+          const auto& mesh = scene.meshes[i];
+          Fwog::Cmd::BindVertexBuffer(0, mesh.vertexBuffer, 0, sizeof(Utility::Vertex));
+          Fwog::Cmd::BindIndexBuffer(mesh.indexBuffer, Fwog::IndexType::UNSIGNED_INT);
+          Fwog::Cmd::DrawIndexed(static_cast<uint32_t>(mesh.indexBuffer.Size()) / sizeof(uint32_t), 1, 0, 0, i);
+        }
+      });
   }
 
   // copy to esm and blur
-  {
-    Fwog::BeginCompute();
-    {
-      {
-        Fwog::ScopedDebugMarker marker("Copy to ESM");
-        esmUniformBuffer.UpdateData(config.esmExponent);
+  Fwog::Compute("Copy to ESM",
+                [&]
+                {
+                  esmUniformBuffer.UpdateData(config.esmExponent);
 
-        auto nearestMirrorSampler = Fwog::Sampler({.minFilter = Fwog::Filter::NEAREST,
-                                                   .magFilter = Fwog::Filter::NEAREST,
-                                                   .addressModeU = Fwog::AddressMode::MIRRORED_REPEAT,
-                                                   .addressModeV = Fwog::AddressMode::MIRRORED_REPEAT});
-        Fwog::Cmd::BindComputePipeline(copyToEsmPipeline);
-        Fwog::Cmd::BindSampledImage(0, shadowDepth, nearestMirrorSampler);
-        Fwog::Cmd::BindImage(0, esmTex, 0);
-        Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer);
-        Fwog::Cmd::DispatchInvocations(esmTex.Extent());
+                  auto nearestMirrorSampler = Fwog::Sampler({.minFilter = Fwog::Filter::NEAREST,
+                                                             .magFilter = Fwog::Filter::NEAREST,
+                                                             .addressModeU = Fwog::AddressMode::MIRRORED_REPEAT,
+                                                             .addressModeV = Fwog::AddressMode::MIRRORED_REPEAT});
+                  Fwog::Cmd::BindComputePipeline(copyToEsmPipeline);
+                  Fwog::Cmd::BindSampledImage(0, shadowDepth, nearestMirrorSampler);
+                  Fwog::Cmd::BindImage(0, esmTex, 0);
+                  Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer);
+                  Fwog::Cmd::DispatchInvocations(esmTex.Extent());
 
-        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-      }
+                  Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
 
-      // blur
-      {
-        Fwog::ScopedDebugMarker marker("Blur ESM");
-        Fwog::Cmd::BindComputePipeline(gaussianBlurPipeline);
+                  // blur
+                  Fwog::ScopedDebugMarker marker("Blur ESM");
+                  Fwog::Cmd::BindComputePipeline(gaussianBlurPipeline);
 
-        auto linearSampler = Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
+                  auto linearSampler =
+                    Fwog::Sampler({.minFilter = Fwog::Filter::LINEAR, .magFilter = Fwog::Filter::LINEAR});
 
-        EsmBlurUniforms esmBlurUniforms{};
+                  EsmBlurUniforms esmBlurUniforms{};
 
-        const auto esmExtent1 = esmTex.Extent();
-        const auto esmExtent2 = esmTexPingPong.Extent();
+                  const auto esmExtent1 = esmTex.Extent();
+                  const auto esmExtent2 = esmTexPingPong.Extent();
 
-        Fwog::Cmd::BindUniformBuffer(0, esmBlurUniformBuffer);
+                  Fwog::Cmd::BindUniformBuffer(0, esmBlurUniformBuffer);
 
-        for (size_t i = 0; i < config.esmBlurPasses; i++)
-        {
-          esmBlurUniforms.direction = {0, 1};
-          esmBlurUniforms.targetDim = {esmExtent2.width, esmExtent2.height};
-          esmBlurUniformBuffer.UpdateData(esmBlurUniforms);
-          Fwog::Cmd::BindSampledImage(0, esmTex, linearSampler);
-          Fwog::Cmd::BindImage(0, esmTexPingPong, 0);
-          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::DispatchInvocations(esmExtent2);
+                  for (size_t i = 0; i < config.esmBlurPasses; i++)
+                  {
+                    esmBlurUniforms.direction = {0, 1};
+                    esmBlurUniforms.targetDim = {esmExtent2.width, esmExtent2.height};
+                    esmBlurUniformBuffer.UpdateData(esmBlurUniforms);
+                    Fwog::Cmd::BindSampledImage(0, esmTex, linearSampler);
+                    Fwog::Cmd::BindImage(0, esmTexPingPong, 0);
+                    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                    Fwog::Cmd::DispatchInvocations(esmExtent2);
 
-          esmBlurUniforms.direction = {1, 0};
-          esmBlurUniforms.targetDim = {esmExtent1.width, esmExtent1.height};
-          esmBlurUniformBuffer.UpdateData(esmBlurUniforms);
-          Fwog::Cmd::BindSampledImage(0, esmTexPingPong, linearSampler);
-          Fwog::Cmd::BindImage(0, esmTex, 0);
-          Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-          Fwog::Cmd::DispatchInvocations(esmExtent1);
-        }
-      }
-    }
-    Fwog::EndCompute();
-  }
+                    esmBlurUniforms.direction = {1, 0};
+                    esmBlurUniforms.targetDim = {esmExtent1.width, esmExtent1.height};
+                    esmBlurUniformBuffer.UpdateData(esmBlurUniforms);
+                    Fwog::Cmd::BindSampledImage(0, esmTexPingPong, linearSampler);
+                    Fwog::Cmd::BindImage(0, esmTex, 0);
+                    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                    Fwog::Cmd::DispatchInvocations(esmExtent1);
+                  }
+                });
 
   globalUniformsBuffer.UpdateData(mainCameraUniforms);
 
@@ -779,20 +784,21 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
       .clearValue = {.1f, .3f, .5f, 0.0f},
     };
 
-    Fwog::RenderInfo shadingRenderingInfo{.colorAttachments = {&shadingAttachment, 1}};
-    Fwog::BeginRendering(shadingRenderingInfo);
-    Fwog::ScopedDebugMarker marker("Shading");
-    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-    Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
-    Fwog::Cmd::BindSampledImage(0, frame.gAlbedo.value(), nearestSampler);
-    Fwog::Cmd::BindSampledImage(1, frame.gNormal.value(), nearestSampler);
-    Fwog::Cmd::BindSampledImage(2, frame.gDepth.value(), nearestSampler);
-    Fwog::Cmd::BindSampledImage(3, shadowDepth, shadowSampler);
-    Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-    Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
-    Fwog::Cmd::BindStorageBuffer(0, lightBuffer.value());
-    Fwog::Cmd::Draw(3, 1, 0, 0);
-    Fwog::EndRendering();
+    Fwog::RenderInfo shadingRenderingInfo{.name = "Shading", .colorAttachments = {&shadingAttachment, 1}};
+    Fwog::Render(shadingRenderingInfo,
+                 [&]
+                 {
+                   Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                   Fwog::Cmd::BindGraphicsPipeline(shadingPipeline);
+                   Fwog::Cmd::BindSampledImage(0, frame.gAlbedo.value(), nearestSampler);
+                   Fwog::Cmd::BindSampledImage(1, frame.gNormal.value(), nearestSampler);
+                   Fwog::Cmd::BindSampledImage(2, frame.gDepth.value(), nearestSampler);
+                   Fwog::Cmd::BindSampledImage(3, shadowDepth, shadowSampler);
+                   Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
+                   Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
+                   Fwog::Cmd::BindStorageBuffer(0, lightBuffer.value());
+                   Fwog::Cmd::Draw(3, 1, 0, 0);
+                 });
   }
 
   // volumetric fog pass
@@ -834,14 +840,16 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   {
     Fwog::ScopedDebugMarker marker("Postprocessing");
-    Fwog::BeginCompute();
-    Fwog::Cmd::BindComputePipeline(postprocessingPipeline);
-    Fwog::Cmd::BindSampledImage(0, frame.shadingTexHdr.value(), nearestSampler);
-    Fwog::Cmd::BindSampledImage(1, noiseTexture.value(), nearestSampler);
-    Fwog::Cmd::BindImage(0, frame.shadingTexLdr.value(), 0);
-    Fwog::Cmd::DispatchInvocations(frame.shadingTexLdr->Extent());
-    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-    Fwog::EndCompute();
+    Fwog::Compute("Postprocessing",
+                  [&]
+                  {
+                    Fwog::Cmd::BindComputePipeline(postprocessingPipeline);
+                    Fwog::Cmd::BindSampledImage(0, frame.shadingTexHdr.value(), nearestSampler);
+                    Fwog::Cmd::BindSampledImage(1, noiseTexture.value(), nearestSampler);
+                    Fwog::Cmd::BindImage(0, frame.shadingTexLdr.value(), 0);
+                    Fwog::Cmd::DispatchInvocations(frame.shadingTexLdr->Extent());
+                    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+                  });
   }
 
   // on my driver (Nvidia 3.25.1.27), blitting appears to not perform automatic linear->sRGB conversions
@@ -855,32 +863,33 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
 
   // copy to swapchain
   {
-    Fwog::SwapchainRenderInfo swapchainRenderingInfo{
+    Fwog::SwapchainRenderInfo swapchainRenderingInfo;
+    Fwog::RenderToSwapchain({
+      .name = "Copy To Swapchain",
       .viewport = {.drawRect{.extent = {windowWidth, windowHeight}}},
       .colorLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
       .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
       .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
       .enableSrgb = false,
-    };
-    Fwog::BeginSwapchainRendering(swapchainRenderingInfo);
-    Fwog::ScopedDebugMarker marker("Copy to Swapchain");
+      },
+      [&]
+      {
+        Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
 
-    Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
+        Fwog::Texture* tex = &frame.shadingTexLdr.value();
+        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+          tex = &frame.gAlbedo.value();
+        if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
+          tex = &frame.gNormal.value();
+        if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
+          tex = &frame.gDepth.value();
+        if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
+          tex = &shadowDepth;
 
-    Fwog::Texture* tex = &frame.shadingTexLdr.value();
-    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-      tex = &frame.gAlbedo.value();
-    if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-      tex = &frame.gNormal.value();
-    if (glfwGetKey(window, GLFW_KEY_F3) == GLFW_PRESS)
-      tex = &frame.gDepth.value();
-    if (glfwGetKey(window, GLFW_KEY_F4) == GLFW_PRESS)
-      tex = &shadowDepth;
-
-    Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
-    Fwog::Cmd::BindSampledImage(0, *tex, nearestSampler);
-    Fwog::Cmd::Draw(3, 1, 0, 0);
-    Fwog::EndRendering();
+        Fwog::Cmd::BindGraphicsPipeline(debugTexturePipeline);
+        Fwog::Cmd::BindSampledImage(0, *tex, nearestSampler);
+        Fwog::Cmd::Draw(3, 1, 0, 0);
+      });
   }
 }
 
