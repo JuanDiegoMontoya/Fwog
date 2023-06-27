@@ -310,7 +310,8 @@ private:
   // FSR 2
   bool fsr2Enable = true;
   bool fsr2FirstInit = true;
-  FfxFsr2QualityMode fsr2Quality = FFX_FSR2_QUALITY_MODE_BALANCED;
+  float fsr2Sharpness = 0;
+  float fsr2Ratio = 2.0f; // FFX_FSR2_QUALITY_MODE_BALANCED
   FfxFsr2Context fsr2Context;
   std::unique_ptr<char[]> fsr2ScratchMemory;
 #else
@@ -426,7 +427,8 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
     }
     frameIndex = 0;
     fsr2FirstInit = false;
-    ffxFsr2GetRenderResolutionFromQualityMode(&renderWidth, &renderHeight, newWidth, newHeight, fsr2Quality);
+    renderWidth = newWidth / fsr2Ratio;
+    renderHeight = newHeight / fsr2Ratio;
     FfxFsr2ContextDescription contextDesc{
       .flags = FFX_FSR2_ENABLE_DEBUG_CHECKING | FFX_FSR2_ENABLE_AUTO_EXPOSURE | FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE | FFX_FSR2_ALLOW_NULL_DEVICE_AND_COMMAND_LIST,
       .maxRenderSize = {renderWidth, renderHeight},
@@ -767,8 +769,8 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
         .jitterOffset = {jitterX, jitterY},
         .motionVectorScale = {float(renderWidth), float(renderHeight)},
         .renderSize = {renderWidth, renderHeight},
-        .enableSharpening = false,
-        .sharpness = 0,
+        .enableSharpening = fsr2Sharpness != 0,
+        .sharpness = fsr2Sharpness,
         .frameTimeDelta = static_cast<float>(dt * 1000.0),
         .preExposure = 1,
         .reset = false,
@@ -863,15 +865,24 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
   }
 
-  int quality = fsr2Quality;
-  ImGui::RadioButton("Quality", &quality, FFX_FSR2_QUALITY_MODE_QUALITY);
-  ImGui::RadioButton("Balanced", &quality, FFX_FSR2_QUALITY_MODE_BALANCED);
-  ImGui::RadioButton("Performance", &quality, FFX_FSR2_QUALITY_MODE_PERFORMANCE);
-  ImGui::RadioButton("Ultra Performance", &quality, FFX_FSR2_QUALITY_MODE_ULTRA_PERFORMANCE);
+  float ratio = fsr2Ratio;
+  if (ImGui::RadioButton("AA (1.0x)", ratio == 1.0f))
+    ratio = 1.0f;
+  if (ImGui::RadioButton("Ultra Quality (1.3x)", ratio == 1.3f))
+    ratio = 1.3f;
+  if (ImGui::RadioButton("Quality (1.5x)", ratio == 1.5f))
+    ratio = 1.5f;
+  if (ImGui::RadioButton("Balanced (1.7x)", ratio == 1.7f))
+    ratio = 1.7f;
+  if (ImGui::RadioButton("Performance (2.0x)", ratio == 2.0f))
+    ratio = 2.0f;
+  if (ImGui::RadioButton("Ultra Performance (3.0x)", ratio == 3.0f))
+    ratio = 3.0f;
+  ImGui::SliderFloat("RCAS Strength", &fsr2Sharpness, 0, 1);
 
-  if (fsr2Quality != quality)
+  if (ratio != fsr2Ratio)
   {
-    fsr2Quality = FfxFsr2QualityMode(quality);
+    fsr2Ratio = ratio;
     OnWindowResize(windowWidth, windowHeight);
   }
 
