@@ -6,6 +6,7 @@
 #include <string_view>
 #include <type_traits>
 #include <variant>
+#include <concepts>
 
 namespace Fwog
 {
@@ -94,7 +95,7 @@ namespace Fwog
     AttachmentLoadOp stencilLoadOp = AttachmentLoadOp::LOAD;
     int32_t clearStencilValue = 0;
     
-    /// @brief If true, a linear->sRGB encoding conversion will be applied when rendering to the swapchain
+    /// @brief If true, the linear->nonlinear sRGB OETF will be applied to pixels when rendering to the swapchain
     ///
     /// This facility is provided because OpenGL does not expose the swapchain as an image we can interact with 
     /// in the usual manner.
@@ -116,24 +117,54 @@ namespace Fwog
     const RenderDepthStencilAttachment* stencilAttachment = nullptr;
   };
 
-  /// @brief Begins a rendering scope for rendering to the swapchain
+  namespace detail
+  {
+    void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo);
+
+    void BeginRendering(const RenderInfo& renderInfo);
+    
+    void EndRendering();
+
+    void BeginCompute(std::string_view name);
+
+    void EndCompute();
+  }
+  
+  /// @brief Renders to the swapchain
   /// @param renderInfo Rendering parameters
+  /// @param func A callback that invokes rendering commands
   /// 
   /// The swapchain can be thought of as "the window". This function is provided because OpenGL nor 
   /// windowing libraries provide a simple mechanism to access the swapchain as a set of images without 
   /// interop with an explicit API like Vulkan or D3D12.
-  void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo);
-
-  /// @brief Begins a rendering scope for rendering to a set of textures
+  template<std::invocable Func>
+  void RenderToSwapchain(const SwapchainRenderInfo& renderInfo, Func func)
+  {
+    detail::BeginSwapchainRendering(renderInfo);
+    func();
+    detail::EndRendering();
+  }
+  
+  /// @brief Renders to a set of textures
   /// @param renderInfo Rendering parameters
-  void BeginRendering(const RenderInfo& renderInfo);
-
-  /// @brief Ends a rendering scope
-  void EndRendering();
-
-  // begin a compute scope
-  void BeginCompute(std::string_view name = {});
-  void EndCompute();
+  /// @param func A callback that invokes rendering commands
+  template<std::invocable Func>
+  void Render(const RenderInfo& renderInfo, Func func)
+  {
+    detail::BeginRendering(renderInfo);
+    func();
+    detail::EndRendering();
+  }
+  
+  /// @brief Begins a compute scope
+  /// @param func A callback that invokes dispatch commands
+  template<std::invocable Func>
+  void Compute(std::string_view name, Func func)
+  {
+    detail::BeginCompute(name);
+    func();
+    detail::EndCompute();
+  }
 
   /// @brief Blits a texture to another texture. Supports minification and magnification
   void BlitTexture(const Texture& source,

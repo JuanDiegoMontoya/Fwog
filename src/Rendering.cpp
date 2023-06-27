@@ -159,351 +159,359 @@ static void SetViewportInternal(const Fwog::Viewport& viewport, const Fwog::View
 
 namespace Fwog
 {
-  using namespace Fwog::detail;
-
-  void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
+  namespace detail
   {
-    FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
+    void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo)
+    {
+      FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
 
-    FWOG_ASSERT(!context->isRendering && "Cannot call BeginRendering when rendering");
-    FWOG_ASSERT(!context->isComputeActive && "Cannot nest compute and rendering");
-    context->isRendering = true;
-    context->isRenderingToSwapchain = true;
-    context->lastRenderInfo = nullptr;
+      FWOG_ASSERT(!context->isRendering && "Cannot call BeginRendering when rendering");
+      FWOG_ASSERT(!context->isComputeActive && "Cannot nest compute and rendering");
+      context->isRendering = true;
+      context->isRenderingToSwapchain = true;
+      context->lastRenderInfo = nullptr;
 
 #ifdef FWOG_DEBUG
-    detail::ZeroResourceBindings();
+      detail::ZeroResourceBindings();
 #endif
 
-    const auto& ri = renderInfo;
+      const auto& ri = renderInfo;
 
-    if (!ri.name.empty())
-    {
-      glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(ri.name.size()), ri.name.data());
-      context->isScopedDebugGroupPushed = true;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    switch (ri.colorLoadOp)
-    {
-    case AttachmentLoadOp::LOAD: break;
-    case AttachmentLoadOp::CLEAR:
-    {
-      FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ri.clearColorValue.data)));
-      if (context->lastColorMask[0] != ColorComponentFlag::RGBA_BITS)
+      if (!ri.name.empty())
       {
-        glColorMaski(0, true, true, true, true);
-        context->lastColorMask[0] = ColorComponentFlag::RGBA_BITS;
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(ri.name.size()), ri.name.data());
+        context->isScopedDebugGroupPushed = true;
       }
-      glClearNamedFramebufferfv(0, GL_COLOR, 0, std::get_if<std::array<float, 4>>(&ri.clearColorValue.data)->data());
-      break;
-    }
-    case AttachmentLoadOp::DONT_CARE:
-    {
-      GLenum attachment = GL_COLOR;
-      glInvalidateNamedFramebufferData(0, 1, &attachment);
-      break;
-    }
-    default: FWOG_UNREACHABLE;
-    }
 
-    switch (ri.depthLoadOp)
-    {
-    case AttachmentLoadOp::LOAD: break;
-    case AttachmentLoadOp::CLEAR:
-    {
-      if (context->lastDepthMask == false)
-      {
-        glDepthMask(true);
-        context->lastDepthMask = true;
-      }
-      glClearNamedFramebufferfv(0, GL_DEPTH, 0, &ri.clearDepthValue);
-      break;
-    }
-    case AttachmentLoadOp::DONT_CARE:
-    {
-      GLenum attachment = GL_DEPTH;
-      glInvalidateNamedFramebufferData(0, 1, &attachment);
-      break;
-    }
-    default: FWOG_UNREACHABLE;
-    }
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    switch (ri.stencilLoadOp)
-    {
-    case AttachmentLoadOp::LOAD: break;
-    case AttachmentLoadOp::CLEAR:
-    {
-      if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
-      {
-        glStencilMask(true);
-        context->lastStencilMask[0] = true;
-        context->lastStencilMask[1] = true;
-      }
-      glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
-      break;
-    }
-    case AttachmentLoadOp::DONT_CARE:
-    {
-      GLenum attachment = GL_STENCIL;
-      glInvalidateNamedFramebufferData(0, 1, &attachment);
-      break;
-    }
-    default: FWOG_UNREACHABLE;
-    }
-
-    // Framebuffer sRGB can only be disabled in this exact function
-    if (!renderInfo.enableSrgb)
-    {
-      glDisable(GL_FRAMEBUFFER_SRGB);
-      context->srgbWasDisabled = true;
-    }
-
-    SetViewportInternal(renderInfo.viewport, context->lastViewport, context->initViewport);
-
-    context->lastViewport = renderInfo.viewport;
-    context->initViewport = false;
-  }
-
-  void BeginRendering(const RenderInfo& renderInfo)
-  {
-    FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
-    FWOG_ASSERT(!context->isRendering && "Cannot call BeginRendering when rendering");
-    FWOG_ASSERT(!context->isComputeActive && "Cannot nest compute and rendering");
-    context->isRendering = true;
-
-#ifdef FWOG_DEBUG
-    detail::ZeroResourceBindings();
-#endif
-
-    // if (lastRenderInfo == &renderInfo)
-    //{
-    //   return;
-    // }
-
-    context->lastRenderInfo = &renderInfo;
-
-    const auto& ri = renderInfo;
-
-    if (!ri.name.empty())
-    {
-      glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(ri.name.size()), ri.name.data());
-      context->isScopedDebugGroupPushed = true;
-    }
-
-    context->currentFbo = context->fboCache.CreateOrGetCachedFramebuffer(ri);
-    glBindFramebuffer(GL_FRAMEBUFFER, context->currentFbo);
-
-    for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
-    {
-      const auto& attachment = ri.colorAttachments[i];
-      switch (attachment.loadOp)
+      switch (ri.colorLoadOp)
       {
       case AttachmentLoadOp::LOAD: break;
       case AttachmentLoadOp::CLEAR:
       {
-        if (context->lastColorMask[i] != ColorComponentFlag::RGBA_BITS)
+        FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ri.clearColorValue.data)));
+        if (context->lastColorMask[0] != ColorComponentFlag::RGBA_BITS)
         {
-          glColorMaski(i, true, true, true, true);
-          context->lastColorMask[i] = ColorComponentFlag::RGBA_BITS;
+          glColorMaski(0, true, true, true, true);
+          context->lastColorMask[0] = ColorComponentFlag::RGBA_BITS;
         }
-
-        auto format = attachment.texture->GetCreateInfo().format;
-        auto baseTypeClass = detail::FormatToBaseTypeClass(format);
-
-        auto& ccv = attachment.clearValue;
-
-        switch (baseTypeClass)
-        {
-        case detail::GlBaseTypeClass::FLOAT:
-          FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ccv.data)));
-          glClearNamedFramebufferfv(context->currentFbo, GL_COLOR, i, std::get_if<std::array<float, 4>>(&ccv.data)->data());
-          break;
-        case detail::GlBaseTypeClass::SINT:
-          FWOG_ASSERT((std::holds_alternative<std::array<int32_t, 4>>(ccv.data)));
-          glClearNamedFramebufferiv(context->currentFbo, GL_COLOR, i, std::get_if<std::array<int32_t, 4>>(&ccv.data)->data());
-          break;
-        case detail::GlBaseTypeClass::UINT:
-          FWOG_ASSERT((std::holds_alternative<std::array<uint32_t, 4>>(ccv.data)));
-          glClearNamedFramebufferuiv(context->currentFbo,
-                                     GL_COLOR,
-                                     i,
-                                     std::get_if<std::array<uint32_t, 4>>(&ccv.data)->data());
-          break;
-        default: FWOG_UNREACHABLE;
-        }
+        glClearNamedFramebufferfv(0, GL_COLOR, 0, std::get_if<std::array<float, 4>>(&ri.clearColorValue.data)->data());
         break;
       }
       case AttachmentLoadOp::DONT_CARE:
       {
-        GLenum colorAttachment = GL_COLOR_ATTACHMENT0 + i;
-        glInvalidateNamedFramebufferData(context->currentFbo, 1, &colorAttachment);
+        GLenum attachment = GL_COLOR;
+        glInvalidateNamedFramebufferData(0, 1, &attachment);
         break;
       }
       default: FWOG_UNREACHABLE;
       }
-    }
 
-    if (ri.depthAttachment)
-    {
-      switch (ri.depthAttachment->loadOp)
+      switch (ri.depthLoadOp)
       {
       case AttachmentLoadOp::LOAD: break;
       case AttachmentLoadOp::CLEAR:
       {
-        // clear just depth
         if (context->lastDepthMask == false)
         {
           glDepthMask(true);
           context->lastDepthMask = true;
         }
-
-        glClearNamedFramebufferfv(context->currentFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depth);
+        glClearNamedFramebufferfv(0, GL_DEPTH, 0, &ri.clearDepthValue);
         break;
       }
       case AttachmentLoadOp::DONT_CARE:
       {
-        GLenum attachment = GL_DEPTH_ATTACHMENT;
-        glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+        GLenum attachment = GL_DEPTH;
+        glInvalidateNamedFramebufferData(0, 1, &attachment);
         break;
       }
       default: FWOG_UNREACHABLE;
       }
-    }
 
-    if (ri.stencilAttachment)
-    {
-      switch (ri.stencilAttachment->loadOp)
+      switch (ri.stencilLoadOp)
       {
       case AttachmentLoadOp::LOAD: break;
       case AttachmentLoadOp::CLEAR:
       {
-        // clear just stencil
         if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
         {
           glStencilMask(true);
           context->lastStencilMask[0] = true;
           context->lastStencilMask[1] = true;
         }
-
-        glClearNamedFramebufferiv(context->currentFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.stencil);
+        glClearNamedFramebufferiv(0, GL_STENCIL, 0, &ri.clearStencilValue);
         break;
       }
       case AttachmentLoadOp::DONT_CARE:
       {
-        GLenum attachment = GL_STENCIL_ATTACHMENT;
-        glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+        GLenum attachment = GL_STENCIL;
+        glInvalidateNamedFramebufferData(0, 1, &attachment);
         break;
       }
       default: FWOG_UNREACHABLE;
       }
-    }
 
-    Viewport viewport{};
-    if (ri.viewport)
-    {
-      viewport = *ri.viewport;
-    }
-    else
-    {
-      viewport.minDepth = 0.0f;
-      viewport.maxDepth = 1.0f;
-
-      // determine intersection of all render targets
-      Rect2D drawRect{.offset = {}, .extent = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()}};
-      for (const auto& attachment : ri.colorAttachments)
+      // Framebuffer sRGB can only be disabled in this exact function
+      if (!renderInfo.enableSrgb)
       {
-        drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture->GetCreateInfo().extent.width);
-        drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture->GetCreateInfo().extent.height);
+        glDisable(GL_FRAMEBUFFER_SRGB);
+        context->srgbWasDisabled = true;
       }
-      if (ri.depthAttachment)
-      {
-        drawRect.extent.width = std::min(drawRect.extent.width, ri.depthAttachment->texture->GetCreateInfo().extent.width);
-        drawRect.extent.height =
-          std::min(drawRect.extent.height, ri.depthAttachment->texture->GetCreateInfo().extent.height);
-      }
-      if (ri.stencilAttachment)
-      {
-        drawRect.extent.width =
-          std::min(drawRect.extent.width, ri.stencilAttachment->texture->GetCreateInfo().extent.width);
-        drawRect.extent.height =
-          std::min(drawRect.extent.height, ri.stencilAttachment->texture->GetCreateInfo().extent.height);
-      }
-      viewport.drawRect = drawRect;
+
+      SetViewportInternal(renderInfo.viewport, context->lastViewport, context->initViewport);
+
+      context->lastViewport = renderInfo.viewport;
+      context->initViewport = false;
     }
 
-    SetViewportInternal(viewport, context->lastViewport, context->initViewport);
-
-    context->lastViewport = viewport;
-    context->initViewport = false;
-  }
-
-  void EndRendering()
-  {
-    FWOG_ASSERT(context->isRendering && "Cannot call EndRendering when not rendering");
-    context->isRendering = false;
-    context->isIndexBufferBound = false;
-    context->isRenderingToSwapchain = false;
-
-    if (context->isScopedDebugGroupPushed)
+    void BeginRendering(const RenderInfo& renderInfo)
     {
-      context->isScopedDebugGroupPushed = false;
-      glPopDebugGroup();
-    }
-
-    if (context->isPipelineDebugGroupPushed)
-    {
-      context->isPipelineDebugGroupPushed = false;
-      glPopDebugGroup();
-    }
-
-    if (context->scissorEnabled)
-    {
-      glDisable(GL_SCISSOR_TEST);
-      context->scissorEnabled = false;
-    }
-
-    if (context->srgbWasDisabled)
-    {
-      glEnable(GL_FRAMEBUFFER_SRGB);
-    }
-  }
-
-  void BeginCompute(std::string_view name)
-  {
-    FWOG_ASSERT(!context->isComputeActive);
-    FWOG_ASSERT(!context->isRendering && "Cannot nest compute and rendering");
-    context->isComputeActive = true;
+      FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
+      FWOG_ASSERT(!context->isRendering && "Cannot call BeginRendering when rendering");
+      FWOG_ASSERT(!context->isComputeActive && "Cannot nest compute and rendering");
+      context->isRendering = true;
 
 #ifdef FWOG_DEBUG
-    detail::ZeroResourceBindings();
+      detail::ZeroResourceBindings();
 #endif
 
-    if (!name.empty())
-    {
-      glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(name.size()), name.data());
-      context->isScopedDebugGroupPushed = true;
-    }
-  }
+      // if (lastRenderInfo == &renderInfo)
+      //{
+      //   return;
+      // }
 
-  void EndCompute()
-  {
-    FWOG_ASSERT(context->isComputeActive);
-    context->isComputeActive = false;
+      context->lastRenderInfo = &renderInfo;
 
-    if (context->isScopedDebugGroupPushed)
-    {
-      context->isScopedDebugGroupPushed = false;
-      glPopDebugGroup();
+      const auto& ri = renderInfo;
+
+      if (!ri.name.empty())
+      {
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(ri.name.size()), ri.name.data());
+        context->isScopedDebugGroupPushed = true;
+      }
+
+      context->currentFbo = context->fboCache.CreateOrGetCachedFramebuffer(ri);
+      glBindFramebuffer(GL_FRAMEBUFFER, context->currentFbo);
+
+      for (GLint i = 0; i < static_cast<GLint>(ri.colorAttachments.size()); i++)
+      {
+        const auto& attachment = ri.colorAttachments[i];
+        switch (attachment.loadOp)
+        {
+        case AttachmentLoadOp::LOAD: break;
+        case AttachmentLoadOp::CLEAR:
+        {
+          if (context->lastColorMask[i] != ColorComponentFlag::RGBA_BITS)
+          {
+            glColorMaski(i, true, true, true, true);
+            context->lastColorMask[i] = ColorComponentFlag::RGBA_BITS;
+          }
+
+          auto format = attachment.texture->GetCreateInfo().format;
+          auto baseTypeClass = detail::FormatToBaseTypeClass(format);
+
+          auto& ccv = attachment.clearValue;
+
+          switch (baseTypeClass)
+          {
+          case detail::GlBaseTypeClass::FLOAT:
+            FWOG_ASSERT((std::holds_alternative<std::array<float, 4>>(ccv.data)));
+            glClearNamedFramebufferfv(context->currentFbo, GL_COLOR, i, std::get_if<std::array<float, 4>>(&ccv.data)->data());
+            break;
+          case detail::GlBaseTypeClass::SINT:
+            FWOG_ASSERT((std::holds_alternative<std::array<int32_t, 4>>(ccv.data)));
+            glClearNamedFramebufferiv(context->currentFbo,
+                                      GL_COLOR,
+                                      i,
+                                      std::get_if<std::array<int32_t, 4>>(&ccv.data)->data());
+            break;
+          case detail::GlBaseTypeClass::UINT:
+            FWOG_ASSERT((std::holds_alternative<std::array<uint32_t, 4>>(ccv.data)));
+            glClearNamedFramebufferuiv(context->currentFbo,
+                                       GL_COLOR,
+                                       i,
+                                       std::get_if<std::array<uint32_t, 4>>(&ccv.data)->data());
+            break;
+          default: FWOG_UNREACHABLE;
+          }
+          break;
+        }
+        case AttachmentLoadOp::DONT_CARE:
+        {
+          GLenum colorAttachment = GL_COLOR_ATTACHMENT0 + i;
+          glInvalidateNamedFramebufferData(context->currentFbo, 1, &colorAttachment);
+          break;
+        }
+        default: FWOG_UNREACHABLE;
+        }
+      }
+
+      if (ri.depthAttachment)
+      {
+        switch (ri.depthAttachment->loadOp)
+        {
+        case AttachmentLoadOp::LOAD: break;
+        case AttachmentLoadOp::CLEAR:
+        {
+          // clear just depth
+          if (context->lastDepthMask == false)
+          {
+            glDepthMask(true);
+            context->lastDepthMask = true;
+          }
+
+          glClearNamedFramebufferfv(context->currentFbo, GL_DEPTH, 0, &ri.depthAttachment->clearValue.depth);
+          break;
+        }
+        case AttachmentLoadOp::DONT_CARE:
+        {
+          GLenum attachment = GL_DEPTH_ATTACHMENT;
+          glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+          break;
+        }
+        default: FWOG_UNREACHABLE;
+        }
+      }
+
+      if (ri.stencilAttachment)
+      {
+        switch (ri.stencilAttachment->loadOp)
+        {
+        case AttachmentLoadOp::LOAD: break;
+        case AttachmentLoadOp::CLEAR:
+        {
+          // clear just stencil
+          if (context->lastStencilMask[0] == false || context->lastStencilMask[1] == false)
+          {
+            glStencilMask(true);
+            context->lastStencilMask[0] = true;
+            context->lastStencilMask[1] = true;
+          }
+
+          glClearNamedFramebufferiv(context->currentFbo, GL_STENCIL, 0, &ri.stencilAttachment->clearValue.stencil);
+          break;
+        }
+        case AttachmentLoadOp::DONT_CARE:
+        {
+          GLenum attachment = GL_STENCIL_ATTACHMENT;
+          glInvalidateNamedFramebufferData(context->currentFbo, 1, &attachment);
+          break;
+        }
+        default: FWOG_UNREACHABLE;
+        }
+      }
+
+      Viewport viewport{};
+      if (ri.viewport)
+      {
+        viewport = *ri.viewport;
+      }
+      else
+      {
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        // determine intersection of all render targets
+        Rect2D drawRect{.offset = {},
+                        .extent = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()}};
+        for (const auto& attachment : ri.colorAttachments)
+        {
+          drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture->GetCreateInfo().extent.width);
+          drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture->GetCreateInfo().extent.height);
+        }
+        if (ri.depthAttachment)
+        {
+          drawRect.extent.width =
+            std::min(drawRect.extent.width, ri.depthAttachment->texture->GetCreateInfo().extent.width);
+          drawRect.extent.height =
+            std::min(drawRect.extent.height, ri.depthAttachment->texture->GetCreateInfo().extent.height);
+        }
+        if (ri.stencilAttachment)
+        {
+          drawRect.extent.width =
+            std::min(drawRect.extent.width, ri.stencilAttachment->texture->GetCreateInfo().extent.width);
+          drawRect.extent.height =
+            std::min(drawRect.extent.height, ri.stencilAttachment->texture->GetCreateInfo().extent.height);
+        }
+        viewport.drawRect = drawRect;
+      }
+
+      SetViewportInternal(viewport, context->lastViewport, context->initViewport);
+
+      context->lastViewport = viewport;
+      context->initViewport = false;
     }
 
-    if (context->isPipelineDebugGroupPushed)
+    void EndRendering()
     {
-      context->isPipelineDebugGroupPushed = false;
-      glPopDebugGroup();
+      FWOG_ASSERT(context->isRendering && "Cannot call EndRendering when not rendering");
+      context->isRendering = false;
+      context->isIndexBufferBound = false;
+      context->isRenderingToSwapchain = false;
+
+      if (context->isScopedDebugGroupPushed)
+      {
+        context->isScopedDebugGroupPushed = false;
+        glPopDebugGroup();
+      }
+
+      if (context->isPipelineDebugGroupPushed)
+      {
+        context->isPipelineDebugGroupPushed = false;
+        glPopDebugGroup();
+      }
+
+      if (context->scissorEnabled)
+      {
+        glDisable(GL_SCISSOR_TEST);
+        context->scissorEnabled = false;
+      }
+
+      if (context->srgbWasDisabled)
+      {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+      }
     }
-  }
+
+    void BeginCompute(std::string_view name)
+    {
+      FWOG_ASSERT(!context->isComputeActive);
+      FWOG_ASSERT(!context->isRendering && "Cannot nest compute and rendering");
+      context->isComputeActive = true;
+
+#ifdef FWOG_DEBUG
+      detail::ZeroResourceBindings();
+#endif
+
+      if (!name.empty())
+      {
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, static_cast<GLsizei>(name.size()), name.data());
+        context->isScopedDebugGroupPushed = true;
+      }
+    }
+
+    void EndCompute()
+    {
+      FWOG_ASSERT(context->isComputeActive);
+      context->isComputeActive = false;
+
+      if (context->isScopedDebugGroupPushed)
+      {
+        context->isScopedDebugGroupPushed = false;
+        glPopDebugGroup();
+      }
+
+      if (context->isPipelineDebugGroupPushed)
+      {
+        context->isPipelineDebugGroupPushed = false;
+        glPopDebugGroup();
+      }
+    }
+  } // namespace detail
+
+  using namespace Fwog::detail;
 
   void BlitTexture(const Texture& source,
                    const Texture& target,
@@ -646,15 +654,14 @@ namespace Fwog
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, copy.sourceBuffer.Handle());
 
-    const_cast<Texture&>(copy.targetTexture)
-      .subImageInternal({copy.level,
-                         copy.targetOffset,
-                         copy.extent,
-                         copy.format,
-                         copy.type,
-                         reinterpret_cast<void*>(static_cast<uintptr_t>(copy.sourceOffset)),
-                         copy.bufferRowLength,
-                         copy.bufferImageHeight});
+    copy.targetTexture.subImageInternal({copy.level,
+                                         copy.targetOffset,
+                                         copy.extent,
+                                         copy.format,
+                                         copy.type,
+                                         reinterpret_cast<void*>(static_cast<uintptr_t>(copy.sourceOffset)),
+                                         copy.bufferRowLength,
+                                         copy.bufferImageHeight});
   }
 
   namespace Cmd
@@ -1152,7 +1159,7 @@ namespace Fwog
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
       FWOG_ASSERT(level < texture.GetCreateInfo().mipLevels);
       FWOG_ASSERT(IsValidImageFormat(texture.GetCreateInfo().format));
-      
+
       glBindImageTexture(index,
                          const_cast<Texture&>(texture).Handle(),
                          level,
