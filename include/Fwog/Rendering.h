@@ -272,7 +272,7 @@ namespace Fwog
     uint32_t bufferImageHeight = 0;
   };
 
-  /// @brief Copes buffer data into a texture
+  /// @brief Copies buffer data into a texture
   void CopyBufferToTexture(const CopyBufferToTextureInfo& copy);
 
   /// @brief Functions that set pipeline state, binds resources, or issues draws or dispatches
