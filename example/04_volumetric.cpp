@@ -3,7 +3,6 @@
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
-#include <Fwog/DebugMarker.h>
 #include <Fwog/Pipeline.h>
 #include <Fwog/Rendering.h>
 #include <Fwog/Shader.h>
@@ -707,7 +706,6 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
       {.name = "Shadow Scene", .viewport = &shadowViewport, .depthAttachment = &depthAttachment, .stencilAttachment = nullptr},
       [&]
       {
-        Fwog::ScopedDebugMarker marker("Shadow Scene");
         Fwog::Cmd::BindGraphicsPipeline(shadowPipeline);
         Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
         Fwog::Cmd::BindStorageBuffer(1, meshUniformBuffer.value());
@@ -739,9 +737,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
                   Fwog::Cmd::DispatchInvocations(esmTex.Extent());
 
                   Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
-
-                  // blur
-                  Fwog::ScopedDebugMarker marker("Blur ESM");
+                  
                   Fwog::Cmd::BindComputePipeline(gaussianBlurPipeline);
 
                   auto linearSampler =
@@ -809,8 +805,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
       volumetricTime = *t / 10e5;
     }
     Fwog::TimerScoped scopedTimer(timer);
-
-    Fwog::ScopedDebugMarker marker("Volumetric Fog");
+    
     volumetric.UpdateUniforms(mainCamera,
                               proj,
                               shadingUniforms.sunViewProj,
@@ -839,7 +834,6 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
   }
 
   {
-    Fwog::ScopedDebugMarker marker("Postprocessing");
     Fwog::Compute("Postprocessing",
                   [&]
                   {

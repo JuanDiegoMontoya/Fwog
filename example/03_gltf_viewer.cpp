@@ -4,7 +4,6 @@
 
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
-#include <Fwog/DebugMarker.h>
 #include <Fwog/Pipeline.h>
 #include <Fwog/Rendering.h>
 #include <Fwog/Shader.h>
