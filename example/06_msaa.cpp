@@ -153,20 +153,23 @@ void MultisampleApplication::OnRender(double dt)
   timeBuffer.UpdateData(timeAccum);
 
   auto attachment = Fwog::RenderColorAttachment{
-    .texture = &msColorTex.value(),
+    .texture = msColorTex.value(),
     .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.2f, .0f, .2f, 1.0f},
   };
 
-  Fwog::Render({.colorAttachments = {&attachment, 1}},
-               [&]
-               {
-                 Fwog::Cmd::BindGraphicsPipeline(pipeline);
-                 Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
-                 Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
-                 Fwog::Cmd::BindUniformBuffer(0, timeBuffer);
-                 Fwog::Cmd::Draw(3, 1, 0, 0);
-               });
+  Fwog::Render(
+    {
+      .colorAttachments = {&attachment, 1},
+    },
+    [&]
+    {
+      Fwog::Cmd::BindGraphicsPipeline(pipeline);
+      Fwog::Cmd::BindVertexBuffer(0, vertexPosBuffer, 0, 2 * sizeof(float));
+      Fwog::Cmd::BindVertexBuffer(1, vertexColorBuffer, 0, 3 * sizeof(uint8_t));
+      Fwog::Cmd::BindUniformBuffer(0, timeBuffer);
+      Fwog::Cmd::Draw(3, 1, 0, 0);
+    });
 
   // Resolve multisample texture by blitting it to a same-size non-multisample texture
   Fwog::BlitTexture(*msColorTex, *resolveColorTex, {}, {}, msColorTex->Extent(), resolveColorTex->Extent(), Fwog::Filter::LINEAR);

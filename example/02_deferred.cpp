@@ -416,21 +416,21 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
 
   // Render scene geometry to the g-buffer
   // DONT_CARE indicates that the previous contents can be discarded before rendering
-  Fwog::RenderColorAttachment gAlbedoAttachment{
-    .texture = &frame.gAlbedo.value(),
+  auto gAlbedoAttachment = Fwog::RenderColorAttachment{
+    .texture = frame.gAlbedo.value(),
     .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
-  Fwog::RenderColorAttachment gNormalAttachment{
-    .texture = &frame.gNormal.value(),
+  auto gNormalAttachment = Fwog::RenderColorAttachment{
+    .texture = frame.gNormal.value(),
     .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
-  Fwog::RenderColorAttachment gMotionAttachment{
-    .texture = &frame.gMotion.value(),
+  auto gMotionAttachment = Fwog::RenderColorAttachment{
+    .texture = frame.gMotion.value(),
     .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {0.f, 0.f},
   };
-  Fwog::RenderDepthStencilAttachment gDepthAttachment{
-    .texture = &frame.gDepth.value(),
+  auto gDepthAttachment = Fwog::RenderDepthStencilAttachment{
+    .texture = frame.gDepth.value(),
     .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.depth = 1.0f},
   };
@@ -439,8 +439,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     {
       .name = "Base Pass",
       .colorAttachments = cgAttachments,
-      .depthAttachment = &gDepthAttachment,
-      .stencilAttachment = nullptr,
+      .depthAttachment = gDepthAttachment,
     },
     [&]
     {
@@ -456,16 +455,16 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
   globalUniformsBuffer.UpdateData(globalUniforms);
 
   // Shadow map (RSM) scene pass
-  Fwog::RenderColorAttachment rcolorAttachment{
-    .texture = &rsmFlux,
+  auto rcolorAttachment = Fwog::RenderColorAttachment{
+    .texture = rsmFlux,
     .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
-  Fwog::RenderColorAttachment rnormalAttachment{
-    .texture = &rsmNormal,
+  auto rnormalAttachment = Fwog::RenderColorAttachment{
+    .texture = rsmNormal,
     .loadOp = Fwog::AttachmentLoadOp::DONT_CARE,
   };
-  Fwog::RenderDepthStencilAttachment rdepthAttachment{
-    .texture = &rsmDepth,
+  auto rdepthAttachment = Fwog::RenderDepthStencilAttachment{
+    .texture = rsmDepth,
     .loadOp = Fwog::AttachmentLoadOp::CLEAR,
     .clearValue = {.depth = 1.0f},
   };
@@ -474,8 +473,7 @@ void DeferredApplication::OnRender([[maybe_unused]] double dt)
     {
       .name = "RSM Scene",
       .colorAttachments = crAttachments,
-      .depthAttachment = &rdepthAttachment,
-      .stencilAttachment = nullptr,
+      .depthAttachment = rdepthAttachment,
     },
     [&]
     {
