@@ -116,18 +116,18 @@ static uint32_t MakeSingleTextureFbo(const Fwog::Texture& texture, Fwog::detail:
 {
   auto format = texture.GetCreateInfo().format;
 
-  auto depthStencil = Fwog::RenderDepthStencilAttachment{.texture = &texture};
-  auto color = Fwog::RenderColorAttachment{.texture = &texture};
+  auto depthStencil = Fwog::RenderDepthStencilAttachment{.texture = texture};
+  auto color = Fwog::RenderColorAttachment{.texture = texture};
   Fwog::RenderInfo renderInfo;
 
   if (IsDepthFormat(format))
   {
-    renderInfo.depthAttachment = &depthStencil;
+    renderInfo.depthAttachment = depthStencil;
   }
 
   if (IsStencilFormat(format))
   {
-    renderInfo.stencilAttachment = &depthStencil;
+    renderInfo.stencilAttachment = depthStencil;
   }
 
   if (IsColorFormat(format))
@@ -309,7 +309,7 @@ namespace Fwog
             context->lastColorMask[i] = ColorComponentFlag::RGBA_BITS;
           }
 
-          auto format = attachment.texture->GetCreateInfo().format;
+          auto format = attachment.texture.get().GetCreateInfo().format;
           auto baseTypeClass = detail::FormatToBaseTypeClass(format);
 
           auto& ccv = attachment.clearValue;
@@ -418,22 +418,22 @@ namespace Fwog
                         .extent = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()}};
         for (const auto& attachment : ri.colorAttachments)
         {
-          drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture->GetCreateInfo().extent.width);
-          drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture->GetCreateInfo().extent.height);
+          drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture.get().GetCreateInfo().extent.width);
+          drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture.get().GetCreateInfo().extent.height);
         }
         if (ri.depthAttachment)
         {
           drawRect.extent.width =
-            std::min(drawRect.extent.width, ri.depthAttachment->texture->GetCreateInfo().extent.width);
+            std::min(drawRect.extent.width, ri.depthAttachment->texture.get().GetCreateInfo().extent.width);
           drawRect.extent.height =
-            std::min(drawRect.extent.height, ri.depthAttachment->texture->GetCreateInfo().extent.height);
+            std::min(drawRect.extent.height, ri.depthAttachment->texture.get().GetCreateInfo().extent.height);
         }
         if (ri.stencilAttachment)
         {
           drawRect.extent.width =
-            std::min(drawRect.extent.width, ri.stencilAttachment->texture->GetCreateInfo().extent.width);
+            std::min(drawRect.extent.width, ri.stencilAttachment->texture.get().GetCreateInfo().extent.width);
           drawRect.extent.height =
-            std::min(drawRect.extent.height, ri.stencilAttachment->texture->GetCreateInfo().extent.height);
+            std::min(drawRect.extent.height, ri.stencilAttachment->texture.get().GetCreateInfo().extent.height);
         }
         viewport.drawRect = drawRect;
       }

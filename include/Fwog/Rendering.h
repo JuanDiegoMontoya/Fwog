@@ -1,7 +1,9 @@
 #pragma once
-#include <Fwog/BasicTypes.h>
 #include <Fwog/Config.h>
+#include <Fwog/BasicTypes.h>
+#include <Fwog/Texture.h>
 #include <array>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <type_traits>
@@ -16,6 +18,35 @@ namespace Fwog
   class Buffer;
   struct GraphicsPipeline;
   struct ComputePipeline;
+
+  // Minimal reference wrapper type. Didn't want to pull in <functional> just for this
+  template <class T>
+  requires std::is_object_v<T>
+  class ReferenceWrapper
+  {
+  public:
+    using type = T;
+
+    template <class U>
+    constexpr ReferenceWrapper(U&& val) noexcept
+    {
+      T& ref = static_cast<U&&>(val);
+      ptr = std::addressof(ref);
+    }
+
+    constexpr operator T&() const noexcept
+    {
+      return *ptr;
+    }
+
+    [[nodiscard]] constexpr T& get() const noexcept
+    {
+      return *ptr;
+    }
+
+  private:
+    T* ptr{};
+  };
 
   /// @brief Describes a clear color value
   ///
@@ -56,14 +87,14 @@ namespace Fwog
 
   struct RenderColorAttachment
   {
-    const Texture* texture = nullptr;
+    ReferenceWrapper<const Texture> texture;
     AttachmentLoadOp loadOp = AttachmentLoadOp::LOAD;
     ClearColorValue clearValue;
   };
   
   struct RenderDepthStencilAttachment
   {
-    const Texture* texture = nullptr;
+    ReferenceWrapper<const Texture> texture;
     AttachmentLoadOp loadOp = AttachmentLoadOp::LOAD;
     ClearDepthStencilValue clearValue;
   };
@@ -110,11 +141,11 @@ namespace Fwog
 
     /// @brief A pointer to a viewport
     /// 
-    /// If null, the viewport size will be the minimum the render targets' size and the offset will be 0.
-    const Viewport* viewport = nullptr;
+    /// If empty, the viewport size will be the minimum the render targets' size and the offset will be 0.
+    std::optional<Viewport> viewport = std::nullopt;
     std::span<const RenderColorAttachment> colorAttachments;
-    const RenderDepthStencilAttachment* depthAttachment = nullptr;
-    const RenderDepthStencilAttachment* stencilAttachment = nullptr;
+    std::optional<RenderDepthStencilAttachment> depthAttachment = std::nullopt;
+    std::optional<RenderDepthStencilAttachment> stencilAttachment = std::nullopt;
   };
 
   namespace detail
