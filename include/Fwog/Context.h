@@ -5,6 +5,27 @@
 
 namespace Fwog
 {
+  struct SubgroupLimits
+  {
+    int32_t subgroupSize{}; // GL_SUBGROUP_SIZE_KHR
+
+    // Shader stage support
+    bool vertexShaderSupported{};                 // GL_VERTEX_SHADER_BIT
+    bool tessellationControlShaderSupported{};    // GL_TESS_CONTROL_SHADER_BIT
+    bool tessellationEvaluationShaderSupported{}; // GL_TESS_EVALUATION_SHADER_BIT
+    bool fragmentShaderSupported{};               // GL_FRAGMENT_SHADER_BIT
+    bool computeShaderSupported{};                // GL_COMPUTE_SHADER_BIT
+
+    // Features
+    bool voteSupported{};            // GL_SUBGROUP_FEATURE_VOTE_BIT_KHR
+    bool arithmeticSupported{};      // GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR
+    bool ballotSupported{};          // GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR
+    bool shuffleSupported{};         // GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR
+    bool shuffleRelativeSupported{}; // GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR
+    bool clusteredSupported{};       // GL_SUBGROUP_FEATURE_CLUSTERED_BIT_KHR
+    bool quadSupported{};            // GL_SUBGROUP_FEATURE_QUAD_BIT_KHR
+  };
+
   struct DeviceLimits
   {
     int32_t maxTextureSize;     // GL_MAX_TEXTURE_SIZE
@@ -73,11 +94,14 @@ namespace Fwog
     int32_t maxFragmentCombinedOutputResources; // GL_MAX_COMBINED_IMAGE_UNITS_AND_FRAGMENT_OUTPUTS
     int32_t maxCombinedImageUniforms;           // GL_MAX_COMBINED_IMAGE_UNIFORMS
     int32_t maxServerWaitTimeout;               // GL_MAX_SERVER_WAIT_TIMEOUT
+
+    SubgroupLimits subgroupLimits{};
   };
 
   struct DeviceFeatures
   {
     bool bindlessTextures{}; // GL_ARB_bindless_texture
+    bool shaderSubgroup{}; // GL_KHR_shader_subgroup
   };
 
   struct DeviceProperties

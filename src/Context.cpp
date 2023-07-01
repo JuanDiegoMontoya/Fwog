@@ -129,6 +129,31 @@ namespace Fwog
       {
         features.bindlessTextures = true;
       }
+
+      if (extensionString == "GL_KHR_shader_subgroup")
+      {
+        features.shaderSubgroup = true;
+
+        glGetIntegerv(GL_SUBGROUP_SIZE_KHR, &limits.subgroupLimits.subgroupSize);
+
+        int32_t subgroupStages{};
+        glGetIntegerv(GL_SUBGROUP_SUPPORTED_STAGES_KHR, &subgroupStages);
+        limits.subgroupLimits.vertexShaderSupported = subgroupStages & GL_VERTEX_SHADER_BIT;
+        limits.subgroupLimits.tessellationControlShaderSupported = subgroupStages & GL_TESS_CONTROL_SHADER_BIT;
+        limits.subgroupLimits.tessellationEvaluationShaderSupported = subgroupStages & GL_TESS_EVALUATION_SHADER_BIT;
+        limits.subgroupLimits.fragmentShaderSupported = subgroupStages & GL_FRAGMENT_SHADER_BIT;
+        limits.subgroupLimits.computeShaderSupported = subgroupStages & GL_COMPUTE_SHADER_BIT;
+
+        int32_t subgroupFeatures{};
+        glGetIntegerv(GL_SUBGROUP_SUPPORTED_FEATURES_KHR, &subgroupFeatures);
+        limits.subgroupLimits.voteSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_VOTE_BIT_KHR;
+        limits.subgroupLimits.arithmeticSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR;
+        limits.subgroupLimits.ballotSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR;
+        limits.subgroupLimits.shuffleSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR;
+        limits.subgroupLimits.shuffleRelativeSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR;
+        limits.subgroupLimits.clusteredSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_CLUSTERED_BIT_KHR;
+        limits.subgroupLimits.quadSupported = subgroupFeatures & GL_SUBGROUP_FEATURE_QUAD_BIT_KHR;
+      }
     }
   }
 
