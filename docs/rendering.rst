@@ -16,20 +16,21 @@ and the corresponding fragment shader outputs:
     layout(location = 1) out vec3 o_normal;
     layout(location = 2) out vec3 o_material;
 
-To bind the render targets and begin a rendering pass, call :cpp:func:`Fwog::BeginRendering`.
+To bind the render targets and begin a rendering pass, call :cpp:func:`Fwog::Render`.
 
 .. code-block:: cpp
 
-    Fwog::BeginRendering({
+    Fwog::Render({
         .colorAttachments = colorAttachments,
         .depthAttachment = &depthAttachment,
+    }
+    [&] {
+        // Bind pipelines, resources, and make draw calls here
     });
 
-Then, you can bind pipelines and resources and issue draw calls.
+Then, you can bind pipelines and resources and issue draw calls inside of the callable that is passed.
 
-When you are done drawing in a pass, call :cpp:func:`Fwog::EndRendering`.
-
-If you wish to render to the screen, call :cpp:func:`Fwog::BeginSwapchainRendering`. 
+If you wish to render to the screen, call :cpp:func:`Fwog::RenderToSwapchain`. 
 
 Compute
 -------
@@ -37,7 +38,7 @@ Compute piplines are similar to graphics pipelines, except they only encapsulate
 
 Color Spaces
 ------------
-Fwog enables ``GL_FRAMEBUFFER_SRGB`` by default. :cpp:class:`Fwog::TextureView` can be used to make an sRGB or linear view of an image if a different encoding is desired.
+Fwog enables ``GL_FRAMEBUFFER_SRGB`` by default. :cpp:class:`Fwog::TextureView` can be used to view an image in a different color space if desired. This follows the same rules as `glTextureView <https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTextureView.xhtml>`_.
 
 Synchronization
 ---------------
