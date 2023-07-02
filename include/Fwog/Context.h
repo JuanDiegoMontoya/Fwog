@@ -118,8 +118,10 @@ namespace Fwog
 
   struct ContextInitializeInfo
   {
-    /// @brief Callback 
-    void (*verboseMessageCallback)(const char*) = nullptr;
+    /// @brief Callback for logging verbose messages about Fwog's internal state.
+    /// Currently, only OpenGL object creation and destruction are logged.
+    /// This callback can be useful for analyzing how Fwog implicitly creates objects.
+    void (*verboseMessageCallback)(const char* message) = nullptr;
   };
 
   /// @brief Initializes Fwog's internal structures

@@ -19,7 +19,7 @@ namespace Fwog
       mappedMemory_ = glMapNamedBufferRange(id_, 0, size_, access);
     }
 
-    detail::InvokeVerboseMessageCallback("Created buffer with handle {}", id_);
+    detail::InvokeVerboseMessageCallback("Created buffer with handle ", id_);
   }
 
   Buffer::Buffer(size_t size, BufferStorageFlags storageFlags) : Buffer(nullptr, size, storageFlags) {}
@@ -49,7 +49,7 @@ namespace Fwog
   {
     if (id_)
     {
-      detail::InvokeVerboseMessageCallback("Destroyed buffer with handle {}", id_);
+      detail::InvokeVerboseMessageCallback("Destroyed buffer with handle ", id_);
 
       if (mappedMemory_)
       {

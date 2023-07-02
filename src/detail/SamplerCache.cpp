@@ -99,7 +99,7 @@ namespace Fwog::detail
 
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_LOD, samplerState.maxLod);
 
-    detail::InvokeDebugMessageCallback("Created sampler with handle {}", sampler);
+    detail::InvokeVerboseMessageCallback("Created sampler with handle ", sampler);
 
     return samplerCache_.insert({samplerState, Sampler(sampler)}).first->second;
   }
@@ -113,7 +113,7 @@ namespace Fwog::detail
   {
     for (const auto& [_, sampler] : samplerCache_)
     {
-      detail::InvokeDebugMessageCallback("Destroyed sampler with handle {}", sampler.id_);
+      detail::InvokeVerboseMessageCallback("Destroyed sampler with handle ", sampler.id_);
       glDeleteSamplers(1, &sampler.id_);
     }
 

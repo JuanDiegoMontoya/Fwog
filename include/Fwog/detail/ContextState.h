@@ -7,8 +7,8 @@
 #include <Fwog/detail/SamplerCache.h>
 #include <Fwog/detail/VertexArrayCache.h>
 
+#include <sstream>
 #include <memory>
-#include <format>
 #include <utility>
 
 #include FWOG_OPENGL_HEADER
@@ -83,14 +83,17 @@ namespace Fwog::detail
   // or when the pipeline state has been invalidated, but only in debug mode.
   void ZeroResourceBindings();
 
+  // Prints a formatted message to a stringstream, then
+  // invokes the message callback with the formatted message
   template<class... Args>
-  void InvokeVerboseMessageCallback(std::format_string<Args...> fmt, Args&&... args)
+  void InvokeVerboseMessageCallback(Args&&... args)
   {
     if (context->verboseMessageCallback != nullptr)
     {
-      char messageBuffer[1024] = {};
-      std::format_to_n(messageBuffer, std::size(messageBuffer) - 1, fmt, std::forward<Args>(args)...);
-      context->verboseMessageCallback(messageBuffer);
+      // This probably allocates, but at least it works
+      std::stringstream stream;
+      ((stream << args), ...);
+      context->verboseMessageCallback(stream.str().c_str());
     }
   }
 } // namespace Fwog::detail

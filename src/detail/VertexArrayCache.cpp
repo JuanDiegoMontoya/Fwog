@@ -54,7 +54,7 @@ namespace Fwog::detail
       }
     }
 
-    detail::InvokeDebugMessageCallback("Created vertex array with handle {}", vao);
+    detail::InvokeVerboseMessageCallback("Created vertex array with handle ", vao);
 
     return vertexArrayCache_.insert({inputHash, vao}).first->second;
   }
@@ -63,7 +63,7 @@ namespace Fwog::detail
   {
     for (auto [_, vao] : vertexArrayCache_)
     {
-      detail::InvokeDebugMessageCallback("Destroyed vertex array with handle {}", vao);
+      detail::InvokeVerboseMessageCallback("Destroyed vertex array with handle ", vao);
       glDeleteVertexArrays(1, &vao);
     }
 

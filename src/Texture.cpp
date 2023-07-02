@@ -136,7 +136,7 @@ namespace Fwog
       glObjectLabel(GL_TEXTURE, id_, static_cast<GLsizei>(name.length()), name.data());
     }
 
-    detail::InvokeVerboseMessageCallback("Created texture with handle {}", id_);
+    detail::InvokeVerboseMessageCallback("Created texture with handle ", id_);
   }
 
   Texture::Texture(Texture&& old) noexcept
@@ -164,7 +164,7 @@ namespace Fwog
       glMakeTextureHandleNonResidentARB(bindlessHandle_);
     }
 
-    detail::InvokeVerboseMessageCallback("Destroyed texture with handle {}", id_);
+    detail::InvokeVerboseMessageCallback("Destroyed texture with handle ", id_);
     glDeleteTextures(1, &id_);
     // Ensure that the texture is no longer referenced in the FBO cache
     Fwog::detail::context->fboCache.RemoveTexture(*this);
@@ -417,7 +417,7 @@ namespace Fwog
       glObjectLabel(GL_TEXTURE, id_, static_cast<GLsizei>(name.length()), name.data());
     }
 
-    detail::InvokeVerboseMessageCallback("Created texture view with handle {}", id_);
+    detail::InvokeVerboseMessageCallback("Created texture view with handle ", id_);
   }
 
   TextureView::TextureView(const TextureViewCreateInfo& viewInfo, TextureView& textureView, std::string_view name)

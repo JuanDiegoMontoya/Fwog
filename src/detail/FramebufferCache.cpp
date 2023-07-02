@@ -55,7 +55,7 @@ namespace Fwog::detail
       glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, attachments.stencilAttachment->id, 0);
     }
 
-    detail::InvokeDebugMessageCallback("Created framebuffer with handle {}", fbo);
+    detail::InvokeVerboseMessageCallback("Created framebuffer with handle ", fbo);
 
     framebufferCacheKey_.emplace_back(std::move(attachments));
     return framebufferCacheValue_.emplace_back(fbo);
@@ -65,7 +65,7 @@ namespace Fwog::detail
   {
     for (const auto& fbo : framebufferCacheValue_)
     {
-      detail::InvokeDebugMessageCallback("Destroyed framebuffer with handle {}", fbo);
+      detail::InvokeVerboseMessageCallback("Destroyed framebuffer with handle ", fbo);
       glDeleteFramebuffers(1, &fbo);
     }
 

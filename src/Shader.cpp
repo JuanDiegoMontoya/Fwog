@@ -47,7 +47,7 @@ namespace Fwog
       throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
     }
 
-    detail::InvokeVerboseMessageCallback("Created shader with handle {}", id_);
+    detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }
 
   Shader::Shader(Shader&& old) noexcept : id_(std::exchange(old.id_, 0)) {}
@@ -62,7 +62,7 @@ namespace Fwog
 
   Shader::~Shader()
   {
-    detail::InvokeVerboseMessageCallback("Destroyed shader with handle {}", id_);
+    detail::InvokeVerboseMessageCallback("Destroyed shader with handle ", id_);
     glDeleteShader(id_);
   }
 } // namespace Fwog
