@@ -1,5 +1,6 @@
 #include <Fwog/Exception.h>
 #include <Fwog/Shader.h>
+#include <Fwog/detail/ContextState.h>
 
 #include <string>
 #include <string_view>
@@ -29,24 +30,24 @@ namespace Fwog
   {
     const GLchar* strings = source.data();
 
-    GLuint id = glCreateShader(PipelineStageToGL(stage));
-    glShaderSource(id, 1, &strings, nullptr);
-    glCompileShader(id);
+    id_ = glCreateShader(PipelineStageToGL(stage));
+    glShaderSource(id_, 1, &strings, nullptr);
+    glCompileShader(id_);
 
     GLint success;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(id_, GL_COMPILE_STATUS, &success);
     if (!success)
     {
 
       std::string infoLog;
       const GLsizei infoLength = 512;
       infoLog.resize(infoLength + 1, '\0');
-      glGetShaderInfoLog(id, infoLength, nullptr, infoLog.data());
-      glDeleteShader(id);
+      glGetShaderInfoLog(id_, infoLength, nullptr, infoLog.data());
+      glDeleteShader(id_);
       throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
     }
 
-    id_ = id;
+    detail::InvokeVerboseMessageCallback("Created shader with handle {}", id_);
   }
 
   Shader::Shader(Shader&& old) noexcept : id_(std::exchange(old.id_, 0)) {}
@@ -61,6 +62,7 @@ namespace Fwog
 
   Shader::~Shader()
   {
+    detail::InvokeVerboseMessageCallback("Destroyed shader with handle {}", id_);
     glDeleteShader(id_);
   }
 } // namespace Fwog

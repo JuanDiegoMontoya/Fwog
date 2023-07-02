@@ -1,6 +1,7 @@
 #include "Fwog/detail/VertexArrayCache.h"
 #include "Fwog/Pipeline.h"
 #include "Fwog/detail/ApiToEnum.h"
+#include "Fwog/detail/ContextState.h"
 #include "Fwog/detail/Hash.h"
 #include "Fwog/detail/PipelineManager.h"
 #include FWOG_OPENGL_HEADER
@@ -53,6 +54,8 @@ namespace Fwog::detail
       }
     }
 
+    detail::InvokeDebugMessageCallback("Created vertex array with handle {}", vao);
+
     return vertexArrayCache_.insert({inputHash, vao}).first->second;
   }
 
@@ -60,6 +63,7 @@ namespace Fwog::detail
   {
     for (auto [_, vao] : vertexArrayCache_)
     {
+      detail::InvokeDebugMessageCallback("Destroyed vertex array with handle {}", vao);
       glDeleteVertexArrays(1, &vao);
     }
 

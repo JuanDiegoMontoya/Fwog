@@ -1,5 +1,6 @@
 #include <Fwog/Buffer.h>
 #include <Fwog/detail/ApiToEnum.h>
+#include <Fwog/detail/ContextState.h>
 #include <utility>
 #include FWOG_OPENGL_HEADER
 
@@ -17,6 +18,8 @@ namespace Fwog
       constexpr GLenum access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
       mappedMemory_ = glMapNamedBufferRange(id_, 0, size_, access);
     }
+
+    detail::InvokeVerboseMessageCallback("Created buffer with handle {}", id_);
   }
 
   Buffer::Buffer(size_t size, BufferStorageFlags storageFlags) : Buffer(nullptr, size, storageFlags) {}
@@ -46,6 +49,8 @@ namespace Fwog
   {
     if (id_)
     {
+      detail::InvokeVerboseMessageCallback("Destroyed buffer with handle {}", id_);
+
       if (mappedMemory_)
       {
         glUnmapNamedBuffer(id_);

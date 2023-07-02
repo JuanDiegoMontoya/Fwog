@@ -157,10 +157,11 @@ namespace Fwog
     }
   }
 
-  void Initialize()
+  void Initialize(const ContextInitializeInfo& contextInfo)
   {
-    FWOG_ASSERT(Fwog::detail::context == nullptr && "Fwog has already been initialized");
-    Fwog::detail::context = new Fwog::detail::ContextState;
+    FWOG_ASSERT(detail::context == nullptr && "Fwog has already been initialized");
+    detail::context = new Fwog::detail::ContextState;
+    detail::context->verboseMessageCallback = contextInfo.verboseMessageCallback;
     QueryGlDeviceProperties(Fwog::detail::context->properties);
     glDisable(GL_DITHER);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);

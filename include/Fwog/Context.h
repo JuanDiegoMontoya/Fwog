@@ -116,11 +116,17 @@ namespace Fwog
     DeviceFeatures features;
   };
 
+  struct ContextInitializeInfo
+  {
+    /// @brief Callback 
+    void (*verboseMessageCallback)(const char*) = nullptr;
+  };
+
   /// @brief Initializes Fwog's internal structures
   /// 
   /// Call at program start to initialize Fwog's internal state. Must be called after an OpenGL context has been acquired.
   /// @note Making any calls to Fwog before this function has been called will result in undefined behavior.
-  void Initialize();
+  void Initialize(const ContextInitializeInfo& contextInfo = {});
 
   /// @brief Destroys Fwog's internal structures
   ///

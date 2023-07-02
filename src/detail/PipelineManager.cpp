@@ -1,6 +1,5 @@
 #include <Fwog/Exception.h>
 #include <Fwog/Shader.h>
-#include <Fwog/detail/Hash.h>
 #include <Fwog/detail/PipelineManager.h>
 #include <unordered_map>
 #include FWOG_OPENGL_HEADER

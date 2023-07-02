@@ -1,5 +1,6 @@
 #include <Fwog/Context.h>
 #include <Fwog/Pipeline.h>
+#include <Fwog/detail/ContextState.h>
 #include <Fwog/detail/PipelineManager.h>
 
 #include <utility>
@@ -11,12 +12,14 @@ namespace Fwog
   GraphicsPipeline::GraphicsPipeline(const GraphicsPipelineInfo& info)
     : id_(detail::CompileGraphicsPipelineInternal(info))
   {
+    detail::InvokeVerboseMessageCallback("Created graphics program with handle {}", id_);
   }
 
   GraphicsPipeline::~GraphicsPipeline()
   {
     if (id_ != 0)
     {
+      detail::InvokeVerboseMessageCallback("Destroyed graphics program with handle {}", id_);
       detail::DestroyGraphicsPipelineInternal(id_);
     }
   }
@@ -48,12 +51,15 @@ namespace Fwog
     workgroupSize_.width = static_cast<uint32_t>(workgroupSize[0]);
     workgroupSize_.height = static_cast<uint32_t>(workgroupSize[1]);
     workgroupSize_.depth = static_cast<uint32_t>(workgroupSize[2]);
+
+    detail::InvokeVerboseMessageCallback("Created compute program with handle {}", id_);
   }
 
   ComputePipeline::~ComputePipeline()
   {
     if (id_ != 0)
     {
+      detail::InvokeVerboseMessageCallback("Destroyed compute program with handle {}", id_);
       detail::DestroyComputePipelineInternal(id_);
     }
   }

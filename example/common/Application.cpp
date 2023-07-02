@@ -200,7 +200,9 @@ Application::Application(const CreateInfo& createInfo)
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 
-  Fwog::Initialize();
+  //auto fwogCallback = [](const char* msg) { printf("Fwog: %s\n", msg); };
+  auto fwogCallback = nullptr;
+  Fwog::Initialize({.verboseMessageCallback = fwogCallback});
 
   // Initialize ImGui and a backend for it.
   // Because we allow the GLFW backend to install callbacks, it will automatically call our own that we provided.

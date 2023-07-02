@@ -8,6 +8,8 @@
 #include <Fwog/detail/VertexArrayCache.h>
 
 #include <memory>
+#include <format>
+#include <utility>
 
 #include FWOG_OPENGL_HEADER
 
@@ -18,6 +20,8 @@ namespace Fwog::detail
   struct ContextState
   {
     DeviceProperties properties;
+
+    void (*verboseMessageCallback)(const char*) = nullptr;
 
     // Used for scope error checking
     bool isComputeActive = false;
@@ -78,4 +82,15 @@ namespace Fwog::detail
   // This is called at the beginning of rendering/compute scopes 
   // or when the pipeline state has been invalidated, but only in debug mode.
   void ZeroResourceBindings();
+
+  template<class... Args>
+  void InvokeVerboseMessageCallback(std::format_string<Args...> fmt, Args&&... args)
+  {
+    if (context->verboseMessageCallback != nullptr)
+    {
+      char messageBuffer[1024] = {};
+      std::format_to_n(messageBuffer, std::size(messageBuffer) - 1, fmt, std::forward<Args>(args)...);
+      context->verboseMessageCallback(messageBuffer);
+    }
+  }
 } // namespace Fwog::detail
