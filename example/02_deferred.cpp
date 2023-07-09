@@ -17,9 +17,6 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include <imgui.h>
 
 #include <array>

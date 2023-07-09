@@ -16,6 +16,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 
 // Use the high-performance GPU (if available) on Windows laptops
 // https://docs.nvidia.com/gameworks/content/technologies/desktop/optimus.htm
@@ -136,10 +137,19 @@ public:
   }
 };
 
-std::string Application::LoadFile(std::string_view path)
+std::string Application::LoadFile(const std::filesystem::path& path)
 {
-  std::ifstream file{path.data()};
+  std::ifstream file{path};
   return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+}
+
+std::pair<std::unique_ptr<std::byte[]>, std::size_t> Application::LoadBinaryFile(const std::filesystem::path& path)
+{
+  std::size_t fsize = std::filesystem::file_size(path);
+  auto memory = std::make_unique<std::byte[]>(fsize);
+  std::ifstream file{path, std::ifstream::binary};
+  std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), reinterpret_cast<char*>(memory.get()));
+  return {std::move(memory), fsize};
 }
 
 Application::Application(const CreateInfo& createInfo)

@@ -17,11 +17,10 @@ FetchContent_Declare(
     GIT_TAG        cc98465e3508535ba8c7f6208df934c156a018dc
 )
 
-option(TINYGLTF_BUILD_LOADER_EXAMPLE "" OFF)
 FetchContent_Declare(
-    tinygltf
-    GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
-    GIT_TAG        544969b7324cd6bba29f6203c7d78c7ea92dbab0
+    fastgltf
+    GIT_REPOSITORY https://github.com/spnda/fastgltf.git
+    GIT_TAG        9bb00ddbde6f23f1cab0809112adf80ac3c735e1
 )
 
 FetchContent_Declare(
@@ -59,7 +58,7 @@ if(FWOG_FSR2_ENABLE)
 endif()
 
 FetchContent_MakeAvailable(glm)
-FetchContent_MakeAvailable(tinygltf)
+FetchContent_MakeAvailable(fastgltf)
 FetchContent_MakeAvailable(ktx)
 
 # Disable warnings for libktx

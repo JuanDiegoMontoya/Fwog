@@ -1,6 +1,10 @@
 #pragma once
+#include <cstddef>
+#include <filesystem>
+#include <memory>
 #include <string_view>
 #include <string>
+#include <utility>
 
 #include <glm/gtx/transform.hpp>
 #include <glm/vec3.hpp>
@@ -38,7 +42,8 @@ public:
   };
 
   // TODO: An easy way to load shaders should probably be a part of Fwog
-  static std::string LoadFile(std::string_view path);
+  static std::string LoadFile(const std::filesystem::path& path);
+  static std::pair<std::unique_ptr<std::byte[]>, std::size_t> LoadBinaryFile(const std::filesystem::path& path);
 
   Application(const CreateInfo& createInfo);
   Application(const Application&) = delete;

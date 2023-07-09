@@ -77,8 +77,6 @@ namespace Utility
   {
     std::vector<Mesh> meshes;
     std::vector<Material> materials;
-    std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::SamplerState> samplers;
   };
 
   struct MeshBindless

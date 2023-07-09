@@ -1,14 +1,16 @@
 #include "SceneLoader.h"
+#include "Application.h"
+
+#include <algorithm>
+#include <chrono>
+#include <execution>
 #include <iostream>
 #include <numeric>
-#include <execution>
-#include <stack>
-#include <tuple>
 #include <optional>
-#include <chrono>
-#include <algorithm>
 #include <ranges>
 #include <span>
+#include <stack>
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -16,20 +18,14 @@
 
 #include FWOG_OPENGL_HEADER
 
-//#include <glm/gtx/string_cast.hpp>
+// #include <glm/gtx/string_cast.hpp>
 
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image.h>
 
-// thanks Microsoft
-#ifdef WIN32
-#define NOUSER
-#define NOMINMAX
-#endif
-//#define TINYGLTF_NO_EXTERNAL_IMAGE
-#define TINYGLTF_USE_CPP14
-#include <tiny_gltf.h>
+#include <fastgltf/glm_element_traits.hpp>
+#include <fastgltf/parser.hpp>
+#include <fastgltf/tools.hpp>
+#include <fastgltf/types.hpp>
 
 namespace Utility
 {
@@ -40,6 +36,7 @@ namespace Utility
       using microsecond_t = std::chrono::microseconds;
       using myclock_t = std::chrono::high_resolution_clock;
       using timepoint_t = std::chrono::time_point<myclock_t>;
+
     public:
       Timer()
       {
@@ -110,8 +107,8 @@ namespace Utility
 
     glm::vec2 float32x3_to_oct(glm::vec3 v)
     {
-      glm::vec2 p = glm::vec2{ v.x, v.y } * (1.0f / (abs(v.x) + abs(v.y) + abs(v.z)));
-      return (v.z <= 0.0f) ? ((1.0f - glm::abs(glm::vec2{ p.y, p.x })) * signNotZero(p)) : p;
+      glm::vec2 p = glm::vec2{v.x, v.y} * (1.0f / (abs(v.x) + abs(v.y) + abs(v.z)));
+      return (v.z <= 0.0f) ? ((1.0f - glm::abs(glm::vec2{p.y, p.x})) * signNotZero(p)) : p;
     }
 
     auto ConvertGlAddressMode(uint32_t wrap) -> Fwog::AddressMode
@@ -121,8 +118,7 @@ namespace Utility
       case GL_CLAMP_TO_EDGE: return Fwog::AddressMode::CLAMP_TO_EDGE;
       case GL_MIRRORED_REPEAT: return Fwog::AddressMode::MIRRORED_REPEAT;
       case GL_REPEAT: return Fwog::AddressMode::REPEAT;
-      default:
-        FWOG_UNREACHABLE; return Fwog::AddressMode::REPEAT;
+      default: FWOG_UNREACHABLE; return Fwog::AddressMode::REPEAT;
       }
     }
 
@@ -130,14 +126,12 @@ namespace Utility
     {
       switch (filter)
       {
-      case GL_LINEAR_MIPMAP_LINEAR: //[[fallthrough]]
+      case GL_LINEAR_MIPMAP_LINEAR:  //[[fallthrough]]
       case GL_LINEAR_MIPMAP_NEAREST: //[[fallthrough]]
-      case GL_LINEAR:
-        return Fwog::Filter::LINEAR;
-      case GL_NEAREST_MIPMAP_LINEAR: //[[fallthrough]]
+      case GL_LINEAR: return Fwog::Filter::LINEAR;
+      case GL_NEAREST_MIPMAP_LINEAR:  //[[fallthrough]]
       case GL_NEAREST_MIPMAP_NEAREST: //[[fallthrough]]
-      case GL_NEAREST:
-        return Fwog::Filter::NEAREST;
+      case GL_NEAREST: return Fwog::Filter::NEAREST;
       default: FWOG_UNREACHABLE; return Fwog::Filter::LINEAR;
       }
     }
@@ -147,387 +141,151 @@ namespace Utility
       switch (minFilter)
       {
       case GL_LINEAR_MIPMAP_LINEAR: //[[fallthrough]]
-      case GL_NEAREST_MIPMAP_LINEAR:
-        return Fwog::Filter::LINEAR;
+      case GL_NEAREST_MIPMAP_LINEAR: return Fwog::Filter::LINEAR;
       case GL_LINEAR_MIPMAP_NEAREST: //[[fallthrough]]
-      case GL_NEAREST_MIPMAP_NEAREST:
-        return Fwog::Filter::NEAREST;
+      case GL_NEAREST_MIPMAP_NEAREST: return Fwog::Filter::NEAREST;
       case GL_LINEAR: //[[fallthrough]]
-      case GL_NEAREST:
-        return Fwog::Filter::NONE;
+      case GL_NEAREST: return Fwog::Filter::NONE;
       default: FWOG_UNREACHABLE; return Fwog::Filter::NONE;
       }
     }
 
-    auto LoadCompressedTexture(const tinygltf::Image& image) -> Fwog::Texture
+    std::vector<Fwog::Texture> LoadImages(const fastgltf::Asset& asset)
     {
-      return Fwog::Texture(Fwog::TextureCreateInfo{});
-    }
-
-    struct RawImageData
-    {
-      // Used for ktx and non-ktx images alike
-      std::unique_ptr<unsigned char[]> encodedPixelData = {};
-      size_t encodedPixelSize = 0;
-
-      bool isKtx = false;
-      int width = 0;
-      int height = 0;
-      int pixel_type = GL_UNSIGNED_BYTE;
-      int bits = 8;
-      int components = 0;
-      std::string name;
-
-      // Non-ktx. Raw decoded pixel data
-      std::unique_ptr<unsigned char[]> data = {};
-
-      // ktx
-      std::unique_ptr<ktxTexture2, decltype([](ktxTexture2* p) { ktxTexture_Destroy(ktxTexture(p)); })> ktx = {};
-
-      //std::optional<Fwog::Texture> texture;
-    };
-
-    bool LoadImageData(
-      tinygltf::Image* image,
-      [[maybe_unused]] const int image_idx,
-      [[maybe_unused]] std::string* err,
-      [[maybe_unused]] std::string* warn,
-      [[maybe_unused]] int req_width,
-      [[maybe_unused]] int req_height,
-      const unsigned char* bytes,
-      int size,
-      void* user_data)
-    {
-      auto* data = static_cast<std::vector<RawImageData>*>(user_data);
-      FWOG_ASSERT(image_idx == data->size()); // Assume that traversed image indices are monotonically increasing (0, 1, 2, ..., n - 1)
-
-      auto encodedPixelData = std::make_unique<unsigned char[]>(size);
-      memcpy(encodedPixelData.get(), bytes, size);
-
-      data->emplace_back(RawImageData{
-        .encodedPixelData = std::move(encodedPixelData),
-        .encodedPixelSize = static_cast<size_t>(size),
-        .isKtx = image->mimeType == "image/ktx2",
-        .name = image->name,
-      });
-
-      // This function cannot fail early, since we aren't actually loading the image here
-      return true;
-    }
-
-    bool LoadImageDataParallel(std::span<RawImageData> rawImageData)
-    {
-      return std::all_of(std::execution::seq, rawImageData.begin(), rawImageData.end(), [&](RawImageData& rawImage)
+      struct RawImageData
       {
-        if (rawImage.isKtx)
-        {
-          ktxTexture2* ktx{};
-          if (auto result = ktxTexture2_CreateFromMemory(rawImage.encodedPixelData.get(),
-                                                         rawImage.encodedPixelSize,
-                                                         KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                                         &ktx); result != KTX_SUCCESS)
-          {
-            return false;
-          }
-          
-          rawImage.width = ktx->baseWidth;
-          rawImage.height = ktx->baseHeight;
-          rawImage.components = ktxTexture2_GetNumComponents(ktx);
-          rawImage.ktx.reset(ktx);
-        }
-        else
-        {
-          int x, y, comp;
-          auto* pixels = stbi_load_from_memory(rawImage.encodedPixelData.get(), rawImage.encodedPixelSize, &x, &y, &comp, 4);
-          if (!pixels)
-          {
-            return false;
-          }
+        // Used for ktx and non-ktx images alike
+        std::unique_ptr<std::byte[]> encodedPixelData = {};
+        std::size_t encodedPixelSize = 0;
 
-          rawImage.width = x;
-          rawImage.height = y;
-          //rawImage.components = comp;
-          rawImage.components = 4; // If forced 4 components
-          rawImage.data.reset(pixels);
-        }
+        bool isKtx = false;
+        int width = 0;
+        int height = 0;
+        int pixel_type = GL_UNSIGNED_BYTE;
+        int bits = 8;
+        int components = 0;
+        std::string name;
 
-        return true;
-      });
-    }
+        // Non-ktx. Raw decoded pixel data
+        std::unique_ptr<unsigned char[]> data = {};
 
-    glm::mat4 NodeToMat4(const tinygltf::Node& node)
-    {
-      glm::mat4 transform{ 1 };
-
-      if (node.matrix.empty())
-      {
-        glm::quat rotation{ 1, 0, 0, 0 }; // wxyz
-        glm::vec3 scale{ 1 };
-        glm::vec3 translation{ 0 };
-
-        if (node.rotation.size() == 4)
-        {
-          const auto& q = node.rotation;
-          rotation = glm::dquat{ q[3], q[0], q[1], q[2] };
-        }
-
-        if (node.scale.size() == 3)
-        {
-          const auto& s = node.scale;
-          scale = glm::vec3{ s[0], s[1], s[2] };
-        }
-
-        if (node.translation.size() == 3)
-        {
-          const auto& t = node.translation;
-          translation = glm::vec3{ t[0], t[1], t[2] };
-        }
-
-        glm::mat4 rotationMat = glm::mat4_cast(rotation);
-
-        // T * R * S
-        transform = glm::scale(glm::translate(translation) * rotationMat, scale);
-      }
-      else if (node.matrix.size() == 16)
-      {
-        const auto& m = node.matrix;
-        transform = { 
-          m[0], m[1], m[2], m[3], 
-          m[4], m[5], m[6], m[7], 
-          m[8], m[9], m[10], m[11], 
-          m[12], m[13], m[14], m[15] };
-      }
-      // else node has identity transform
-
-      return transform;
-    }
-  }
-
-  std::vector<Vertex> ConvertVertexBufferFormat(const tinygltf::Model& model, const tinygltf::Primitive& primitive)
-  {
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> texcoords;
-
-    for (const auto& [name, accessorIndex] : primitive.attributes)
-    {
-      //std::cout << "Attribute: " << name << ", Accessor: " << accessorIndex << '\n';
-
-      const tinygltf::Accessor& accessor = model.accessors[accessorIndex];
-      const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-      const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-
-      size_t totalByteOffset = accessor.byteOffset + bufferView.byteOffset;
-      int stride = accessor.ByteStride(bufferView);
-
-      auto InsertData = [&]<size_t N>(std::vector<glm::vec<N, float>>& attributeBuffer)
-      {
-        using Fvec = glm::vec<N, float>;
-        using Bvec = glm::vec<N, int8_t>;
-        using UBvec = glm::vec<N, uint8_t>;
-        using Svec = glm::vec<N, int16_t>;
-        using USvec = glm::vec<N, uint16_t>;
-        using UIvec = glm::vec<N, uint32_t>;
-
-        attributeBuffer.resize(accessor.count);
-
-        if (stride == sizeof(Fvec) && accessor.componentType == GL_FLOAT && accessor.normalized == false)
-        {
-          memcpy(attributeBuffer.data(), buffer.data.data() + totalByteOffset, sizeof(Fvec) * accessor.count);
-        }
-        else if (accessor.normalized == false)
-        {
-          auto AddElements = [&]<typename Vec>()
-          {
-            for (size_t i = 0; i < accessor.count; i++)
-            {
-              attributeBuffer[i] = *reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride);
-            }
-          };
-
-          switch (accessor.componentType)
-          {
-          case GL_BYTE:           AddElements.template operator()<Bvec>(); break;
-          case GL_UNSIGNED_BYTE:  AddElements.template operator()<UBvec>(); break;
-          case GL_SHORT:          AddElements.template operator()<Svec>(); break;
-          case GL_UNSIGNED_SHORT: AddElements.template operator()<USvec>(); break;
-          case GL_UNSIGNED_INT:   AddElements.template operator()<UIvec>(); break;
-          case GL_FLOAT:          AddElements.template operator()<Fvec>(); break;
-          default: FWOG_UNREACHABLE;
-          }
-          
-        }
-        else if (accessor.normalized == true) // normalized elements require conversion
-        {
-          auto AddElementsNorm = [&]<typename Vec, bool Signed>()
-          {
-            for (size_t i = 0; i < accessor.count; i++)
-            {
-              // Unsigned: c / (2^b - 1)
-              // Signed: max(c / (2^(b-1) - 1), -1.0)
-              const auto vec = Fvec(*reinterpret_cast<const Vec*>(buffer.data.data() + totalByteOffset + i * stride));
-              constexpr auto divisor = Fvec(static_cast<float>(std::numeric_limits<typename Vec::value_type>::max()));
-              if constexpr (Signed)
-              {
-                attributeBuffer[i] = glm::max(vec / divisor, Fvec(-1));
-              }
-              else
-              {
-                attributeBuffer[i] = vec / divisor;
-              }
-            }
-          };
-
-          switch (accessor.componentType)
-          {
-          case GL_BYTE:           AddElementsNorm.template operator()<Bvec, true>(); break;
-          case GL_UNSIGNED_BYTE:  AddElementsNorm.template operator()<UBvec, false>(); break;
-          case GL_SHORT:          AddElementsNorm.template operator()<Svec, true>(); break;
-          case GL_UNSIGNED_SHORT: AddElementsNorm.template operator()<USvec, false>(); break;
-          case GL_UNSIGNED_INT:   AddElementsNorm.template operator()<UIvec, false>(); break;
-          //case GL_FLOAT:          AddElementsNorm.template operator()<Fvec>(); break;
-          default: FWOG_UNREACHABLE;
-          }
-        }
-        else
-        {
-          FWOG_UNREACHABLE;
-        }
+        // ktx
+        std::unique_ptr<ktxTexture2, decltype([](ktxTexture2* p) { ktxTexture_Destroy(ktxTexture(p)); })> ktx = {};
       };
 
-      if (name == "POSITION")
+      auto MakeRawImageData =
+        [](const void* data, std::size_t dataSize, fastgltf::MimeType mimeType, std::string_view name) -> RawImageData
       {
-        FWOG_ASSERT(accessor.type == 3);
-        InsertData.template operator()<3>(positions);
-      }
-      else if (name == "NORMAL")
-      {
-        FWOG_ASSERT(accessor.type == 3);
-        InsertData.template operator()<3>(normals);
-      }
-      else if (name == "TEXCOORD_0")
-      {
-        FWOG_ASSERT(accessor.type == 2);
-        InsertData.template operator()<2>(texcoords);
-      }
-      else
-      {
-        std::cout << "Unsupported attribute: " << name << '\n';
-        //FWOG_UNREACHABLE;
-      }
-    }
-    
-    texcoords.resize(positions.size()); // TEMP HACK
-    FWOG_ASSERT(positions.size() == normals.size() && positions.size() == texcoords.size());
-    
-    std::vector<Vertex> vertices;
-    vertices.resize(positions.size());
+        FWOG_ASSERT(mimeType == fastgltf::MimeType::JPEG || mimeType == fastgltf::MimeType::PNG ||
+                    mimeType == fastgltf::MimeType::KTX2);
+        auto dataCopy = std::make_unique<std::byte[]>(dataSize);
+        std::copy_n(static_cast<const std::byte*>(data), dataSize, dataCopy.get());
 
-    for (size_t i = 0; i < positions.size(); i++)
-    {
-      vertices[i] = {
-        positions[i],
-        glm::packSnorm2x16(float32x3_to_oct(normals[i])),
-        texcoords[i]
-      };
-    }
-
-    return vertices;
-  }
-
-  std::vector<index_t> ConvertIndexBufferFormat(const tinygltf::Model& model, const tinygltf::Primitive& primitive)
-  {
-    int accessorIndex = primitive.indices;
-    const tinygltf::Accessor& accessor = model.accessors[accessorIndex];
-    const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-    const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-
-    size_t totalByteOffset = accessor.byteOffset + bufferView.byteOffset;
-    int stride = accessor.ByteStride(bufferView);
-    
-    std::vector<index_t> indices;
-    indices.resize(accessor.count);
-    
-    if (accessor.componentType == GL_UNSIGNED_INT)
-    {
-      for (size_t i = 0; i < accessor.count; i++)
-      {
-        indices[i] = *reinterpret_cast<const uint32_t*>(buffer.data.data() + totalByteOffset + i * stride);
-      }
-    }
-    else if (accessor.componentType == GL_UNSIGNED_SHORT)
-    {
-      for (size_t i = 0; i < accessor.count; i++)
-      {
-        indices[i] = *reinterpret_cast<const uint16_t*>(buffer.data.data() + totalByteOffset + i * stride);
-      }
-    }
-    else
-    {
-      FWOG_UNREACHABLE;
-    }
-
-    return indices;
-  }
-
-  std::pair<std::vector<Fwog::Texture>, std::vector<Fwog::SamplerState>> LoadTextureSamplers(const tinygltf::Model& model, std::span<const RawImageData> images)
-  {
-    std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::SamplerState> samplers;
-
-    for (const auto& texture : model.textures)
-    {
-      int textureSource = texture.source;
-      if (auto it = texture.extensions.find("KHR_texture_basisu"); it != texture.extensions.end())
-      {
-        struct Hack : tinygltf::Value
-        {
-          Hack(const tinygltf::Value& basisuExtension)
-            : Value(basisuExtension) {}
-
-          int GetTextureSource() const
-          {
-            return this->object_value_.at("source").GetNumberAsInt();
-          }
+        return RawImageData{
+          .encodedPixelData = std::move(dataCopy),
+          .encodedPixelSize = dataSize,
+          .isKtx = mimeType == fastgltf::MimeType::KTX2,
+          .name = std::string(name),
         };
-        textureSource = Hack {it->second}.GetTextureSource();
-        //printf("source: %d\n", textureSource);
-      }
-      const auto& image = images[textureSource];
+      };
 
-      // Load sampler
-      {
-        Fwog::SamplerState samplerState{};
+      // Load and decode image data locally, in parallel
+      auto rawImageData = std::vector<RawImageData>(asset.images.size());
 
-        // sampler isn't null
-        if (texture.sampler >= 0)
+      std::transform(
+        std::execution::par,
+        asset.images.begin(),
+        asset.images.end(),
+        rawImageData.begin(),
+        [&](const fastgltf::Image& image)
         {
-          const tinygltf::Sampler& baseColorSampler = model.samplers[texture.sampler];
-
-          samplerState.addressModeU = ConvertGlAddressMode(baseColorSampler.wrapS);
-          samplerState.addressModeV = ConvertGlAddressMode(baseColorSampler.wrapT);
-          samplerState.minFilter = ConvertGlFilterMode(baseColorSampler.minFilter);
-          samplerState.magFilter = ConvertGlFilterMode(baseColorSampler.magFilter);
-          samplerState.mipmapFilter = GetGlMipmapFilter(baseColorSampler.minFilter);
-          if (GetGlMipmapFilter(baseColorSampler.minFilter) != Fwog::Filter::NONE)
+          auto rawImage = [&]
           {
-            samplerState.anisotropy = Fwog::SampleCount::SAMPLES_16;
+            if (const auto* filePath = std::get_if<fastgltf::sources::URI>(&image.data))
+            {
+              FWOG_ASSERT(filePath->fileByteOffset == 0); // We don't support file offsets
+              FWOG_ASSERT(filePath->uri.isLocalPath());   // We're only capable of loading local files
+
+              auto fileData = Application::LoadBinaryFile(filePath->uri.path());
+
+              return MakeRawImageData(fileData.first.get(), fileData.second, filePath->mimeType, image.name);
+            }
+
+            if (const auto* vector = std::get_if<fastgltf::sources::Vector>(&image.data))
+            {
+              return MakeRawImageData(vector->bytes.data(), vector->bytes.size(), vector->mimeType, image.name);
+            }
+
+            if (const auto* view = std::get_if<fastgltf::sources::BufferView>(&image.data))
+            {
+              auto& bufferView = asset.bufferViews[view->bufferViewIndex];
+              auto& buffer = asset.buffers[bufferView.bufferIndex];
+              if (const auto* vector = std::get_if<fastgltf::sources::Vector>(&buffer.data))
+              {
+                return MakeRawImageData(vector->bytes.data() + bufferView.byteOffset,
+                                        bufferView.byteLength,
+                                        view->mimeType,
+                                        image.name);
+              }
+            }
+
+            return RawImageData{};
+          }();
+
+          if (rawImage.isKtx)
+          {
+            ktxTexture2* ktx{};
+            if (auto result =
+                  ktxTexture2_CreateFromMemory(reinterpret_cast<const ktx_uint8_t*>(rawImage.encodedPixelData.get()),
+                                               rawImage.encodedPixelSize,
+                                               KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                               &ktx);
+                result != KTX_SUCCESS)
+            {
+              FWOG_UNREACHABLE;
+            }
+
+            rawImage.width = ktx->baseWidth;
+            rawImage.height = ktx->baseHeight;
+            rawImage.components = ktxTexture2_GetNumComponents(ktx);
+            rawImage.ktx.reset(ktx);
           }
-        }
+          else
+          {
+            int x, y, comp;
+            auto* pixels = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(rawImage.encodedPixelData.get()),
+                                                 rawImage.encodedPixelSize,
+                                                 &x,
+                                                 &y,
+                                                 &comp,
+                                                 4);
 
-        samplers.emplace_back(samplerState);
-      }
+            FWOG_ASSERT(pixels != nullptr);
 
-      // Load texture
+            rawImage.width = x;
+            rawImage.height = y;
+            // rawImage.components = comp;
+            rawImage.components = 4; // If forced 4 components
+            rawImage.data.reset(pixels);
+          }
+
+          return rawImage;
+        });
+
+      // Upload image data to GPU
+      auto loadedImages = std::vector<Fwog::Texture>();
+      loadedImages.reserve(rawImageData.size());
+
+      for (const auto& image : rawImageData)
       {
-
         Fwog::Extent2D dims = {static_cast<uint32_t>(image.width), static_cast<uint32_t>(image.height)};
 
+        // Upload KTX2 compressed image
         if (image.isKtx)
         {
           auto* ktx = image.ktx.get();
 
-          Fwog::Format format = Fwog::Format::BC7_RGBA_UNORM;
+          auto format = Fwog::Format::BC7_RGBA_UNORM;
 
           // If the image needs is in a supercompressed encoding, transcode it to a desired format
           if (ktxTexture2_NeedsTranscoding(ktx))
@@ -560,9 +318,9 @@ namespace Utility
             });
           }
 
-          textures.emplace_back(std::move(textureData));
+          loadedImages.emplace_back(std::move(textureData));
         }
-        else
+        else // Upload raw image data and generate mipmap
         {
           FWOG_ASSERT(image.components == 4);
           FWOG_ASSERT(image.pixel_type == GL_UNSIGNED_BYTE);
@@ -573,48 +331,161 @@ namespace Utility
                                                       uint32_t(1 + floor(log2(glm::max(dims.width, dims.height)))),
                                                       image.name);
 
-          Fwog::TextureUpdateInfo updateInfo{.level = 0,
-                                             .offset = {},
-                                             .extent = {dims.width, dims.height, 1},
-                                             .format = Fwog::UploadFormat::RGBA,
-                                             .type = Fwog::UploadType::UBYTE,
-                                             .pixels = image.data.get()};
+          auto updateInfo = Fwog::TextureUpdateInfo{
+            .level = 0,
+            .offset = {},
+            .extent = {dims.width, dims.height, 1},
+            .format = Fwog::UploadFormat::RGBA,
+            .type = Fwog::UploadType::UBYTE,
+            .pixels = image.data.get(),
+          };
           textureData.UpdateImage(updateInfo);
           textureData.GenMipmaps();
 
-          textures.emplace_back(std::move(textureData));
+          loadedImages.emplace_back(std::move(textureData));
         }
       }
+
+      return loadedImages;
     }
 
-    return std::make_pair(std::move(textures), std::move(samplers));
+    glm::mat4 NodeToMat4(const fastgltf::Node& node)
+    {
+      glm::mat4 transform{1};
+
+      if (auto* trs = std::get_if<fastgltf::Node::TRS>(&node.transform))
+      {
+        auto rotation = glm::quat{trs->rotation[3], trs->rotation[0], trs->rotation[1], trs->rotation[2]};
+        auto scale = glm::vec3{trs->scale[0], trs->scale[1], trs->scale[2]};
+        auto translation = glm::vec3{trs->translation[0], trs->translation[1], trs->translation[2]};
+
+        glm::mat4 rotationMat = glm::mat4_cast(rotation);
+
+        // T * R * S
+        transform = glm::scale(glm::translate(translation) * rotationMat, scale);
+      }
+      else if (auto* mat = std::get_if<fastgltf::Node::TransformMatrix>(&node.transform))
+      {
+        const auto& m = *mat;
+        // clang-format off
+        transform = { 
+          m[0], m[1], m[2], m[3], 
+          m[4], m[5], m[6], m[7], 
+          m[8], m[9], m[10], m[11], 
+          m[12], m[13], m[14], m[15], };
+        // clang-format on
+      }
+      // else node has identity transform
+
+      return transform;
+    }
+  } // namespace
+
+  std::vector<Vertex> ConvertVertexBufferFormat(const fastgltf::Asset& model, const fastgltf::Primitive& primitive)
+  {
+    std::vector<glm::vec3> positions;
+    auto& positionAccessor = model.accessors[primitive.findAttribute("POSITION")->second];
+    positions.resize(positionAccessor.count);
+    fastgltf::iterateAccessorWithIndex<glm::vec3>(model,
+                                                  positionAccessor,
+                                                  [&](glm::vec3 position, std::size_t idx) { positions[idx] = position; });
+
+    std::vector<glm::vec3> normals;
+    auto& normalAccessor = model.accessors[primitive.findAttribute("NORMAL")->second];
+    normals.resize(normalAccessor.count);
+    fastgltf::iterateAccessorWithIndex<glm::vec3>(model,
+                                                  normalAccessor,
+                                                  [&](glm::vec3 normal, std::size_t idx) { normals[idx] = normal; });
+
+    std::vector<glm::vec2> texcoords;
+
+    // Textureless meshes will use factors instead of textures
+    if (primitive.findAttribute("TEXCOORD_0") != primitive.attributes.end())
+    {
+      auto& texcoordAccessor = model.accessors[primitive.findAttribute("TEXCOORD_0")->second];
+      texcoords.resize(texcoordAccessor.count);
+      fastgltf::iterateAccessorWithIndex<glm::vec2>(model,
+                                                    texcoordAccessor,
+                                                    [&](glm::vec2 texcoord, std::size_t idx)
+                                                    { texcoords[idx] = texcoord; });
+    }
+    else
+    {
+      // If no texcoord attribute, fill with empty texcoords to keep everything consistent and happy
+      texcoords.resize(positions.size(), {});
+    }
+
+    FWOG_ASSERT(positions.size() == normals.size() && positions.size() == texcoords.size());
+
+    std::vector<Vertex> vertices;
+    vertices.resize(positions.size());
+
+    for (size_t i = 0; i < positions.size(); i++)
+    {
+      vertices[i] = {positions[i], glm::packSnorm2x16(float32x3_to_oct(normals[i])), texcoords[i]};
+    }
+
+    return vertices;
   }
 
-  std::vector<Material> LoadMaterials(const tinygltf::Model& model, int baseTextureSamplerIndex, std::span<Fwog::Texture> textures, std::span<const Fwog::SamplerState> samplers)
+  std::vector<index_t> ConvertIndexBufferFormat(const fastgltf::Asset& model, const fastgltf::Primitive& primitive)
   {
+    auto indices = std::vector<index_t>();
+    auto& accessor = model.accessors[primitive.indicesAccessor.value()];
+    indices.resize(accessor.count);
+    fastgltf::iterateAccessorWithIndex<index_t>(model, accessor, [&](index_t index, size_t idx) { indices[idx] = index; });
+    return indices;
+  }
+
+  std::vector<Material> LoadMaterials(const fastgltf::Asset& model, std::span<Fwog::Texture> images)
+  {
+    auto LoadSampler = [](const fastgltf::Sampler& sampler)
+    {
+      Fwog::SamplerState samplerState{};
+
+      samplerState.addressModeU = ConvertGlAddressMode((GLint)sampler.wrapS);
+      samplerState.addressModeV = ConvertGlAddressMode((GLint)sampler.wrapT);
+      if (sampler.minFilter.has_value())
+      {
+        samplerState.minFilter = ConvertGlFilterMode((GLint)sampler.minFilter.value());
+        samplerState.mipmapFilter = GetGlMipmapFilter((GLint)sampler.minFilter.value());
+
+        if (samplerState.minFilter != Fwog::Filter::NONE)
+        {
+          samplerState.anisotropy = Fwog::SampleCount::SAMPLES_16;
+        }
+      }
+      if (sampler.magFilter.has_value())
+      {
+        samplerState.magFilter = ConvertGlFilterMode((GLint)sampler.magFilter.value());
+      }
+
+      return samplerState;
+    };
+
     std::vector<Material> materials;
 
     for (const auto& loaderMaterial : model.materials)
     {
-      int baseColorTextureIndex = loaderMaterial.pbrMetallicRoughness.baseColorTexture.index;
-      
+      FWOG_ASSERT(loaderMaterial.pbrData.has_value());
+
       glm::vec4 baseColorFactor{};
       for (int i = 0; i < 4; i++)
       {
-        baseColorFactor[i] = static_cast<float>(loaderMaterial.pbrMetallicRoughness.baseColorFactor[i]);
+        loaderMaterial.pbrData->baseColorFactor;
+        baseColorFactor[i] = static_cast<float>(loaderMaterial.pbrData->baseColorFactor[i]);
       }
 
       Material material;
 
-      if (baseColorTextureIndex >= 0)
+      if (loaderMaterial.pbrData->baseColorTexture.has_value())
       {
-        auto& tex = textures[baseColorTextureIndex];
+        auto baseColorTextureIndex = loaderMaterial.pbrData->baseColorTexture->textureIndex;
+        const auto& baseColorTexture = model.textures[baseColorTextureIndex];
+        auto& image = images[baseColorTexture.imageIndex.value()];
         material.gpuMaterial.flags |= MaterialFlagBit::HAS_BASE_COLOR_TEXTURE;
-        material.albedoTextureSampler = 
-        {
-          tex.CreateFormatView(FormatToSrgb(tex.GetCreateInfo().format)),
-          samplers[baseColorTextureIndex]
-        };
+        material.albedoTextureSampler = {image.CreateFormatView(FormatToSrgb(image.GetCreateInfo().format)),
+                                         LoadSampler(model.samplers[baseColorTexture.samplerIndex.value()])};
       }
 
       material.gpuMaterial.baseColorFactor = baseColorFactor;
@@ -628,18 +499,17 @@ namespace Utility
   // compute the object-space bounding box
   Box3D GetBoundingBox(std::span<const Vertex> vertices)
   {
-    glm::vec3 min{ 1e20f };
-    glm::vec3 max{};
+    glm::vec3 min{1e20f};
+    glm::vec3 max{-1e20f};
     for (const auto& vertex : vertices)
     {
       min = glm::min(min, vertex.position);
       max = glm::max(max, vertex.position);
     }
 
-    return Box3D
-    {
+    return Box3D{
       .offset = (min + max) / 2.0f,
-      .halfExtent = (max - min) / 2.0f
+      .halfExtent = (max - min) / 2.0f,
     };
   }
 
@@ -655,85 +525,69 @@ namespace Utility
   {
     std::vector<CpuMesh> meshes;
     std::vector<Material> materials;
-    std::vector<Fwog::Texture> textures;
-    std::vector<Fwog::SamplerState> samplers;
   };
 
-  std::optional<LoadModelResult> LoadModelFromFileBase(std::string_view fileName, 
-    glm::mat4 rootTransform, 
-    bool binary,
-    uint32_t baseMaterialIndex,
-    uint32_t baseTextureSamplerIndex)
+  std::optional<LoadModelResult> LoadModelFromFileBase(std::filesystem::path path,
+                                                       glm::mat4 rootTransform,
+                                                       bool binary,
+                                                       uint32_t baseMaterialIndex)
   {
-    tinygltf::TinyGLTF loader;
-    tinygltf::Model model;
-    std::string error;
-    std::string warning;
+    using fastgltf::Extensions;
+    auto parser = fastgltf::Parser(Extensions::KHR_texture_basisu | Extensions::KHR_mesh_quantization |
+                                   Extensions::EXT_meshopt_compression | Extensions::KHR_lights_punctual);
+
+    auto data = fastgltf::GltfDataBuffer();
+    data.loadFromFile(path);
 
     Timer timer;
 
-    std::vector<RawImageData> rawImageData;
-    loader.SetImageLoader(LoadImageData, &rawImageData);
-
-    bool result;
+    std::unique_ptr<fastgltf::glTF> gltf{};
+    constexpr auto options = fastgltf::Options::LoadExternalBuffers | fastgltf::Options::LoadExternalImages |
+                             fastgltf::Options::LoadGLBBuffers;
     if (binary)
     {
-      result = loader.LoadBinaryFromFile(&model, &error, &warning, std::string(fileName));
+      gltf = parser.loadBinaryGLTF(&data, path.parent_path(), options);
     }
     else
     {
-      result = loader.LoadASCIIFromFile(&model, &error, &warning, std::string(fileName));
+      gltf = parser.loadGLTF(&data, path.parent_path(), options);
     }
 
-    if (!warning.empty())
+    if (auto err = parser.getError(); err != fastgltf::Error::None)
     {
-      std::cout << "glTF warning: " << warning << '\n';
-    }
-
-    if (!error.empty())
-    {
-      std::cout << "glTF error: " << error << '\n';
-    }
-
-    if (std::ranges::find(model.extensionsUsed, "KHR_texture_transform") != model.extensionsUsed.end())
-    {
-      std::cout << "glTF contains unsupported extension: "
-                   "KHR_texture_transform\n";
-      result = false;
-    }
-
-    if (result == false)
-    {
-      std::cout << "Failed to load glTF: " << fileName << '\n';
+      std::cout << "glTF error: " << static_cast<uint64_t>(err) << '\n';
       return std::nullopt;
     }
 
-    bool loadImageResult = LoadImageDataParallel(rawImageData);
-    if (loadImageResult == false)
+    if (auto err = gltf->parse(fastgltf::Category::OnlyRenderable); err != fastgltf::Error::None)
     {
-      std::cout << "Failed to load glTF images" << '\n';
+      std::cout << "glTF error: " << static_cast<uint64_t>(err) << '\n';
       return std::nullopt;
     }
 
-    // let's not deal with glTFs containing multiple scenes right now
-    FWOG_ASSERT(model.scenes.size() == 1);
+    auto assetPtr = gltf->getParsedAsset();
+    auto& asset = *assetPtr;
+
+    // Let's not deal with glTFs containing multiple scenes right now
+    FWOG_ASSERT(asset.scenes.size() == 1);
+
+    // Load images and boofers
+    auto images = LoadImages(asset);
 
     auto ms = timer.Elapsed_us() / 1000;
     std::cout << "Loading took " << ms << " ms\n";
 
     LoadModelResult scene;
 
-    std::tie(scene.textures, scene.samplers) = LoadTextureSamplers(model, rawImageData);
-
-    auto materials = LoadMaterials(model, baseTextureSamplerIndex, scene.textures, scene.samplers);
+    auto materials = LoadMaterials(asset, images);
     std::ranges::move(materials, std::back_inserter(scene.materials));
 
     // <node*, global transform>
-    std::stack<std::pair<const tinygltf::Node*, glm::mat4>> nodeStack;
+    std::stack<std::pair<const fastgltf::Node*, glm::mat4>> nodeStack;
 
-    for (int nodeIndex : model.scenes[0].nodes)
+    for (auto nodeIndex : asset.scenes[0].nodeIndices)
     {
-      nodeStack.emplace(&model.nodes[nodeIndex], rootTransform);
+      nodeStack.emplace(&asset.nodes[nodeIndex], rootTransform);
     }
 
     while (!nodeStack.empty())
@@ -742,47 +596,44 @@ namespace Utility
       const auto& [node, parentGlobalTransform] = top;
       nodeStack.pop();
 
-      //std::cout << "Node: " << node->name << '\n';
+      // std::cout << "Node: " << node->name << '\n';
 
       glm::mat4 localTransform = NodeToMat4(*node);
       glm::mat4 globalTransform = parentGlobalTransform * localTransform;
 
-      for (int childNodeIndex : node->children)
+      for (auto childNodeIndex : node->children)
       {
-        nodeStack.emplace(&model.nodes[childNodeIndex], globalTransform);
+        nodeStack.emplace(&asset.nodes[childNodeIndex], globalTransform);
       }
 
-      if (node->mesh >= 0)
+      if (node->meshIndex.has_value())
       {
         // TODO: get a reference to the mesh instead of loading it from scratch
-        for (const tinygltf::Mesh& mesh = model.meshes[node->mesh]; const auto& primitive : mesh.primitives)
+        for (const fastgltf::Mesh& mesh = asset.meshes[node->meshIndex.value()]; const auto& primitive : mesh.primitives)
         {
-          auto vertices = ConvertVertexBufferFormat(model, primitive);
-          auto indices = ConvertIndexBufferFormat(model, primitive);
+          auto vertices = ConvertVertexBufferFormat(asset, primitive);
+          auto indices = ConvertIndexBufferFormat(asset, primitive);
 
-          scene.meshes.emplace_back(CpuMesh
-            {
-              std::move(vertices),
-              std::move(indices),
-              baseMaterialIndex + std::max(primitive.material, 0),
-              globalTransform
-            });
+          scene.meshes.emplace_back(CpuMesh{
+            std::move(vertices),
+            std::move(indices),
+            baseMaterialIndex + std::max(uint32_t(primitive.materialIndex.value()), uint32_t(0)),
+            globalTransform,
+          });
         }
       }
     }
 
-    std::cout << "Loaded glTF: " << fileName << '\n';
+    std::cout << "Loaded glTF: " << path << '\n';
 
     return scene;
   }
 
   bool LoadModelFromFile(Scene& scene, std::string_view fileName, glm::mat4 rootTransform, bool binary)
   {
-    FWOG_ASSERT(scene.textures.size() == scene.samplers.size());
     const auto baseMaterialIndex = static_cast<uint32_t>(scene.materials.size());
-    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.textures.size());
 
-    auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex, baseTextureSamplerIndex);
+    auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex);
 
     if (!loadedScene)
       return false;
@@ -790,20 +641,15 @@ namespace Utility
     scene.meshes.reserve(scene.meshes.size() + loadedScene->meshes.size());
     for (auto& mesh : loadedScene->meshes)
     {
-      scene.meshes.emplace_back(Mesh
-        {
-          .vertexBuffer = Fwog::Buffer(std::span(mesh.vertices)),
-          .indexBuffer = Fwog::Buffer(std::span(mesh.indices)),
-          .materialIdx = mesh.materialIdx,
-          .transform = mesh.transform
-        });
+      scene.meshes.emplace_back(Mesh{
+        .vertexBuffer = Fwog::Buffer(std::span(mesh.vertices)),
+        .indexBuffer = Fwog::Buffer(std::span(mesh.indices)),
+        .materialIdx = mesh.materialIdx,
+        .transform = mesh.transform,
+      });
     }
 
     std::ranges::move(loadedScene->materials, std::back_inserter(scene.materials));
-
-    std::ranges::move(loadedScene->textures, std::back_inserter(scene.textures));
-
-    std::ranges::move(loadedScene->samplers, std::back_inserter(scene.samplers));
 
     return true;
   }
@@ -812,9 +658,8 @@ namespace Utility
   {
     FWOG_ASSERT(scene.textures.size() == scene.samplers.size());
     const auto baseMaterialIndex = static_cast<uint32_t>(scene.materials.size());
-    const auto baseTextureSamplerIndex = static_cast<uint32_t>(scene.materials.size());
 
-    auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex, baseTextureSamplerIndex);
+    auto loadedScene = LoadModelFromFileBase(fileName, rootTransform, binary, baseMaterialIndex);
 
     if (!loadedScene)
       return false;
@@ -822,15 +667,14 @@ namespace Utility
     scene.meshes.reserve(scene.meshes.size() + loadedScene->meshes.size());
     for (auto& mesh : loadedScene->meshes)
     {
-      scene.meshes.emplace_back(MeshBindless
-        {
-          .startVertex = static_cast<int32_t>(scene.vertices.size()),
-          .startIndex = static_cast<uint32_t>(scene.indices.size()),
-          .indexCount = static_cast<uint32_t>(mesh.indices.size()),
-          .materialIdx = mesh.materialIdx,
-          .transform = mesh.transform,
-          .boundingBox = GetBoundingBox(mesh.vertices)
-        });
+      scene.meshes.emplace_back(MeshBindless{
+        .startVertex = static_cast<int32_t>(scene.vertices.size()),
+        .startIndex = static_cast<uint32_t>(scene.indices.size()),
+        .indexCount = static_cast<uint32_t>(mesh.indices.size()),
+        .materialIdx = mesh.materialIdx,
+        .transform = mesh.transform,
+        .boundingBox = GetBoundingBox(mesh.vertices),
+      });
 
       std::vector<Vertex> tempVertices = std::move(mesh.vertices);
       scene.vertices.insert(scene.vertices.end(), tempVertices.begin(), tempVertices.end());
@@ -839,19 +683,14 @@ namespace Utility
       scene.indices.insert(scene.indices.end(), tempIndices.begin(), tempIndices.end());
     }
 
-    std::ranges::move(loadedScene->textures, std::back_inserter(scene.textures));
-
-    std::ranges::move(loadedScene->samplers, std::back_inserter(scene.samplers));
-
     scene.materials.reserve(scene.materials.size() + loadedScene->materials.size());
     for (auto& material : loadedScene->materials)
     {
-      GpuMaterialBindless bindlessMaterial
-      {
+      GpuMaterialBindless bindlessMaterial{
         .flags = material.gpuMaterial.flags,
         .alphaCutoff = material.gpuMaterial.alphaCutoff,
         .baseColorTextureHandle = 0,
-        .baseColorFactor = material.gpuMaterial.baseColorFactor
+        .baseColorFactor = material.gpuMaterial.baseColorFactor,
       };
       if (material.gpuMaterial.flags & MaterialFlagBit::HAS_BASE_COLOR_TEXTURE)
       {
@@ -863,4 +702,4 @@ namespace Utility
 
     return true;
   }
-}
+} // namespace Utility
