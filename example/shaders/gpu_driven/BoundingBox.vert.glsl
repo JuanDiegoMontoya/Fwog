@@ -5,7 +5,7 @@
 
 layout(location = 0) out uint v_drawID;
 
-// 24-vertex CCW triangle strip
+// 14-vertex CCW triangle strip
 vec3 CreateCube(in uint vertexID)
 {
   uint b = 1 << vertexID;

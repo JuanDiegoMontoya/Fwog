@@ -9,7 +9,6 @@
 
 #include <sstream>
 #include <memory>
-#include <utility>
 
 #include FWOG_OPENGL_HEADER
 

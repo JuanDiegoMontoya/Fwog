@@ -374,7 +374,7 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
         // Draw visible bounding boxes.
         Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
         // TODO: upgrade to indirect draw after frustum culling is added.
-        Fwog::Cmd::Draw(24, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
+        Fwog::Cmd::Draw(14, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
       });
   }
 
