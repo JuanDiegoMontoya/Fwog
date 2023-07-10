@@ -9,7 +9,7 @@ add_custom_target(copy_textures ALL COMMAND ${CMAKE_COMMAND} -E copy_directory $
 add_executable(01_hello_triangle "01_hello_triangle.cpp" common/Application.cpp common/Application.h)
 target_link_libraries(01_hello_triangle PRIVATE glfw lib_glad fwog glm lib_imgui)
 
-add_executable(02_deferred "02_deferred.cpp" common/Application.cpp common/Application.h common/RsmTechnique.h common/RsmTechnique.cpp)
+add_executable(02_deferred "02_deferred.cpp" common/Application.cpp common/Application.h common/RsmTechnique.h common/RsmTechnique.cpp vendor/stb_image.cpp)
 target_include_directories(02_deferred PUBLIC vendor)
 target_link_libraries(02_deferred PRIVATE glfw lib_glad fwog glm lib_imgui fastgltf)
 add_dependencies(02_deferred copy_shaders copy_textures)
