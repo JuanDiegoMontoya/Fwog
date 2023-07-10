@@ -15,8 +15,8 @@
   #include "src/ffx-fsr2-api/gl/ffx_fsr2_gl.h"
 #endif
 
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 #include <stb_image.h>
 

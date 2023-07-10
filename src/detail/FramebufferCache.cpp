@@ -10,18 +10,24 @@ namespace Fwog::detail
     RenderAttachments attachments;
     for (const auto& colorAttachment : renderInfo.colorAttachments)
     {
-      attachments.colorAttachments.emplace_back(colorAttachment.texture.get().GetCreateInfo(),
-                                                detail::GetHandle(colorAttachment.texture));
+      attachments.colorAttachments.emplace_back(TextureProxy{
+        colorAttachment.texture.get().GetCreateInfo(),
+        detail::GetHandle(colorAttachment.texture),
+      });
     }
     if (renderInfo.depthAttachment)
     {
-      attachments.depthAttachment.emplace(renderInfo.depthAttachment->texture.get().GetCreateInfo(),
-                                          detail::GetHandle(renderInfo.depthAttachment->texture));
+      attachments.depthAttachment.emplace(TextureProxy{
+        renderInfo.depthAttachment->texture.get().GetCreateInfo(),
+        detail::GetHandle(renderInfo.depthAttachment->texture),
+      });
     }
     if (renderInfo.stencilAttachment)
     {
-      attachments.stencilAttachment.emplace(renderInfo.stencilAttachment->texture.get().GetCreateInfo(),
-                                            detail::GetHandle(renderInfo.stencilAttachment->texture));
+      attachments.stencilAttachment.emplace(TextureProxy{
+        renderInfo.stencilAttachment->texture.get().GetCreateInfo(),
+        detail::GetHandle(renderInfo.stencilAttachment->texture),
+      });
     }
 
     for (size_t i = 0; i < framebufferCacheKey_.size(); i++)
