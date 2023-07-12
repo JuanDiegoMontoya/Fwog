@@ -240,7 +240,7 @@ private:
   // scene parameters
   float sunPosition = -1.127f;
   float sunPosition2 = 0;
-  float sunStrength = 15;
+  float sunStrength = 50;
   glm::vec3 sunColor = {1, 1, 1};
 
   // Resources tied to the swapchain/output size
@@ -465,7 +465,7 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
     Fwog::CreateTexture2D({renderWidth, renderHeight}, Fwog::Format::R11G11B10_FLOAT, "colorHdrRenderRes");
   frame.colorHdrWindowRes =
     Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R11G11B10_FLOAT, "colorHdrWindowRes");
-  frame.colorLdrWindowRes = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_SRGB, "colorLdrWindowRes");
+  frame.colorLdrWindowRes = Fwog::CreateTexture2D({newWidth, newHeight}, Fwog::Format::R8G8B8A8_UNORM, "colorLdrWindowRes");
 
   if (!frame.rsm)
   {
@@ -481,7 +481,6 @@ void GltfViewerApplication::OnWindowResize(uint32_t newWidth, uint32_t newHeight
   frame.gNormalSwizzled = frame.gNormal->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
   frame.gDepthSwizzled = frame.gDepth->CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
   frame.gRsmIlluminanceSwizzled = frame.rsm->GetIndirectLighting().CreateSwizzleView({.a = Fwog::ComponentSwizzle::ONE});
-  frame.colorLdrWindowResUnorm = frame.colorLdrWindowRes.value().CreateFormatView(Fwog::Format::R8G8B8A8_UNORM);
 }
 
 void GltfViewerApplication::OnUpdate([[maybe_unused]] double dt)
@@ -818,7 +817,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
 
   Fwog::RenderToSwapchain(
     {
-      .name = "Shading",
+      .name = "Copy to swapchain",
       .viewport =
         Fwog::Viewport{
           .drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}},
@@ -828,6 +827,7 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       .colorLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
       .depthLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
       .stencilLoadOp = Fwog::AttachmentLoadOp::DONT_CARE,
+      .enableSrgb = false,
     },
     [&]
     {
@@ -1012,8 +1012,8 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   glm::vec2 uv1{mp.x + magnifierScale, mp.y - magnifierScale * ar};
   uv0 = glm::clamp(uv0, glm::vec2(0), glm::vec2(1));
   uv1 = glm::clamp(uv1, glm::vec2(0), glm::vec2(1));
-  glTextureParameteri(frame.colorLdrWindowResUnorm.value().Handle(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.colorLdrWindowResUnorm.value().Handle())),
+  glTextureParameteri(frame.colorLdrWindowRes.value().Handle(), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(frame.colorLdrWindowRes.value().Handle())),
                ImVec2(400, 400),
                ImVec2(uv0.x, uv0.y),
                ImVec2(uv1.x, uv1.y));
