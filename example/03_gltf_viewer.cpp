@@ -263,7 +263,6 @@ private:
     std::optional<Fwog::TextureView> gNormalSwizzled;
     std::optional<Fwog::TextureView> gDepthSwizzled;
     std::optional<Fwog::TextureView> gRsmIlluminanceSwizzled;
-    std::optional<Fwog::TextureView> colorLdrWindowResUnorm;
   };
   Frame frame{};
 
