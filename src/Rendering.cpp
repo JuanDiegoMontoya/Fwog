@@ -828,23 +828,20 @@ namespace Fwog
       {
         GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       }
-
-      if (ds.depthTestEnable)
+      
+      if (!context->lastGraphicsPipeline ||
+          ds.depthWriteEnable != context->lastGraphicsPipeline->depthState.depthWriteEnable)
       {
-        if (!context->lastGraphicsPipeline ||
-            ds.depthWriteEnable != context->lastGraphicsPipeline->depthState.depthWriteEnable)
+        if (ds.depthWriteEnable != context->lastDepthMask)
         {
-          if (ds.depthWriteEnable != context->lastDepthMask)
-          {
-            glDepthMask(ds.depthWriteEnable);
-            context->lastDepthMask = ds.depthWriteEnable;
-          }
+          glDepthMask(ds.depthWriteEnable);
+          context->lastDepthMask = ds.depthWriteEnable;
         }
+      }
 
-        if (!context->lastGraphicsPipeline || ds.depthCompareOp != context->lastGraphicsPipeline->depthState.depthCompareOp)
-        {
-          glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
-        }
+      if (!context->lastGraphicsPipeline || ds.depthCompareOp != context->lastGraphicsPipeline->depthState.depthCompareOp)
+      {
+        glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
       }
 
       const auto& ss = pipelineState->stencilState;
@@ -854,21 +851,18 @@ namespace Fwog
         GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
       }
 
-      if (ss.stencilTestEnable)
+      if (!context->lastGraphicsPipeline || !context->lastGraphicsPipeline->stencilState.stencilTestEnable ||
+          ss.front != context->lastGraphicsPipeline->stencilState.front)
       {
-        if (!context->lastGraphicsPipeline || !context->lastGraphicsPipeline->stencilState.stencilTestEnable ||
-            ss.front != context->lastGraphicsPipeline->stencilState.front)
+        glStencilOpSeparate(GL_FRONT,
+                            detail::StencilOpToGL(ss.front.failOp),
+                            detail::StencilOpToGL(ss.front.depthFailOp),
+                            detail::StencilOpToGL(ss.front.passOp));
+        glStencilFuncSeparate(GL_FRONT, detail::CompareOpToGL(ss.front.compareOp), ss.front.reference, ss.front.compareMask);
+        if (context->lastStencilMask[0] != ss.front.writeMask)
         {
-          glStencilOpSeparate(GL_FRONT,
-                              detail::StencilOpToGL(ss.front.failOp),
-                              detail::StencilOpToGL(ss.front.depthFailOp),
-                              detail::StencilOpToGL(ss.front.passOp));
-          glStencilFuncSeparate(GL_FRONT, detail::CompareOpToGL(ss.front.compareOp), ss.front.reference, ss.front.compareMask);
-          if (context->lastStencilMask[0] != ss.front.writeMask)
-          {
-            glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
-            context->lastStencilMask[0] = ss.front.writeMask;
-          }
+          glStencilMaskSeparate(GL_FRONT, ss.front.writeMask);
+          context->lastStencilMask[0] = ss.front.writeMask;
         }
 
         if (!context->lastGraphicsPipeline || !context->lastGraphicsPipeline->stencilState.stencilTestEnable ||
