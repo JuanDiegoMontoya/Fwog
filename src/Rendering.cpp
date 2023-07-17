@@ -414,12 +414,15 @@ namespace Fwog
         viewport.maxDepth = 1.0f;
 
         // determine intersection of all render targets
-        Rect2D drawRect{.offset = {},
-                        .extent = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()}};
+        Rect2D drawRect{
+          .offset = {},
+          .extent = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()},
+        };
         for (const auto& attachment : ri.colorAttachments)
         {
           drawRect.extent.width = std::min(drawRect.extent.width, attachment.texture.get().GetCreateInfo().extent.width);
-          drawRect.extent.height = std::min(drawRect.extent.height, attachment.texture.get().GetCreateInfo().extent.height);
+          drawRect.extent.height =
+            std::min(drawRect.extent.height, attachment.texture.get().GetCreateInfo().extent.height);
         }
         if (ri.depthAttachment)
         {
@@ -675,7 +678,8 @@ namespace Fwog
       FWOG_ASSERT(pipelineState);
 
       //////////////////////////////////////////////////////////////// shader program
-      if (context->lastGraphicsPipeline != pipelineState || context->lastPipelineWasCompute)
+      const auto& lastGraphicsPipeline = context->lastGraphicsPipeline;
+      if (lastGraphicsPipeline != pipelineState || context->lastPipelineWasCompute)
       {
         glUseProgram(static_cast<GLuint>(pipeline.Handle()));
       }
@@ -683,7 +687,7 @@ namespace Fwog
       context->lastPipelineWasCompute = false;
 
       // Early-out if this was the last pipeline bound
-      if (context->lastGraphicsPipeline == pipelineState)
+      if (lastGraphicsPipeline == pipelineState)
       {
         return;
       }
@@ -705,15 +709,15 @@ namespace Fwog
 
       // Always enable this.
       // The user can create a context with a non-sRGB framebuffer or create a non-sRGB view of an sRGB texture.
-      if (!context->lastGraphicsPipeline)
+      if (!lastGraphicsPipeline)
       {
         glEnable(GL_FRAMEBUFFER_SRGB);
       }
 
       //////////////////////////////////////////////////////////////// input assembly
       const auto& ias = pipelineState->inputAssemblyState;
-      if (!context->lastGraphicsPipeline ||
-          ias.primitiveRestartEnable != context->lastGraphicsPipeline->inputAssemblyState.primitiveRestartEnable)
+      if (!lastGraphicsPipeline ||
+          ias.primitiveRestartEnable != lastGraphicsPipeline->inputAssemblyState.primitiveRestartEnable)
       {
         GLEnableOrDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX, ias.primitiveRestartEnable);
       }
@@ -731,8 +735,7 @@ namespace Fwog
       const auto& ts = pipelineState->tessellationState;
       if (ts.patchControlPoints > 0)
       {
-        if (!context->lastGraphicsPipeline ||
-            ts.patchControlPoints != context->lastGraphicsPipeline->tessellationState.patchControlPoints)
+        if (!lastGraphicsPipeline || ts.patchControlPoints != lastGraphicsPipeline->tessellationState.patchControlPoints)
         {
           glPatchParameteri(GL_PATCH_VERTICES, static_cast<GLint>(pipelineState->tessellationState.patchControlPoints));
         }
@@ -740,18 +743,17 @@ namespace Fwog
 
       //////////////////////////////////////////////////////////////// rasterization
       const auto& rs = pipelineState->rasterizationState;
-      if (!context->lastGraphicsPipeline ||
-          rs.depthClampEnable != context->lastGraphicsPipeline->rasterizationState.depthClampEnable)
+      if (!lastGraphicsPipeline || rs.depthClampEnable != lastGraphicsPipeline->rasterizationState.depthClampEnable)
       {
         GLEnableOrDisable(GL_DEPTH_CLAMP, rs.depthClampEnable);
       }
 
-      if (!context->lastGraphicsPipeline || rs.polygonMode != context->lastGraphicsPipeline->rasterizationState.polygonMode)
+      if (!lastGraphicsPipeline || rs.polygonMode != lastGraphicsPipeline->rasterizationState.polygonMode)
       {
         glPolygonMode(GL_FRONT_AND_BACK, detail::PolygonModeToGL(rs.polygonMode));
       }
 
-      if (!context->lastGraphicsPipeline || rs.cullMode != context->lastGraphicsPipeline->rasterizationState.cullMode)
+      if (!lastGraphicsPipeline || rs.cullMode != lastGraphicsPipeline->rasterizationState.cullMode)
       {
         GLEnableOrDisable(GL_CULL_FACE, rs.cullMode != CullMode::NONE);
         if (rs.cullMode != CullMode::NONE)
@@ -760,77 +762,71 @@ namespace Fwog
         }
       }
 
-      if (!context->lastGraphicsPipeline || rs.frontFace != context->lastGraphicsPipeline->rasterizationState.frontFace)
+      if (!lastGraphicsPipeline || rs.frontFace != lastGraphicsPipeline->rasterizationState.frontFace)
       {
         glFrontFace(detail::FrontFaceToGL(rs.frontFace));
       }
 
-      if (!context->lastGraphicsPipeline ||
-          rs.depthBiasEnable != context->lastGraphicsPipeline->rasterizationState.depthBiasEnable)
+      if (!lastGraphicsPipeline || rs.depthBiasEnable != lastGraphicsPipeline->rasterizationState.depthBiasEnable)
       {
         GLEnableOrDisable(GL_POLYGON_OFFSET_FILL, rs.depthBiasEnable);
         GLEnableOrDisable(GL_POLYGON_OFFSET_LINE, rs.depthBiasEnable);
         GLEnableOrDisable(GL_POLYGON_OFFSET_POINT, rs.depthBiasEnable);
       }
 
-      if (!context->lastGraphicsPipeline ||
-          rs.depthBiasSlopeFactor != context->lastGraphicsPipeline->rasterizationState.depthBiasSlopeFactor ||
-          rs.depthBiasConstantFactor != context->lastGraphicsPipeline->rasterizationState.depthBiasConstantFactor)
+      if (!lastGraphicsPipeline ||
+          rs.depthBiasSlopeFactor != lastGraphicsPipeline->rasterizationState.depthBiasSlopeFactor ||
+          rs.depthBiasConstantFactor != lastGraphicsPipeline->rasterizationState.depthBiasConstantFactor)
       {
         glPolygonOffset(rs.depthBiasSlopeFactor, rs.depthBiasConstantFactor);
       }
 
-      if (!context->lastGraphicsPipeline || rs.lineWidth != context->lastGraphicsPipeline->rasterizationState.lineWidth)
+      if (!lastGraphicsPipeline || rs.lineWidth != lastGraphicsPipeline->rasterizationState.lineWidth)
       {
         glLineWidth(rs.lineWidth);
       }
 
-      if (!context->lastGraphicsPipeline || rs.pointSize != context->lastGraphicsPipeline->rasterizationState.pointSize)
+      if (!lastGraphicsPipeline || rs.pointSize != lastGraphicsPipeline->rasterizationState.pointSize)
       {
         glPointSize(rs.pointSize);
       }
 
       //////////////////////////////////////////////////////////////// multisample
       const auto& ms = pipelineState->multisampleState;
-      if (!context->lastGraphicsPipeline ||
-          ms.sampleShadingEnable != context->lastGraphicsPipeline->multisampleState.sampleShadingEnable)
+      if (!lastGraphicsPipeline || ms.sampleShadingEnable != lastGraphicsPipeline->multisampleState.sampleShadingEnable)
       {
         GLEnableOrDisable(GL_SAMPLE_SHADING, ms.sampleShadingEnable);
       }
 
-      if (!context->lastGraphicsPipeline ||
-          ms.minSampleShading != context->lastGraphicsPipeline->multisampleState.minSampleShading)
+      if (!lastGraphicsPipeline || ms.minSampleShading != lastGraphicsPipeline->multisampleState.minSampleShading)
       {
         glMinSampleShading(ms.minSampleShading);
       }
 
-      if (!context->lastGraphicsPipeline || ms.sampleMask != context->lastGraphicsPipeline->multisampleState.sampleMask)
+      if (!lastGraphicsPipeline || ms.sampleMask != lastGraphicsPipeline->multisampleState.sampleMask)
       {
         GLEnableOrDisable(GL_SAMPLE_MASK, ms.sampleMask != 0xFFFFFFFF);
         glSampleMaski(0, ms.sampleMask);
       }
 
-      if (!context->lastGraphicsPipeline ||
-          ms.alphaToCoverageEnable != context->lastGraphicsPipeline->multisampleState.alphaToCoverageEnable)
+      if (!lastGraphicsPipeline || ms.alphaToCoverageEnable != lastGraphicsPipeline->multisampleState.alphaToCoverageEnable)
       {
         GLEnableOrDisable(GL_SAMPLE_ALPHA_TO_COVERAGE, ms.alphaToCoverageEnable);
       }
 
-      if (!context->lastGraphicsPipeline ||
-          ms.alphaToOneEnable != context->lastGraphicsPipeline->multisampleState.alphaToOneEnable)
+      if (!lastGraphicsPipeline || ms.alphaToOneEnable != lastGraphicsPipeline->multisampleState.alphaToOneEnable)
       {
         GLEnableOrDisable(GL_SAMPLE_ALPHA_TO_ONE, ms.alphaToOneEnable);
       }
 
       //////////////////////////////////////////////////////////////// depth + stencil
       const auto& ds = pipelineState->depthState;
-      if (!context->lastGraphicsPipeline || ds.depthTestEnable != context->lastGraphicsPipeline->depthState.depthTestEnable)
+      if (!lastGraphicsPipeline || ds.depthTestEnable != lastGraphicsPipeline->depthState.depthTestEnable)
       {
         GLEnableOrDisable(GL_DEPTH_TEST, ds.depthTestEnable);
       }
-      
-      if (!context->lastGraphicsPipeline ||
-          ds.depthWriteEnable != context->lastGraphicsPipeline->depthState.depthWriteEnable)
+
+      if (!lastGraphicsPipeline || ds.depthWriteEnable != lastGraphicsPipeline->depthState.depthWriteEnable)
       {
         if (ds.depthWriteEnable != context->lastDepthMask)
         {
@@ -839,20 +835,19 @@ namespace Fwog
         }
       }
 
-      if (!context->lastGraphicsPipeline || ds.depthCompareOp != context->lastGraphicsPipeline->depthState.depthCompareOp)
+      if (!lastGraphicsPipeline || ds.depthCompareOp != lastGraphicsPipeline->depthState.depthCompareOp)
       {
         glDepthFunc(detail::CompareOpToGL(ds.depthCompareOp));
       }
 
       const auto& ss = pipelineState->stencilState;
-      if (!context->lastGraphicsPipeline ||
-          ss.stencilTestEnable != context->lastGraphicsPipeline->stencilState.stencilTestEnable)
+      if (!lastGraphicsPipeline || ss.stencilTestEnable != lastGraphicsPipeline->stencilState.stencilTestEnable)
       {
         GLEnableOrDisable(GL_STENCIL_TEST, ss.stencilTestEnable);
       }
 
-      if (!context->lastGraphicsPipeline || !context->lastGraphicsPipeline->stencilState.stencilTestEnable ||
-          ss.front != context->lastGraphicsPipeline->stencilState.front)
+      if (!lastGraphicsPipeline || !lastGraphicsPipeline->stencilState.stencilTestEnable ||
+          ss.front != lastGraphicsPipeline->stencilState.front)
       {
         glStencilOpSeparate(GL_FRONT,
                             detail::StencilOpToGL(ss.front.failOp),
@@ -865,8 +860,8 @@ namespace Fwog
           context->lastStencilMask[0] = ss.front.writeMask;
         }
 
-        if (!context->lastGraphicsPipeline || !context->lastGraphicsPipeline->stencilState.stencilTestEnable ||
-            ss.back != context->lastGraphicsPipeline->stencilState.back)
+        if (!lastGraphicsPipeline || !lastGraphicsPipeline->stencilState.stencilTestEnable ||
+            ss.back != lastGraphicsPipeline->stencilState.back)
         {
           glStencilOpSeparate(GL_BACK,
                               detail::StencilOpToGL(ss.back.failOp),
@@ -883,19 +878,19 @@ namespace Fwog
 
       //////////////////////////////////////////////////////////////// color blending state
       const auto& cb = pipelineState->colorBlendState;
-      if (!context->lastGraphicsPipeline || cb.logicOpEnable != context->lastGraphicsPipeline->colorBlendState.logicOpEnable)
+      if (!lastGraphicsPipeline || cb.logicOpEnable != lastGraphicsPipeline->colorBlendState.logicOpEnable)
       {
         GLEnableOrDisable(GL_COLOR_LOGIC_OP, cb.logicOpEnable);
-        if (!context->lastGraphicsPipeline || !context->lastGraphicsPipeline->colorBlendState.logicOpEnable ||
-            (cb.logicOpEnable && cb.logicOp != context->lastGraphicsPipeline->colorBlendState.logicOp))
+        if (!lastGraphicsPipeline || !lastGraphicsPipeline->colorBlendState.logicOpEnable ||
+            (cb.logicOpEnable && cb.logicOp != lastGraphicsPipeline->colorBlendState.logicOp))
         {
           glLogicOp(detail::LogicOpToGL(cb.logicOp));
         }
       }
 
-      if (!context->lastGraphicsPipeline || std::memcmp(cb.blendConstants,
-                                                        context->lastGraphicsPipeline->colorBlendState.blendConstants,
-                                                        sizeof(cb.blendConstants)) != 0)
+      if (!lastGraphicsPipeline || std::memcmp(cb.blendConstants,
+                                               lastGraphicsPipeline->colorBlendState.blendConstants,
+                                               sizeof(cb.blendConstants)) != 0)
       {
         glBlendColor(cb.blendConstants[0], cb.blendConstants[1], cb.blendConstants[2], cb.blendConstants[3]);
       }
@@ -905,8 +900,7 @@ namespace Fwog
       //   || lastRenderInfo->colorAttachments.size() >= cb.attachments.size()
       //   && "There must be at least a color blend attachment for each render target, or none");
 
-      if (!context->lastGraphicsPipeline ||
-          cb.attachments.empty() != context->lastGraphicsPipeline->colorBlendState.attachments.empty())
+      if (!lastGraphicsPipeline || cb.attachments.empty() != lastGraphicsPipeline->colorBlendState.attachments.empty())
       {
         GLEnableOrDisable(GL_BLEND, !cb.attachments.empty());
       }
@@ -914,8 +908,8 @@ namespace Fwog
       for (GLuint i = 0; i < static_cast<GLuint>(cb.attachments.size()); i++)
       {
         const auto& cba = cb.attachments[i];
-        if (context->lastGraphicsPipeline && i < context->lastGraphicsPipeline->colorBlendState.attachments.size() &&
-            cba == context->lastGraphicsPipeline->colorBlendState.attachments[i])
+        if (lastGraphicsPipeline && i < lastGraphicsPipeline->colorBlendState.attachments.size() &&
+            cba == lastGraphicsPipeline->colorBlendState.attachments[i])
         {
           continue;
         }
