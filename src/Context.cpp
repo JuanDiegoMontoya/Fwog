@@ -8,7 +8,7 @@ namespace Fwog
   {
     void ZeroResourceBindings()
     {
-      auto& limits = Fwog::detail::context->properties.limits;
+      auto& limits = context->properties.limits;
       for (int i = 0; i < limits.maxImageUnits; i++)
       {
         glBindImageTexture(i, 0, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
@@ -16,12 +16,12 @@ namespace Fwog
 
       for (int i = 0; i < limits.maxCombinedShaderStorageBlocks; i++)
       {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, 0, 0, 0);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, context->debugBuffer->Handle(), 0, 1);
       }
 
       for (int i = 0; i < limits.maxCombinedUniformBlocks; i++)
       {
-        glBindBufferRange(GL_UNIFORM_BUFFER, i, 0, 0, 0);
+        glBindBufferRange(GL_UNIFORM_BUFFER, i, context->debugBuffer->Handle(), 0, 1);
       }
 
       for (int i = 0; i < limits.maxCombinedTextureImageUnits; i++)
@@ -32,7 +32,7 @@ namespace Fwog
     }
   } // namespace detail
 
-  static void QueryGlDeviceProperties(Fwog::DeviceProperties& properties)
+  static void QueryGlDeviceProperties(DeviceProperties& properties)
   {
     properties.vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
     properties.renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
@@ -160,23 +160,24 @@ namespace Fwog
   void Initialize(const ContextInitializeInfo& contextInfo)
   {
     FWOG_ASSERT(detail::context == nullptr && "Fwog has already been initialized");
-    detail::context = new Fwog::detail::ContextState;
+    detail::context = new detail::ContextState;
     detail::context->verboseMessageCallback = contextInfo.verboseMessageCallback;
-    QueryGlDeviceProperties(Fwog::detail::context->properties);
+    QueryGlDeviceProperties(detail::context->properties);
+    detail::context->debugBuffer = std::make_unique<Buffer>(1);
     glDisable(GL_DITHER);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   }
 
   void Terminate()
   {
-    FWOG_ASSERT(Fwog::detail::context && "Fwog has already been terminated");
-    delete Fwog::detail::context;
-    Fwog::detail::context = nullptr;
+    FWOG_ASSERT(detail::context && "Fwog has already been terminated");
+    delete detail::context;
+    detail::context = nullptr;
   }
 
   void InvalidatePipelineState()
   {
-    auto* context = Fwog::detail::context;
+    auto* context = detail::context;
 
     FWOG_ASSERT(!context->isComputeActive && !context->isRendering);
 

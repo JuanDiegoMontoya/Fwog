@@ -2,6 +2,7 @@
 #include <Fwog/Context.h>
 
 #include <Fwog/BasicTypes.h>
+#include <Fwog/Buffer.h>
 #include <Fwog/detail/FramebufferCache.h>
 #include <Fwog/detail/PipelineManager.h>
 #include <Fwog/detail/SamplerCache.h>
@@ -75,6 +76,8 @@ namespace Fwog::detail
     detail::FramebufferCache fboCache;
     detail::VertexArrayCache vaoCache;
     detail::SamplerCache samplerCache;
+
+    std::unique_ptr<Fwog::Buffer> debugBuffer = nullptr;
   } inline* context = nullptr;
 
   // Clears all resource bindings.

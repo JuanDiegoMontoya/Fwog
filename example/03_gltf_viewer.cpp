@@ -858,7 +858,7 @@ void GltfViewerApplication::OnGui([[maybe_unused]] double dt)
   ImGui::SliderFloat("Sun Angle", &sunPosition, -2.7f, 0.5f);
   ImGui::SliderFloat("Sun Angle 2", &sunPosition2, -3.142f, 3.142f);
   ImGui::ColorEdit3("Sun Color", &sunColor[0], ImGuiColorEditFlags_Float);
-  ImGui::SliderFloat("Sun Strength", &sunStrength, 0, 20);
+  ImGui::SliderFloat("Sun Strength", &sunStrength, 0, 50);
 
   ImGui::Separator();
 
