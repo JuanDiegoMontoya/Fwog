@@ -14,14 +14,14 @@ namespace Fwog
         glBindImageTexture(i, 0, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
       }
 
-      for (int i = 0; i < limits.maxCombinedShaderStorageBlocks; i++)
+      for (int i = 0; i < limits.maxShaderStorageBufferBindings; i++)
       {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, context->debugBuffer->Handle(), 0, 1);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, i, 0, 0, 0);
       }
 
-      for (int i = 0; i < limits.maxCombinedUniformBlocks; i++)
+      for (int i = 0; i < limits.maxUniformBufferBindings; i++)
       {
-        glBindBufferRange(GL_UNIFORM_BUFFER, i, context->debugBuffer->Handle(), 0, 1);
+        glBindBufferRange(GL_UNIFORM_BUFFER, i, 0, 0, 0);
       }
 
       for (int i = 0; i < limits.maxCombinedTextureImageUnits; i++)
@@ -163,7 +163,6 @@ namespace Fwog
     detail::context = new detail::ContextState;
     detail::context->verboseMessageCallback = contextInfo.verboseMessageCallback;
     QueryGlDeviceProperties(detail::context->properties);
-    detail::context->debugBuffer = std::make_unique<Buffer>(1);
     glDisable(GL_DITHER);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   }
