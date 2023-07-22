@@ -74,12 +74,32 @@ namespace Fwog
 
   void Buffer::ClearSubData(const BufferClearInfo& clear)
   {
+    GLenum format;
+    if (clear.uploadFormat == UploadFormat::INFER_FORMAT)
+    {
+      format = detail::UploadFormatToGL(detail::FormatToUploadFormat(clear.internalFormat));
+    }
+    else
+    {
+      format = detail::UploadFormatToGL(clear.uploadFormat);
+    }
+
+    GLenum type;
+    if (clear.uploadType == UploadType::INFER_TYPE)
+    {
+      type = detail::FormatToTypeGL(clear.internalFormat);
+    }
+    else
+    {
+      type = detail::UploadTypeToGL(clear.uploadType);
+    }
+
     glClearNamedBufferSubData(id_,
                               detail::FormatToGL(clear.internalFormat),
                               clear.offset,
                               clear.size,
-                              detail::UploadFormatToGL(clear.uploadFormat),
-                              detail::UploadTypeToGL(clear.uploadType),
+                              format,
+                              type,
                               clear.data);
   }
 
