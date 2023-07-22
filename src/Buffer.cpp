@@ -72,35 +72,17 @@ namespace Fwog
     glNamedBufferSubData(id_, static_cast<GLuint>(offset), static_cast<GLuint>(size), data);
   }
 
-  void Buffer::ClearSubData(const BufferClearInfo& clear)
+  void Buffer::FillData(const BufferFillInfo& clear)
   {
-    GLenum format;
-    if (clear.uploadFormat == UploadFormat::INFER_FORMAT)
-    {
-      format = detail::UploadFormatToGL(detail::FormatToUploadFormat(clear.internalFormat));
-    }
-    else
-    {
-      format = detail::UploadFormatToGL(clear.uploadFormat);
-    }
-
-    GLenum type;
-    if (clear.uploadType == UploadType::INFER_TYPE)
-    {
-      type = detail::FormatToTypeGL(clear.internalFormat);
-    }
-    else
-    {
-      type = detail::UploadTypeToGL(clear.uploadType);
-    }
-
+    const auto actualSize = clear.size == WHOLE_BUFFER ? size_ : clear.size;
+    FWOG_ASSERT(actualSize % 4 == 0 && "Size must be a multiple of 4 bytes");
     glClearNamedBufferSubData(id_,
-                              detail::FormatToGL(clear.internalFormat),
+                              GL_R32UI,
                               clear.offset,
-                              clear.size == WHOLE_BUFFER ? size_ : clear.size,
-                              format,
-                              type,
-                              clear.data);
+                              actualSize,
+                              GL_RED_INTEGER,
+                              GL_UNSIGNED_INT,
+                              &clear.data);
   }
 
   void Buffer::Invalidate()

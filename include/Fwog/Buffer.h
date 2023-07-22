@@ -31,14 +31,12 @@ namespace Fwog
     }
   };
 
-  struct BufferClearInfo
+  /// @brief Parameters for Buffer::FillData
+  struct BufferFillInfo
   {
     uint64_t offset = 0;
     uint64_t size = WHOLE_BUFFER;
-    Format internalFormat;
-    UploadFormat uploadFormat = UploadFormat::INFER_FORMAT;
-    UploadType uploadType = UploadType::INFER_TYPE;
-    const void* data = nullptr;
+    uint32_t data = 0;
   };
 
   enum class BufferStorageFlag : uint32_t
@@ -71,7 +69,7 @@ namespace Fwog
 
     void UpdateData(TriviallyCopyableByteSpan data, size_t destOffsetBytes = 0);
 
-    void ClearSubData(const BufferClearInfo& clear);
+    void FillData(const BufferFillInfo& clear = {});
 
     /// @brief Gets a pointer that is mapped to the buffer's data store
     /// @return A pointer to mapped memory if the buffer was created with BufferStorageFlag::MAP_MEMORY, otherwise nullptr
