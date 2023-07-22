@@ -2,7 +2,7 @@
 #include <Fwog/detail/ApiToEnum.h>
 #include <Fwog/detail/ContextState.h>
 
-#include <array>
+#include <algorithm>
 #include <new>
 #include <utility>
 
@@ -370,7 +370,10 @@ namespace Fwog
     Extent3D extent = info.extent;
     if (extent == Extent3D{})
     {
-      extent = createInfo_.extent;
+      extent = createInfo_.extent >> info.level;
+      extent.width = std::max(extent.width, 1u);
+      extent.height = std::max(extent.height, 1u);
+      extent.depth = std::max(extent.depth, 1u);
     }
 
     glClearTexSubImage(id_,
