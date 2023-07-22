@@ -97,7 +97,7 @@ namespace Fwog
     glClearNamedBufferSubData(id_,
                               detail::FormatToGL(clear.internalFormat),
                               clear.offset,
-                              clear.size,
+                              clear.size == WHOLE_BUFFER ? size_ : clear.size,
                               format,
                               type,
                               clear.data);
