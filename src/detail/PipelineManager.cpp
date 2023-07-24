@@ -51,7 +51,8 @@ namespace Fwog::detail
       glGetProgramiv(program, GL_LINK_STATUS, &success);
       if (!success)
       {
-        const GLsizei length = 512;
+        GLint length = 512;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
         outInfoLog.resize(length + 1, '\0');
         glGetProgramInfoLog(program, length, nullptr, outInfoLog.data());
         return false;

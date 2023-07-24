@@ -38,10 +38,9 @@ namespace Fwog
     glGetShaderiv(id_, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-
-      std::string infoLog;
-      const GLsizei infoLength = 512;
-      infoLog.resize(infoLength + 1, '\0');
+      GLint infoLength = 512;
+      glGetShaderiv(id_, GL_INFO_LOG_LENGTH, &infoLength);
+      auto infoLog = std::string(infoLength + 1, '\0');
       glGetShaderInfoLog(id_, infoLength, nullptr, infoLog.data());
       glDeleteShader(id_);
       throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
