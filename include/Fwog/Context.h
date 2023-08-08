@@ -1,7 +1,10 @@
 #pragma once
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Config.h>
+#include <Fwog/Rendering.h>
+
 #include <string_view>
+#include <functional>
 
 namespace Fwog
 {
@@ -123,11 +126,10 @@ namespace Fwog
     /// This callback can be useful for analyzing how Fwog implicitly creates objects.
     void (*verboseMessageCallback)(std::string_view message) = nullptr;
 
-    /// @brief Callbacks for logging or profiling rendering and compute scopes created
-    /// by calling Render, RenderToSwapchain, and Compute.
-    void (*scopeBeginCallback)(std::string_view scopeName) = nullptr;
-
-    void (*scopeEndCallback)() = nullptr;
+    /// @brief Profiling hooks. Note that you are responsible for calling func here if you use the hook!
+    void (*renderToSwapchainHook)(const SwapchainRenderInfo& renderInfo, const std::function<void()>& func) = nullptr;
+    void (*renderHook)(const RenderInfo& renderInfo, const std::function<void()>& func) = nullptr;
+    void (*computeHook)(std::string_view name, const std::function<void()>& func) = nullptr;
   };
 
   /// @brief Initializes Fwog's internal structures

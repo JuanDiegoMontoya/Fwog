@@ -519,29 +519,59 @@ namespace Fwog
 
   void RenderToSwapchain(const SwapchainRenderInfo& renderInfo, const std::function<void()>& func)
   {
-    InvokeScopeBeginCallback(renderInfo.name);
-    BeginSwapchainRendering(renderInfo);
-    func();
-    EndRendering();
-    InvokeScopeEndCallback();
+    auto workFn = [&]
+    {
+      BeginSwapchainRendering(renderInfo);
+      func();
+      EndRendering();
+    };
+
+    if (context->renderToSwapchainHook != nullptr)
+    {
+      context->renderToSwapchainHook(renderInfo, workFn);
+    }
+    else
+    {
+      workFn();
+    }
   }
 
   void Render(const RenderInfo& renderInfo, const std::function<void()>& func)
   {
-    InvokeScopeBeginCallback(renderInfo.name);
-    BeginRendering(renderInfo);
-    func();
-    EndRendering();
-    InvokeScopeEndCallback();
+    auto workFn = [&]
+    {
+      BeginRendering(renderInfo);
+      func();
+      EndRendering();
+    };
+
+    if (context->renderHook != nullptr)
+    {
+      context->renderHook(renderInfo, workFn);
+    }
+    else
+    {
+      workFn();
+    }
   }
 
   void Compute(std::string_view name, const std::function<void()>& func)
   {
-    InvokeScopeBeginCallback(name);
-    BeginCompute(name);
-    func();
-    EndCompute();
-    InvokeScopeEndCallback();
+    auto workFn = [&]
+    {
+      BeginCompute(name);
+      func();
+      EndCompute();
+    };
+
+    if (context->computeHook != nullptr)
+    {
+      context->computeHook(name, workFn);
+    }
+    else
+    {
+      workFn();
+    }
   }
 
   void BlitTexture(const Texture& source,
