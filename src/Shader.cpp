@@ -25,8 +25,8 @@ namespace Fwog
       }
     }
   } // namespace
-
-  Shader::Shader(PipelineStage stage, std::string_view source)
+  
+  Shader::Shader(PipelineStage stage, std::string_view source, std::string_view name)
   {
     const GLchar* strings = source.data();
 
@@ -45,6 +45,8 @@ namespace Fwog
       glDeleteShader(id_);
       throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
     }
+
+    glObjectLabel(GL_SHADER, id_, static_cast<GLsizei>(name.length()), name.data());
 
     detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }

@@ -93,6 +93,8 @@ namespace Fwog::detail
       glDeleteProgram(program);
       throw PipelineCompilationException("Failed to compile graphics pipeline.\n" + infolog);
     }
+    
+    glObjectLabel(GL_PROGRAM, program, static_cast<GLsizei>(info.name.length()), info.name.data());
 
     auto owning = MakePipelineInfoOwning(info);
     gGraphicsPipelines.insert({program, std::make_shared<const GraphicsPipelineInfoOwning>(std::move(owning))});
@@ -134,6 +136,8 @@ namespace Fwog::detail
       glDeleteProgram(program);
       throw PipelineCompilationException("Failed to compile compute pipeline.\n" + infolog);
     }
+
+    glObjectLabel(GL_PROGRAM, program, static_cast<GLsizei>(info.name.length()), info.name.data());
 
     auto owning = ComputePipelineInfoOwning{.name = std::string(info.name)};
     gComputePipelines.insert({program, std::make_shared<const ComputePipelineInfoOwning>()});

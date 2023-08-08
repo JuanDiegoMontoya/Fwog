@@ -99,8 +99,8 @@ static Fwog::GraphicsPipeline CreatePipeline()
   // Note that the shaders are compiled here and throw ShaderCompilationException if they fail.
   // The compiler's error message will be stored in the exception.
   // In a real application we might handle these exceptions, but here we will let them propagate up.
-  auto vertexShader = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource);
-  auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource);
+  auto vertexShader = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource, "Triangle VS");
+  auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, gFragmentSource, "Triangle FS");
 
   // The graphics pipeline contains all the state necessary for rendering.
   // It is self-contained, immutable, and isolated from other pipelines' state (state leaking cannot happen).
@@ -110,6 +110,7 @@ static Fwog::GraphicsPipeline CreatePipeline()
   // If linking fails, a PipelineCompilationException containing the linker error will be thrown.
   // Similar to before, we will let possible exceptions propagate up.
   return Fwog::GraphicsPipeline{{
+    .name = "Triangle Pipeline",
     .vertexShader = &vertexShader,
     .fragmentShader = &fragmentShader,
     .inputAssemblyState = {.topology = Fwog::PrimitiveTopology::TRIANGLE_LIST},

@@ -22,7 +22,7 @@ namespace Fwog
     /// @param stage A pipeline stage
     /// @param source A GLSL source string
     /// @throws ShaderCompilationException if the shader is malformed
-    explicit Shader(PipelineStage stage, std::string_view source);
+    explicit Shader(PipelineStage stage, std::string_view source, std::string_view name = "");
     Shader(const Shader&) = delete;
     Shader(Shader&& old) noexcept;
     Shader& operator=(const Shader&) = delete;
