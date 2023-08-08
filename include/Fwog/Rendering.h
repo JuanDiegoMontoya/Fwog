@@ -3,6 +3,7 @@
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Texture.h>
 #include <array>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -168,34 +169,16 @@ namespace Fwog
   /// The swapchain can be thought of as "the window". This function is provided because OpenGL nor 
   /// windowing libraries provide a simple mechanism to access the swapchain as a set of images without 
   /// interop with an explicit API like Vulkan or D3D12.
-  template<std::invocable Func>
-  void RenderToSwapchain(const SwapchainRenderInfo& renderInfo, Func func)
-  {
-    detail::BeginSwapchainRendering(renderInfo);
-    func();
-    detail::EndRendering();
-  }
+  void RenderToSwapchain(const SwapchainRenderInfo& renderInfo, const std::function<void()>& func);
   
   /// @brief Renders to a set of textures
   /// @param renderInfo Rendering parameters
   /// @param func A callback that invokes rendering commands
-  template<std::invocable Func>
-  void Render(const RenderInfo& renderInfo, Func func)
-  {
-    detail::BeginRendering(renderInfo);
-    func();
-    detail::EndRendering();
-  }
+  void Render(const RenderInfo& renderInfo, const std::function<void()>& func);
   
   /// @brief Begins a compute scope
   /// @param func A callback that invokes dispatch commands
-  template<std::invocable Func>
-  void Compute(std::string_view name, Func func)
-  {
-    detail::BeginCompute(name);
-    func();
-    detail::EndCompute();
-  }
+  void Compute(std::string_view name, const std::function<void()>& func);
 
   /// @brief Blits a texture to another texture. Supports minification and magnification
   void BlitTexture(const Texture& source,

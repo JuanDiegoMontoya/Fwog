@@ -137,6 +137,7 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
   // We will use it to clear the color buffer with a soothing dark magenta.
   Fwog::RenderToSwapchain(
     Fwog::SwapchainRenderInfo{
+      .name = "Render Triangle",
       .viewport = Fwog::Viewport{.drawRect{.offset = {0, 0}, .extent = {windowWidth, windowHeight}}},
       .colorLoadOp = Fwog::AttachmentLoadOp::CLEAR,
       .clearColorValue = {.2f, .0f, .2f, 1.0f},

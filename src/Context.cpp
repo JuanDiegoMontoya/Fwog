@@ -162,6 +162,8 @@ namespace Fwog
     FWOG_ASSERT(detail::context == nullptr && "Fwog has already been initialized");
     detail::context = new detail::ContextState;
     detail::context->verboseMessageCallback = contextInfo.verboseMessageCallback;
+    detail::context->scopeBeginCallback = contextInfo.scopeBeginCallback;
+    detail::context->scopeEndCallback = contextInfo.scopeEndCallback;
     QueryGlDeviceProperties(detail::context->properties);
     glDisable(GL_DITHER);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);

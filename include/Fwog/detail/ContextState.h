@@ -9,6 +9,7 @@
 
 #include <sstream>
 #include <memory>
+#include <string_view>
 
 #include FWOG_OPENGL_HEADER
 
@@ -20,7 +21,9 @@ namespace Fwog::detail
   {
     DeviceProperties properties;
 
-    void (*verboseMessageCallback)(const char*) = nullptr;
+    void (*verboseMessageCallback)(std::string_view) = nullptr;
+    void (*scopeBeginCallback)(std::string_view) = nullptr;
+    void (*scopeEndCallback)() = nullptr;
 
     // Used for scope error checking
     bool isComputeActive = false;
@@ -93,6 +96,22 @@ namespace Fwog::detail
       std::stringstream stream;
       ((stream << args), ...);
       context->verboseMessageCallback(stream.str().c_str());
+    }
+  }
+
+  inline void InvokeScopeBeginCallback(std::string_view scopeName)
+  {
+    if (context->scopeBeginCallback != nullptr)
+    {
+      context->scopeBeginCallback(scopeName.empty() ? "" : scopeName);
+    }
+  }
+
+  inline void InvokeScopeEndCallback()
+  {
+    if (context->scopeEndCallback != nullptr)
+    {
+      context->scopeEndCallback();
     }
   }
 } // namespace Fwog::detail

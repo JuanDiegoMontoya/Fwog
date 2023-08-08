@@ -266,6 +266,7 @@ namespace Fwog
       context->initViewport = false;
     }
 
+
     void BeginRendering(const RenderInfo& renderInfo)
     {
       FWOG_ASSERT(context != nullptr && "Fwog has not been initialized");
@@ -515,6 +516,33 @@ namespace Fwog
   } // namespace detail
 
   using namespace Fwog::detail;
+
+  void RenderToSwapchain(const SwapchainRenderInfo& renderInfo, const std::function<void()>& func)
+  {
+    InvokeScopeBeginCallback(renderInfo.name);
+    BeginSwapchainRendering(renderInfo);
+    func();
+    EndRendering();
+    InvokeScopeEndCallback();
+  }
+
+  void Render(const RenderInfo& renderInfo, const std::function<void()>& func)
+  {
+    InvokeScopeBeginCallback(renderInfo.name);
+    BeginRendering(renderInfo);
+    func();
+    EndRendering();
+    InvokeScopeEndCallback();
+  }
+
+  void Compute(std::string_view name, const std::function<void()>& func)
+  {
+    InvokeScopeBeginCallback(name);
+    BeginCompute(name);
+    func();
+    EndCompute();
+    InvokeScopeEndCallback();
+  }
 
   void BlitTexture(const Texture& source,
                    const Texture& target,

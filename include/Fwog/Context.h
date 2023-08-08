@@ -121,7 +121,13 @@ namespace Fwog
     /// @brief Callback for logging verbose messages about Fwog's internal state.
     /// Currently, only OpenGL object creation and destruction are logged.
     /// This callback can be useful for analyzing how Fwog implicitly creates objects.
-    void (*verboseMessageCallback)(const char* message) = nullptr;
+    void (*verboseMessageCallback)(std::string_view message) = nullptr;
+
+    /// @brief Callbacks for logging or profiling rendering and compute scopes created
+    /// by calling Render, RenderToSwapchain, and Compute.
+    void (*scopeBeginCallback)(std::string_view scopeName) = nullptr;
+
+    void (*scopeEndCallback)() = nullptr;
   };
 
   /// @brief Initializes Fwog's internal structures

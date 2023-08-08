@@ -210,7 +210,7 @@ Application::Application(const CreateInfo& createInfo)
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 
-  //auto fwogCallback = [](const char* msg) { printf("Fwog: %s\n", msg); };
+  //auto fwogCallback = [](std::string_view msg) { printf("Fwog: %.*s\n", static_cast<int>(msg.size()), msg.data()); };
   auto fwogCallback = nullptr;
   Fwog::Initialize({.verboseMessageCallback = fwogCallback});
 
