@@ -3,7 +3,10 @@
 #include <Fwog/BasicTypes.h>
 #include <Fwog/detail/Flags.h>
 #include <span>
+#include <string>
 #include <string_view>
+#include <vector>
+#include <utility>
 
 namespace Fwog
 {
@@ -180,10 +183,7 @@ namespace Fwog
 
     bool operator==(const ComputePipeline&) const = default;
     
-    [[nodiscard]] Extent3D WorkgroupSize() const
-    {
-      return workgroupSize_;
-    }
+    [[nodiscard]] Extent3D WorkgroupSize() const;
     
     /// @brief Gets the handle of the underlying OpenGL program object
     /// @return The program
@@ -194,7 +194,6 @@ namespace Fwog
 
   private:
     uint64_t id_;
-    Extent3D workgroupSize_;
   };
 
   // clang-format on

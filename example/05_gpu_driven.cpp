@@ -327,13 +327,14 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
     {
       Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::COMMAND_BUFFER_BIT | Fwog::MemoryBarrierBit::SHADER_STORAGE_BIT);
 
-      Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-      Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
-      Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
-      Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
-      Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
-
       Fwog::Cmd::BindGraphicsPipeline(scenePipeline);
+
+      Fwog::Cmd::BindUniformBuffer("GlobalUniforms", globalUniformsBuffer);
+      Fwog::Cmd::BindStorageBuffer("ObjectUniformsBuffer", meshUniformBuffer.value());
+      Fwog::Cmd::BindStorageBuffer("MaterialUniforms", materialsBuffer.value());
+      Fwog::Cmd::BindStorageBuffer("BoundingBoxesBuffer", boundingBoxesBuffer.value());
+      Fwog::Cmd::BindStorageBuffer("ObjectIndicesBuffer", objectIndicesBuffer.value());
+
       Fwog::Cmd::BindVertexBuffer(0, vertexBuffer.value(), 0, sizeof(Utility::Vertex));
       Fwog::Cmd::BindIndexBuffer(indexBuffer.value(), Fwog::IndexType::UNSIGNED_INT);
       Fwog::Cmd::DrawIndexedIndirect(drawCommandsBuffer.value(), 0, static_cast<uint32_t>(scene.meshes.size()), 0);
@@ -364,15 +365,16 @@ void GpuDrivenApplication::OnRender([[maybe_unused]] double dt)
         // with frustum culling), or the instance counts are reset to 0.
         drawCommandsBuffer = Fwog::TypedBuffer<Fwog::DrawIndexedIndirectCommand>(drawCommands);
 
-        Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
-        Fwog::Cmd::BindStorageBuffer(0, meshUniformBuffer.value());
-        Fwog::Cmd::BindStorageBuffer(1, materialsBuffer.value());
-        Fwog::Cmd::BindStorageBuffer(2, boundingBoxesBuffer.value());
-        Fwog::Cmd::BindStorageBuffer(3, objectIndicesBuffer.value());
-        Fwog::Cmd::BindStorageBuffer(4, drawCommandsBuffer.value());
-
         // Draw visible bounding boxes.
         Fwog::Cmd::BindGraphicsPipeline(boundingBoxCullingPipeline);
+
+        Fwog::Cmd::BindUniformBuffer("GlobalUniforms", globalUniformsBuffer);
+        Fwog::Cmd::BindStorageBuffer("ObjectUniformsBuffer", meshUniformBuffer.value());
+        Fwog::Cmd::BindStorageBuffer("MaterialUniforms", materialsBuffer.value());
+        Fwog::Cmd::BindStorageBuffer("BoundingBoxesBuffer", boundingBoxesBuffer.value());
+        Fwog::Cmd::BindStorageBuffer("ObjectIndicesBuffer", objectIndicesBuffer.value());
+        Fwog::Cmd::BindStorageBuffer("DrawCommandsBuffer", drawCommandsBuffer.value());
+
         // TODO: upgrade to indirect draw after frustum culling is added.
         Fwog::Cmd::Draw(14, static_cast<uint32_t>(scene.meshes.size()), 0, 0);
       });

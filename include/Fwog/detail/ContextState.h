@@ -53,7 +53,7 @@ namespace Fwog::detail
     std::shared_ptr<const detail::GraphicsPipelineInfoOwning> lastGraphicsPipeline{};
     bool lastPipelineWasCompute = false;
 
-    Extent3D lastComputePipelineWorkgroupSize{};
+    std::shared_ptr<const detail::ComputePipelineInfoOwning> lastComputePipeline{};
 
     // Currently unused (and probably shouldn't be used)
     const RenderInfo* lastRenderInfo{};

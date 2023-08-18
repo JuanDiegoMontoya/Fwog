@@ -31,11 +31,18 @@ namespace Fwog::detail
     DepthState depthState;
     StencilState stencilState;
     ColorBlendStateOwning colorBlendState;
+    std::vector<std::pair<std::string, uint32_t>> uniformBlocks;
+    std::vector<std::pair<std::string, uint32_t>> storageBlocks;
+    std::vector<std::pair<std::string, uint32_t>> samplersAndImages;
   };
 
   struct ComputePipelineInfoOwning
   {
     std::string name;
+    Extent3D workgroupSize;
+    std::vector<std::pair<std::string, uint32_t>> uniformBlocks;
+    std::vector<std::pair<std::string, uint32_t>> storageBlocks;
+    std::vector<std::pair<std::string, uint32_t>> samplersAndImages;
   };
 
   uint64_t CompileGraphicsPipelineInternal(const GraphicsPipelineInfo& info);

@@ -11,6 +11,7 @@
 #include <cstring>
 #include <memory>
 #include <numeric>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -1007,9 +1008,7 @@ namespace Fwog
       FWOG_ASSERT(context->isComputeActive);
       FWOG_ASSERT(pipeline.Handle() != 0);
 
-      auto pipelineState = detail::GetComputePipelineInternal(pipeline.Handle());
-
-      context->lastComputePipelineWorkgroupSize = pipeline.WorkgroupSize();
+      context->lastComputePipeline = detail::GetComputePipelineInternal(pipeline.Handle());
       context->lastPipelineWasCompute = true;
 
       if (context->isPipelineDebugGroupPushed)
@@ -1018,12 +1017,12 @@ namespace Fwog
         glPopDebugGroup();
       }
 
-      if (!pipelineState->name.empty())
+      if (!context->lastComputePipeline->name.empty())
       {
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION,
                          0,
-                         static_cast<GLsizei>(pipelineState->name.size()),
-                         pipelineState->name.data());
+                         static_cast<GLsizei>(context->lastComputePipeline->name.size()),
+                         context->lastComputePipeline->name.data());
         context->isPipelineDebugGroupPushed = true;
       }
 
@@ -1180,6 +1179,18 @@ namespace Fwog
       glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer.Handle(), offset, size);
     }
 
+    void BindUniformBuffer(std::string_view block, const Buffer& buffer, uint64_t offset, uint64_t size)
+    {
+      const auto* uniformBlocks = context->isComputeActive ? &context->lastComputePipeline->uniformBlocks
+                                                           : &context->lastGraphicsPipeline->uniformBlocks;
+      const auto it = std::ranges::find_if(*uniformBlocks,
+                                           [block](const auto& pair) { return pair.first.data() == block; });
+
+      FWOG_ASSERT(it != uniformBlocks->end());
+
+      BindUniformBuffer(it->second, buffer, offset, size);
+    }
+
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset, uint64_t size)
     {
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
@@ -1192,12 +1203,36 @@ namespace Fwog
       glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer.Handle(), offset, size);
     }
 
+    void BindStorageBuffer(std::string_view block, const Buffer& buffer, uint64_t offset, uint64_t size)
+    {
+      const auto* storageBlocks = context->isComputeActive ? &context->lastComputePipeline->storageBlocks
+                                                           : &context->lastGraphicsPipeline->storageBlocks;
+      const auto it = std::ranges::find_if(*storageBlocks,
+                                           [block](const auto& pair) { return pair.first.data() == block; });
+
+      FWOG_ASSERT(it != storageBlocks->end());
+
+      BindStorageBuffer(it->second, buffer, offset, size);
+    }
+
     void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler)
     {
       FWOG_ASSERT(context->isRendering || context->isComputeActive);
 
       glBindTextureUnit(index, const_cast<Texture&>(texture).Handle());
       glBindSampler(index, sampler.Handle());
+    }
+
+    void BindSampledImage(std::string_view uniform, const Texture& texture, const Sampler& sampler)
+    {
+      const auto* samplersAndImages = context->isComputeActive ? &context->lastComputePipeline->samplersAndImages
+                                                               : &context->lastGraphicsPipeline->samplersAndImages;
+      const auto it = std::ranges::find_if(*samplersAndImages,
+                                           [uniform](const auto& pair) { return pair.first.data() == uniform; });
+
+      FWOG_ASSERT(it != samplersAndImages->end());
+
+      BindSampledImage(it->second, texture, sampler);
     }
 
     void BindImage(uint32_t index, const Texture& texture, uint32_t level)
@@ -1213,6 +1248,18 @@ namespace Fwog
                          0,
                          GL_READ_WRITE,
                          detail::FormatToGL(texture.GetCreateInfo().format));
+    }
+
+    void BindImage(std::string_view uniform, const Texture& texture, uint32_t level)
+    {
+      const auto* samplersAndImages = context->isComputeActive ? &context->lastComputePipeline->samplersAndImages
+                                                               : &context->lastGraphicsPipeline->samplersAndImages;
+      const auto it = std::ranges::find_if(*samplersAndImages,
+                                           [uniform](const auto& pair) { return pair.first.data() == uniform; });
+
+      FWOG_ASSERT(it != samplersAndImages->end());
+
+      BindImage(it->second, texture, level);
     }
 
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -1238,7 +1285,7 @@ namespace Fwog
     {
       FWOG_ASSERT(context->isComputeActive);
 
-      const auto workgroupSize = context->lastComputePipelineWorkgroupSize;
+      const auto workgroupSize = context->lastComputePipeline->workgroupSize;
       const auto groupCount = (invocationCount + workgroupSize - 1) / workgroupSize;
 
       glDispatchCompute(groupCount.width, groupCount.height, groupCount.depth);

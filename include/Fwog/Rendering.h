@@ -416,21 +416,41 @@ namespace Fwog
     ///
     /// Similar to glBindBufferRange(GL_UNIFORM_BUFFER, ...)
     void BindUniformBuffer(uint32_t index, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
+
+    /// @brief Binds a range within a buffer as a uniform buffer
+    /// @param block The name of the uniform block whose index to bind to
+    /// @note Must be called after a pipeline is bound in order to get reflected program info
+    void BindUniformBuffer(std::string_view block, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
     
     /// @brief Binds a range within a buffer as a storage buffer
     ///
     /// Similar to glBindBufferRange(GL_SHADER_STORAGE_BUFFER, ...)
     void BindStorageBuffer(uint32_t index, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
+    
+    /// @brief Binds a range within a buffer as a storage buffer
+    /// @param block The name of the storage block whose index to bind to
+    /// @note Must be called after a pipeline is bound in order to get reflected program info
+    void BindStorageBuffer(std::string_view block, const Buffer& buffer, uint64_t offset = 0, uint64_t size = WHOLE_BUFFER);
 
     /// @brief Binds a texture and a sampler to a texture unit
     ///
     /// Similar to glBindTextureUnit + glBindSampler
     void BindSampledImage(uint32_t index, const Texture& texture, const Sampler& sampler);
+    
+    /// @brief Binds a texture and a sampler to a texture unit
+    /// @param uniform The name of the uniform whose index to bind to
+    /// @note Must be called after a pipeline is bound in order to get reflected program info
+    void BindSampledImage(std::string_view uniform, const Texture& texture, const Sampler& sampler);
 
     /// @brief Binds a texture to an image unit
     ///
     /// Similar to glBindImageTexture{s}
     void BindImage(uint32_t index, const Texture& texture, uint32_t level);
+    
+    /// @brief Binds a texture to an image unit
+    /// @param uniform The name of the uniform whose index to bind to
+    /// @note Must be called after a pipeline is bound in order to get reflected program info
+    void BindImage(std::string_view uniform, const Texture& texture, uint32_t level);
 
     /// @brief Invokes a compute shader
     /// @param groupCountX The number of local workgroups to dispatch in the X dimension
