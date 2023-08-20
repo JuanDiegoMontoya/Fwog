@@ -58,6 +58,7 @@ namespace Fwog
     glGetIntegerv(GL_MAX_FRAMEBUFFER_WIDTH, &limits.maxFramebufferWidth);
     glGetIntegerv(GL_MAX_FRAMEBUFFER_HEIGHT, &limits.maxFramebufferHeight);
     glGetIntegerv(GL_MAX_FRAMEBUFFER_LAYERS, &limits.maxFramebufferLayers);
+    glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &limits.maxFramebufferSamples);
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &limits.maxColorAttachments);
     glGetIntegerv(GL_MAX_SAMPLES, &limits.maxSamples);
     glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &limits.maxSamplesNoAttachments);
@@ -164,6 +165,7 @@ namespace Fwog
     detail::context->verboseMessageCallback = contextInfo.verboseMessageCallback;
     detail::context->renderToSwapchainHook = contextInfo.renderToSwapchainHook;
     detail::context->renderHook = contextInfo.renderHook;
+    detail::context->renderNoAttachmentsHook = contextInfo.renderNoAttachmentsHook;
     detail::context->computeHook = contextInfo.computeHook;
     QueryGlDeviceProperties(detail::context->properties);
     glDisable(GL_DITHER);

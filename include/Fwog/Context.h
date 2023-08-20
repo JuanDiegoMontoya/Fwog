@@ -45,6 +45,7 @@ namespace Fwog
     int32_t maxFramebufferWidth;  // GL_MAX_FRAMEBUFFER_WIDTH
     int32_t maxFramebufferHeight; // GL_MAX_FRAMEBUFFER_HEIGHT
     int32_t maxFramebufferLayers; // GL_MAX_FRAMEBUFFER_LAYERS
+    int32_t maxFramebufferSamples; // GL_MAX_FRAMEBUFFER_SAMPLES
     int32_t maxColorAttachments;  // GL_MAX_COLOR_ATTACHMENTS
     int32_t maxSamples;              // GL_MAX_SAMPLES
     int32_t maxSamplesNoAttachments; // GL_MAX_FRAMEBUFFER_SAMPLES
@@ -129,6 +130,7 @@ namespace Fwog
     /// @brief Profiling hooks. Note that you are responsible for calling func here if you use the hook!
     void (*renderToSwapchainHook)(const SwapchainRenderInfo& renderInfo, const std::function<void()>& func) = nullptr;
     void (*renderHook)(const RenderInfo& renderInfo, const std::function<void()>& func) = nullptr;
+    void (*renderNoAttachmentsHook)(const RenderNoAttachmentsInfo& renderInfo, const std::function<void()>& func) = nullptr;
     void (*computeHook)(std::string_view name, const std::function<void()>& func) = nullptr;
   };
 

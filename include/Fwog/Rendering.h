@@ -140,7 +140,7 @@ namespace Fwog
     /// @brief An optional name to demarcate the pass in a graphics debugger
     std::string_view name;
 
-    /// @brief A pointer to a viewport
+    /// @brief An optional viewport
     /// 
     /// If empty, the viewport size will be the minimum the render targets' size and the offset will be 0.
     std::optional<Viewport> viewport = std::nullopt;
@@ -149,12 +149,25 @@ namespace Fwog
     std::optional<RenderDepthStencilAttachment> stencilAttachment = std::nullopt;
   };
 
+  // Describes the framebuffer state when rendering with no attachments (e.g., for algorithms that output to images or buffers).
+  // Consult the documentation for glFramebufferParameteri for more info.
+  struct RenderNoAttachmentsInfo
+  {
+    /// @brief An optional name to demarcate the pass in a graphics debugger
+    std::string_view name;
+    Viewport viewport{};
+    Fwog::Extent3D framebufferSize{}; // If depth > 0, framebuffer is layered
+    Fwog::SampleCount framebufferSamples{};
+  };
+
   namespace detail
   {
     void BeginSwapchainRendering(const SwapchainRenderInfo& renderInfo);
 
     void BeginRendering(const RenderInfo& renderInfo);
-    
+
+    void BeginRenderingNoAttachments(const RenderNoAttachmentsInfo& info);
+
     void EndRendering();
 
     void BeginCompute(std::string_view name);
@@ -175,7 +188,12 @@ namespace Fwog
   /// @param renderInfo Rendering parameters
   /// @param func A callback that invokes rendering commands
   void Render(const RenderInfo& renderInfo, const std::function<void()>& func);
-  
+
+  /// @brief Renders to a virtual texture
+  /// @param renderInfo Rendering parameters
+  /// @param func A callback that invokes rendering commands
+  void RenderNoAttachments(const RenderNoAttachmentsInfo& renderInfo, const std::function<void()>& func);
+
   /// @brief Begins a compute scope
   /// @param func A callback that invokes dispatch commands
   void Compute(std::string_view name, const std::function<void()>& func);

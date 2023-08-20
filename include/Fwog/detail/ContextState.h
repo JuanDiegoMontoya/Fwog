@@ -24,6 +24,7 @@ namespace Fwog::detail
     void (*verboseMessageCallback)(std::string_view) = nullptr;
     void (*renderToSwapchainHook)(const SwapchainRenderInfo& renderInfo, const std::function<void()>& func) = nullptr;
     void (*renderHook)(const RenderInfo& renderInfo, const std::function<void()>& func) = nullptr;
+    void (*renderNoAttachmentsHook)(const RenderNoAttachmentsInfo& renderInfo, const std::function<void()>& func) = nullptr;
     void (*computeHook)(std::string_view name, const std::function<void()>& func) = nullptr;
 
     // Used for scope error checking

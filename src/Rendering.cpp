@@ -449,6 +449,17 @@ namespace Fwog
       context->initViewport = false;
     }
 
+    void BeginRenderingNoAttachments(const RenderNoAttachmentsInfo& info)
+    {
+      RenderInfo renderInfo{.viewport = info.viewport};
+      BeginRendering(renderInfo);
+      glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_WIDTH, info.framebufferSize.width);
+      glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_HEIGHT, info.framebufferSize.height);
+      glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_LAYERS, info.framebufferSize.depth);
+      glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_SAMPLES, detail::SampleCountToGL(info.framebufferSamples));
+      glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_FIXED_SAMPLE_LOCATIONS, GL_TRUE);
+    }
+
     void EndRendering()
     {
       FWOG_ASSERT(context->isRendering && "Cannot call EndRendering when not rendering");
@@ -549,6 +560,25 @@ namespace Fwog
     if (context->renderHook != nullptr)
     {
       context->renderHook(renderInfo, workFn);
+    }
+    else
+    {
+      workFn();
+    }
+  }
+
+  void RenderNoAttachments(const RenderNoAttachmentsInfo& renderInfo, const std::function<void()>& func)
+  {
+    auto workFn = [&]
+    {
+      BeginRenderingNoAttachments(renderInfo);
+      func();
+      EndRendering();
+    };
+
+    if (context->renderNoAttachmentsHook != nullptr)
+    {
+      context->renderNoAttachmentsHook(renderInfo, workFn);
     }
     else
     {
