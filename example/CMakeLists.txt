@@ -35,7 +35,7 @@ target_include_directories(05_gpu_driven PUBLIC vendor)
 target_link_libraries(05_gpu_driven PRIVATE glfw lib_glad fwog glm lib_imgui ktx fastgltf)
 add_dependencies(05_gpu_driven copy_shaders copy_models)
 
-add_executable(06_msaa "06_msaa.cpp" common/Application.cpp common/Application.h)
+add_executable(06_msaa "06_msaa.cpp" common/Application.cpp common/Application.h vendor/stb_image.cpp)
 target_link_libraries(06_msaa PRIVATE glfw lib_glad fwog glm lib_imgui)
 
 if (MSVC)
