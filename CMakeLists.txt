@@ -55,15 +55,6 @@ target_include_directories(fwog PUBLIC include)
 
 find_package(OpenGL REQUIRED)
 
-# enable asan for debug builds
-if (DEBUG)
-    if (WIN32)
-        target_compile_options(fwog PRIVATE /fsanitize=address)
-    else()
-        target_compile_options(fwog PRIVATE -fsanitize=address)
-    endif()
-endif()
-
 target_compile_options(fwog
 	PRIVATE
 	$<$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
