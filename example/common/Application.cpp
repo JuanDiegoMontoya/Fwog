@@ -1,10 +1,13 @@
 #include "Application.h"
+#include "AppImage.h"
 
 #include <Fwog/Context.h>
 #include <Fwog/DebugMarker.h>
 
 #include FWOG_OPENGL_HEADER
 #include <GLFW/glfw3.h>
+
+#include "../vendor/stb_image.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -178,6 +181,19 @@ Application::Application(const CreateInfo& createInfo)
   {
     glfwTerminate();
     throw std::runtime_error("Failed to create window");
+  }
+
+  int appImageWidth{};
+  int appImageHeight{};
+  unsigned char* appImagePixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(&gAppImage[0]), sizeof(gAppImage), &appImageWidth, &appImageHeight, nullptr, 4);
+  if (appImagePixels != nullptr)
+  {
+    GLFWimage appImage;
+    appImage.width = 128;
+    appImage.height = 128;
+    appImage.pixels = appImagePixels;
+    glfwSetWindowIcon(window, 1, &appImage);
+    stbi_image_free(appImagePixels);
   }
 
   int xSize{};
