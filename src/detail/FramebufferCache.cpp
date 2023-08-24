@@ -86,7 +86,7 @@ namespace Fwog::detail
 
     for (size_t i = 0; i < framebufferCacheKey_.size(); i++)
     {
-      const auto& attachments = framebufferCacheKey_[i];
+      const auto attachments = framebufferCacheKey_[i];
 
       for (const auto& ci : attachments.colorAttachments)
       {
@@ -100,7 +100,7 @@ namespace Fwog::detail
           break;
         }
       }
-
+      
       if (texp == attachments.depthAttachment || texp == attachments.stencilAttachment)
       {
         framebufferCacheKey_.erase(framebufferCacheKey_.begin() + i);
