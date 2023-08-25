@@ -180,7 +180,7 @@ Application::Application(const CreateInfo& createInfo)
     throw std::runtime_error("No Monitor detected");
   }
   const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-  window = glfwCreateWindow(int(videoMode->width * .75), int(videoMode->height * .75), createInfo.name.data(), nullptr, nullptr);
+  window = glfwCreateWindow(static_cast<int>(videoMode->width * .75), static_cast<int>(videoMode->height * .75), createInfo.name.data(), nullptr, nullptr);
   if (!window)
   {
     glfwTerminate();
