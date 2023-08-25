@@ -175,8 +175,12 @@ Application::Application(const CreateInfo& createInfo)
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
   GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  if (monitor == nullptr)
+  {
+    throw std::runtime_error("No Monitor detected");
+  }
   const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-  window = glfwCreateWindow(int(videoMode->width * .75), int(videoMode->height * .75), createInfo.name.data(), nullptr, nullptr);
+  window = glfwCreateWindow(static_cast<int>(videoMode->width * .75), static_cast<int>(videoMode->height * .75), createInfo.name.data(), nullptr, nullptr);
   if (!window)
   {
     glfwTerminate();
@@ -202,7 +206,11 @@ Application::Application(const CreateInfo& createInfo)
   windowWidth = static_cast<uint32_t>(xSize);
   windowHeight = static_cast<uint32_t>(ySize);
 
-  glfwSetWindowPos(window, videoMode->width / 2 - windowWidth / 2, videoMode->height / 2 - windowHeight / 2);
+  int monitorLeft{};
+  int monitorTop{};
+  glfwGetMonitorPos(monitor, &monitorLeft, &monitorTop);
+
+  glfwSetWindowPos(window, videoMode->width / 2 - windowWidth / 2 + monitorLeft, videoMode->height / 2 - windowHeight / 2 + monitorTop);
 
   glfwSetWindowUserPointer(window, this);
   glfwMakeContextCurrent(window);
