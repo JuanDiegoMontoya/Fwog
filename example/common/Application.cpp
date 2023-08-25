@@ -206,7 +206,11 @@ Application::Application(const CreateInfo& createInfo)
   windowWidth = static_cast<uint32_t>(xSize);
   windowHeight = static_cast<uint32_t>(ySize);
 
-  glfwSetWindowPos(window, videoMode->width / 2 - windowWidth / 2, videoMode->height / 2 - windowHeight / 2);
+  int monitorLeft{};
+  int monitorTop{};
+  glfwGetMonitorPos(monitor, &monitorLeft, &monitorTop);
+
+  glfwSetWindowPos(window, videoMode->width / 2 - windowWidth / 2 + monitorLeft, videoMode->height / 2 - windowHeight / 2 + monitorTop);
 
   glfwSetWindowUserPointer(window, this);
   glfwMakeContextCurrent(window);
