@@ -37,6 +37,8 @@ CMakeFiles/
 
 # Build artifacts
 build/
+cmake-build-debug/
+cmake-build-release/
 /.vs
 
 # Large/test assets
@@ -44,3 +46,6 @@ build/
 
 # Clang cache
 .cache/
+
+# IntelliJ
+.idea/
