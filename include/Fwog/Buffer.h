@@ -2,6 +2,7 @@
 #include <Fwog/Config.h>
 #include <Fwog/BasicTypes.h>
 #include <Fwog/detail/Flags.h>
+#include <string_view>
 #include <span>
 #include <type_traits>
 
@@ -58,8 +59,8 @@ namespace Fwog
   class Buffer
   {
   public:
-    explicit Buffer(size_t size, BufferStorageFlags storageFlags = BufferStorageFlag::NONE);
-    explicit Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE);
+    explicit Buffer(size_t size, BufferStorageFlags storageFlags = BufferStorageFlag::NONE, std::string_view name = "");
+    explicit Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE, std::string_view name = "");
     
     Buffer(Buffer&& old) noexcept;
     Buffer& operator=(Buffer&& old) noexcept;
@@ -104,7 +105,7 @@ namespace Fwog
     void Invalidate();
 
   protected:
-    Buffer(const void* data, size_t size, BufferStorageFlags storageFlags);
+    Buffer(const void* data, size_t size, BufferStorageFlags storageFlags, std::string_view name);
 
     void UpdateData(const void* data, size_t size, size_t offset = 0);
 
@@ -121,17 +122,20 @@ namespace Fwog
   class TypedBuffer : public Buffer
   {
   public:
-    explicit TypedBuffer(BufferStorageFlags storageFlags = BufferStorageFlag::NONE) : Buffer(sizeof(T), storageFlags) {}
-    explicit TypedBuffer(size_t count, BufferStorageFlags storageFlags = BufferStorageFlag::NONE)
-      : Buffer(sizeof(T) * count, storageFlags)
+    explicit TypedBuffer(BufferStorageFlags storageFlags = BufferStorageFlag::NONE, std::string_view name = "")
+      : Buffer(sizeof(T), storageFlags, name)
     {
     }
-    explicit TypedBuffer(std::span<const T> data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE)
-      : Buffer(data, storageFlags)
+    explicit TypedBuffer(size_t count, BufferStorageFlags storageFlags = BufferStorageFlag::NONE, std::string_view name = "")
+      : Buffer(sizeof(T) * count, storageFlags, name)
     {
     }
-    explicit TypedBuffer(const T& data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE)
-      : Buffer(&data, sizeof(T), storageFlags)
+    explicit TypedBuffer(std::span<const T> data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE, std::string_view name = "")
+      : Buffer(data, storageFlags, name)
+    {
+    }
+    explicit TypedBuffer(const T& data, BufferStorageFlags storageFlags = BufferStorageFlag::NONE, std::string_view name = "")
+      : Buffer(&data, sizeof(T), storageFlags, name)
     {
     }
 

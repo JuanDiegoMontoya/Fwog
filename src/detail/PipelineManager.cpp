@@ -157,8 +157,11 @@ namespace Fwog::detail
       glDeleteProgram(program);
       throw PipelineCompilationException("Failed to compile graphics pipeline.\n" + infolog);
     }
-    
-    glObjectLabel(GL_PROGRAM, program, static_cast<GLsizei>(info.name.length()), info.name.data());
+
+    if (!info.name.empty())
+    {
+      glObjectLabel(GL_PROGRAM, program, static_cast<GLsizei>(info.name.length()), info.name.data());
+    }
 
     auto owning = MakePipelineInfoOwning(info);
     owning.uniformBlocks = ReflectProgram(program, GL_UNIFORM_BLOCK);
@@ -205,7 +208,10 @@ namespace Fwog::detail
       throw PipelineCompilationException("Failed to compile compute pipeline.\n" + infolog);
     }
 
-    glObjectLabel(GL_PROGRAM, program, static_cast<GLsizei>(info.name.length()), info.name.data());
+    if (!info.name.empty())
+    {
+      glObjectLabel(GL_PROGRAM, program, static_cast<GLsizei>(info.name.length()), info.name.data());
+    }
 
     GLint workgroupSize[3];
     glGetProgramiv(program, GL_COMPUTE_WORK_GROUP_SIZE, workgroupSize);

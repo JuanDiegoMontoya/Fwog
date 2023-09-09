@@ -46,7 +46,10 @@ namespace Fwog
       throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
     }
 
-    glObjectLabel(GL_SHADER, id_, static_cast<GLsizei>(name.length()), name.data());
+    if (!name.empty())
+    {
+      glObjectLabel(GL_SHADER, id_, static_cast<GLsizei>(name.length()), name.data());
+    }
 
     detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }

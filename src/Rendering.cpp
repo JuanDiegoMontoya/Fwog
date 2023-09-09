@@ -451,7 +451,7 @@ namespace Fwog
 
     void BeginRenderingNoAttachments(const RenderNoAttachmentsInfo& info)
     {
-      RenderInfo renderInfo{.viewport = info.viewport};
+      RenderInfo renderInfo{.name = info.name, .viewport = info.viewport};
       BeginRendering(renderInfo);
       glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_WIDTH, info.framebufferSize.width);
       glNamedFramebufferParameteri(context->currentFbo, GL_FRAMEBUFFER_DEFAULT_HEIGHT, info.framebufferSize.height);

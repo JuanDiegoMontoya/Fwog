@@ -6,7 +6,7 @@
 
 namespace Fwog
 {
-  Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags)
+  Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags, std::string_view name)
     : size_(std::max(size, static_cast<size_t>(1))), storageFlags_(storageFlags)
   {
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
@@ -19,13 +19,21 @@ namespace Fwog
       mappedMemory_ = glMapNamedBufferRange(id_, 0, size_, access);
     }
 
+    if (!name.empty())
+    {
+      glObjectLabel(GL_BUFFER, id_, static_cast<GLsizei>(name.length()), name.data());
+    }
+
     detail::InvokeVerboseMessageCallback("Created buffer with handle ", id_);
   }
 
-  Buffer::Buffer(size_t size, BufferStorageFlags storageFlags) : Buffer(nullptr, size, storageFlags) {}
+  Buffer::Buffer(size_t size, BufferStorageFlags storageFlags, std::string_view name)
+    : Buffer(nullptr, size, storageFlags, name)
+  {
+  }
 
-  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags)
-    : Buffer(data.data(), data.size_bytes(), storageFlags)
+  Buffer::Buffer(TriviallyCopyableByteSpan data, BufferStorageFlags storageFlags, std::string_view name)
+    : Buffer(data.data(), data.size_bytes(), storageFlags, name)
   {
   }
 
