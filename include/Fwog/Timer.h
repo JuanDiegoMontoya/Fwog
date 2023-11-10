@@ -2,6 +2,7 @@
 #include <Fwog/Config.h>
 #include <cstdint>
 #include <optional>
+#include <utility>
 
 namespace Fwog
 {
@@ -18,9 +19,19 @@ namespace Fwog
     ~TimerQuery();
 
     TimerQuery(const TimerQuery&) = delete;
-    TimerQuery(TimerQuery&&) = delete;
     TimerQuery& operator=(const TimerQuery&) = delete;
-    TimerQuery& operator=(TimerQuery&&) = delete;
+    TimerQuery(TimerQuery&& old) noexcept
+    {
+      queries[0] = std::exchange(old.queries[0], 0);
+      queries[1] = std::exchange(old.queries[1], 0);
+    }
+    TimerQuery& operator=(TimerQuery&& old) noexcept
+    {
+      if (&old == this)
+        return *this;
+      this->~TimerQuery();
+      return *new (this) TimerQuery(std::move(old));
+    }
 
     // returns how (in ns) we blocked for (BLOCKS)
     uint64_t GetTimestamp();
@@ -42,9 +53,21 @@ namespace Fwog
     ~TimerQueryAsync();
 
     TimerQueryAsync(const TimerQueryAsync&) = delete;
-    TimerQueryAsync(TimerQueryAsync&&) = delete;
     TimerQueryAsync& operator=(const TimerQueryAsync&) = delete;
-    TimerQueryAsync& operator=(TimerQueryAsync&&) = delete;
+    TimerQueryAsync(TimerQueryAsync&& old) noexcept
+      : start_(std::exchange(old.start_, 0)),
+        count_(std::exchange(old.count_, 0)),
+        capacity_(std::exchange(old.capacity_, 0)),
+        queries(std::exchange(old.queries, nullptr))
+    {
+    }
+    TimerQueryAsync& operator=(TimerQueryAsync&& old) noexcept
+    {
+      if (&old == this)
+        return *this;
+      this->~TimerQueryAsync();
+      return *new (this) TimerQueryAsync(std::move(old));
+    }
 
     /// @brief Begins a query zone
     ///
@@ -63,7 +86,7 @@ namespace Fwog
   private:
     uint32_t start_{}; // next timer to be used for measurement
     uint32_t count_{}; // number of timers 'buffered', ie measurement was started by result not read yet
-    const uint32_t capacity_{};
+    uint32_t capacity_{};
     uint32_t* queries{};
   };
 
