@@ -23,7 +23,7 @@ This file contains a reference for headers that weren't documented elsewhere.
 .. doxygenfile:: Fence.h
 
 `Shader.h`
----------
+----------
 
 .. doxygenfile:: Shader.h
 

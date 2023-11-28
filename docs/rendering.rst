@@ -1,6 +1,6 @@
 Rendering
 =========
-Fwog forgoes framebuffers in favor of specifying a list of render targets at draw time, taking inspiration from `VK_KHR_dynamic_rendering <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_dynamic_rendering.html>`_.
+Fwog forgoes framebuffers in favor of specifying a list of render targets at draw time, taking inspiration from `VK_KHR_dynamic_rendering <https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_dynamic_rendering.html>`__.
 
 Color attachments are bound in the order in which they're provided, which means your fragment shader outputs should use sequential explicit locations starting at zero.
 
@@ -38,7 +38,7 @@ Compute piplines are similar to graphics pipelines, except they only encapsulate
 
 Color Spaces
 ------------
-Fwog enables ``GL_FRAMEBUFFER_SRGB`` by default. :cpp:class:`Fwog::TextureView` can be used to view an image in a different color space if desired. This follows the same rules as `glTextureView <https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTextureView.xhtml>`_.
+Fwog enables ``GL_FRAMEBUFFER_SRGB`` by default. :cpp:class:`Fwog::TextureView` can be used to view an image in a different color space if desired. This follows the same rules as `glTextureView <https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTextureView.xhtml>`__.
 
 Synchronization
 ---------------
