@@ -1,5 +1,5 @@
 #include <Fwog/Fence.h>
-#include <numeric>
+#include <limits>
 #include <utility>
 #include <new>
 #include FWOG_OPENGL_HEADER
