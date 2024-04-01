@@ -223,6 +223,7 @@ namespace Fwog
     D16_UNORM,
     D32_FLOAT_S8_UINT,
     D24_UNORM_S8_UINT,
+    S8_UINT,
 
     // Compressed formats
     // DXT

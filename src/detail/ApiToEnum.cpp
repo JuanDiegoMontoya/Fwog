@@ -130,6 +130,7 @@ namespace Fwog::detail
     case Format::D16_UNORM:          return GL_DEPTH_COMPONENT16;
     case Format::D32_FLOAT_S8_UINT:  return GL_DEPTH32F_STENCIL8;
     case Format::D24_UNORM_S8_UINT:  return GL_DEPTH24_STENCIL8;
+    case Format::S8_UINT:            return GL_STENCIL_INDEX8;
     case Format::BC1_RGB_UNORM:      return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
     case Format::BC1_RGBA_UNORM:     return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
     case Format::BC1_RGB_SRGB:       return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
@@ -343,9 +344,9 @@ int ImageTypeToDimension(ImageType imageType)
     case Format::D32_FLOAT_S8_UINT:
     case Format::D24_UNORM_S8_UINT:
       return UploadFormat::DEPTH_STENCIL;
-    //return UploadFormat::STENCIL_INDEX;
+    case Format::S8_UINT:
+    return UploadFormat::STENCIL_INDEX;
     default: FWOG_UNREACHABLE; return {};
-    break;
 	  }
   }
 
