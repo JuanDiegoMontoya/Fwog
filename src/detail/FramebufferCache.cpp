@@ -52,13 +52,17 @@ namespace Fwog::detail
     {
       glNamedFramebufferTexture(fbo, GL_DEPTH_STENCIL_ATTACHMENT, attachments.depthAttachment->id, 0);
     }
-    else if (attachments.depthAttachment)
+    else
     {
-      glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, attachments.depthAttachment->id, 0);
-    }
-    else if (attachments.stencilAttachment)
-    {
-      glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, attachments.stencilAttachment->id, 0);
+      if (attachments.depthAttachment)
+      {
+        glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, attachments.depthAttachment->id, 0);
+      }
+
+      if (attachments.stencilAttachment)
+      {
+        glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, attachments.stencilAttachment->id, 0);
+      }
     }
 
     detail::InvokeVerboseMessageCallback("Created framebuffer with handle ", fbo);
