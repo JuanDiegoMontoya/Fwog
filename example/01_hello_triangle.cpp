@@ -144,7 +144,7 @@ void TriangleApplication::OnRender([[maybe_unused]] double dt)
     },
     [&]
     {
-      // Functions in Fwog::Cmd can only be called inside a rendering (Begin*Rendering) or compute scope (BeginCompute).
+      // Functions in Fwog::Cmd can only be called inside a rendering (Render() or RenderToSwapchain()) or compute scope (Compute()).
       // Pipelines must be bound before we can issue drawing-related calls.
       // This is where, under the hood, the actual GL program is bound and all the pipeline state is set.
       Fwog::Cmd::BindGraphicsPipeline(pipeline);
