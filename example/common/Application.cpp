@@ -233,23 +233,18 @@ Application::Application(const CreateInfo& createInfo)
   glfwSetCursorEnterCallback(window, ApplicationAccess::CursorEnterCallback);
   glfwSetFramebufferSizeCallback(window, ApplicationAccess::WindowResizeCallback);
 
-  // Initialize OpenGL.
-  int version = gladLoadGL(glfwGetProcAddress);
-  if (version == 0)
-  {
-    glfwTerminate();
-    throw std::runtime_error("Failed to initialize OpenGL");
-  }
+  //auto fwogCallback = [](std::string_view msg) { printf("Fwog: %.*s\n", static_cast<int>(msg.size()), msg.data()); };
+  auto fwogCallback = nullptr;
+  Fwog::Initialize({
+    .glLoadFunc = glfwGetProcAddress,
+    .verboseMessageCallback = fwogCallback,
+  });
 
   // Set up the GL debug message callback.
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(OpenglErrorCallback, nullptr);
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-
-  //auto fwogCallback = [](std::string_view msg) { printf("Fwog: %.*s\n", static_cast<int>(msg.size()), msg.data()); };
-  auto fwogCallback = nullptr;
-  Fwog::Initialize({.verboseMessageCallback = fwogCallback});
 
   // Initialize ImGui and a backend for it.
   // Because we allow the GLFW backend to install callbacks, it will automatically call our own that we provided.

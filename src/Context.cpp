@@ -161,6 +161,19 @@ namespace Fwog
   void Initialize(const ContextInitializeInfo& contextInfo)
   {
     FWOG_ASSERT(detail::context == nullptr && "Fwog has already been initialized");
+
+#if __has_include(<glad/gl.h>)
+    // Initialize OpenGL if a load function is provided. If not, then the user is assumed to have loaded OpenGL functions beforehand.
+    if (contextInfo.glLoadFunc)
+    {
+      int version = gladLoadGL(contextInfo.glLoadFunc);
+      if (version < GLAD_MAKE_VERSION(4, 6))
+      {
+        throw std::runtime_error("Failed to initialize OpenGL");
+      }
+    }
+#endif
+
     detail::context = new detail::ContextState;
     detail::context->verboseMessageCallback = contextInfo.verboseMessageCallback;
     detail::context->renderToSwapchainHook = contextInfo.renderToSwapchainHook;

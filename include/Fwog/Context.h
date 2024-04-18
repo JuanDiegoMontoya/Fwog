@@ -122,6 +122,14 @@ namespace Fwog
 
   struct ContextInitializeInfo
   {
+    using ApiProc = void (*)();
+    using ApiLoadFunc = ApiProc (*)(const char* name);
+
+    /// @brief If provided, the function to use to load OpenGL function pointers.
+    /// For example: when using GLFW, you can pass glfwGetProcAddress here.
+    /// If null, the user is expected to have already loaded OpenGL.
+    ApiLoadFunc glLoadFunc = nullptr;
+
     /// @brief Callback for logging verbose messages about Fwog's internal state.
     /// Currently, only OpenGL object creation and destruction are logged.
     /// This callback can be useful for analyzing how Fwog implicitly creates objects.
