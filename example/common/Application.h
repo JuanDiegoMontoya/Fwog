@@ -6,9 +6,8 @@
 #include <string>
 #include <utility>
 
-#include <glm/gtx/transform.hpp>
+#include <glm/fwd.hpp>
 #include <glm/vec3.hpp>
-#include <glm/vec2.hpp>
 
 struct GLFWwindow;
 
@@ -19,15 +18,9 @@ struct View
   float pitch{}; // pitch angle in radians
   float yaw{};   // yaw angle in radians
 
-  glm::vec3 GetForwardDir() const
-  {
-    return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)};
-  }
+  glm::vec3 GetForwardDir() const;
 
-  glm::mat4 GetViewMatrix() const
-  {
-    return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
-  }
+  glm::mat4 GetViewMatrix() const;
 };
 
 class Application
@@ -56,10 +49,10 @@ public:
   void Run();
 
 protected:
-  virtual void OnWindowResize([[maybe_unused]] uint32_t newWidth, [[maybe_unused]] uint32_t newHeight){};
-  virtual void OnUpdate([[maybe_unused]] double dt){};
-  virtual void OnRender([[maybe_unused]] double dt){};
-  virtual void OnGui([[maybe_unused]] double dt){};
+  virtual void OnWindowResize([[maybe_unused]] uint32_t newWidth, [[maybe_unused]] uint32_t newHeight){}
+  virtual void OnUpdate([[maybe_unused]] double dt){}
+  virtual void OnRender([[maybe_unused]] double dt){}
+  virtual void OnGui([[maybe_unused]] double dt){}
 
   GLFWwindow* window;
   View mainCamera{};
@@ -75,8 +68,10 @@ private:
 
   void Draw(double dt);
 
-  glm::dvec2 previousCursorPos{};
-  glm::dvec2 cursorFrameOffset{};
+  double previousCursorPosX{};
+  double previousCursorPosY{};
+  double cursorFrameOffsetX{};
+  double cursorFrameOffsetY{};
   bool cursorJustEnteredWindow = true;
   bool graveHeldLastFrame = false;
 };

@@ -14,6 +14,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <exception>
 #include <iostream>
@@ -105,13 +106,15 @@ public:
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     if (app->cursorJustEnteredWindow)
     {
-      app->previousCursorPos = {currentCursorX, currentCursorY};
+      app->previousCursorPosX = currentCursorX;
+      app->previousCursorPosY = currentCursorY;
       app->cursorJustEnteredWindow = false;
     }
 
-    app->cursorFrameOffset +=
-        glm::dvec2{currentCursorX - app->previousCursorPos.x, app->previousCursorPos.y - currentCursorY};
-    app->previousCursorPos = {currentCursorX, currentCursorY};
+    app->cursorFrameOffsetX += currentCursorX - app->previousCursorPosX;
+    app->cursorFrameOffsetY += app->previousCursorPosY - currentCursorY;
+    app->previousCursorPosX = currentCursorX;
+    app->previousCursorPosY = currentCursorY;
   }
 
   static void CursorEnterCallback(GLFWwindow* window, int entered)
@@ -139,6 +142,16 @@ public:
     }
   }
 };
+
+glm::vec3 View::GetForwardDir() const
+{
+  return glm::vec3{cos(pitch) * cos(yaw), sin(pitch), cos(pitch) * sin(yaw)};
+}
+
+glm::mat4 View::GetViewMatrix() const
+{
+  return glm::lookAt(position, position + GetForwardDir(), glm::vec3(0, 1, 0));
+}
 
 std::string Application::LoadFile(const std::filesystem::path& path)
 {
@@ -300,7 +313,8 @@ void Application::Run()
     double dt = curFrame - prevFrame;
     prevFrame = curFrame;
 
-    cursorFrameOffset = {0.0, 0.0};
+    cursorFrameOffsetX = 0;
+    cursorFrameOffsetY = 0;
     glfwPollEvents();
 
     // Close the app if the user presses Escape.
@@ -327,8 +341,8 @@ void Application::Run()
     if (!cursorIsActive)
     {
       glfwSetCursorPos(window, 0, 0);
-      previousCursorPos.x = 0;
-      previousCursorPos.y = 0;
+      previousCursorPosX = 0;
+      previousCursorPosY = 0;
     }
 
     // Update the main mainCamera.
@@ -352,8 +366,8 @@ void Application::Run()
         mainCamera.position.y -= dtf * cameraSpeed;
       if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         mainCamera.position.y += dtf * cameraSpeed;
-      mainCamera.yaw += static_cast<float>(cursorFrameOffset.x * cursorSensitivity);
-      mainCamera.pitch += static_cast<float>(cursorFrameOffset.y * cursorSensitivity);
+      mainCamera.yaw += static_cast<float>(cursorFrameOffsetX * cursorSensitivity);
+      mainCamera.pitch += static_cast<float>(cursorFrameOffsetY * cursorSensitivity);
       mainCamera.pitch = glm::clamp(mainCamera.pitch, -glm::half_pi<float>() + 1e-4f, glm::half_pi<float>() - 1e-4f);
     }
 
