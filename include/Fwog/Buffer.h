@@ -8,7 +8,7 @@
 
 namespace Fwog
 {
-  /// @brief Used to constrain the types accpeted by Buffer
+  /// @brief Used to constrain the types accepted by Buffer
   class TriviallyCopyableByteSpan : public std::span<const std::byte>
   {
   public:
