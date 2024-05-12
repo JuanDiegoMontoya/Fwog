@@ -6,8 +6,14 @@
 
 namespace Fwog
 {
+  inline constexpr int32_t RoundUp(int32_t numberToRoundUp, int32_t multipleOf)
+  {
+    assert(multipleOf && ((multipleOf & (multipleOf - 1)) == 0));
+    return (numberToRoundUp + multipleOf - 1) & -multipleOf;
+  }
+
   Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags, std::string_view name)
-    : size_(std::max(size, static_cast<size_t>(1))), storageFlags_(storageFlags)
+    : size_(RoundUp(size, 16)), storageFlags_(storageFlags)
   {
     GLbitfield glflags = detail::BufferStorageFlagsToGL(storageFlags);
     glCreateBuffers(1, &id_);
