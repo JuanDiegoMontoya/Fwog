@@ -6,10 +6,10 @@
 
 namespace Fwog
 {
-  inline constexpr int32_t RoundUp(int32_t numberToRoundUp, int32_t multipleOf)
+  constexpr int32_t RoundUp(int32_t numberToRoundUp, int32_t multipleOf)
   {
-    assert(multipleOf && ((multipleOf & (multipleOf - 1)) == 0));
-    return (numberToRoundUp + multipleOf - 1) & -multipleOf;
+    assert(multipleOf);
+    return ((numberToRoundUp + multipleOf - 1) / multipleOf) * multipleOf;
   }
 
   Buffer::Buffer(const void* data, size_t size, BufferStorageFlags storageFlags, std::string_view name)
