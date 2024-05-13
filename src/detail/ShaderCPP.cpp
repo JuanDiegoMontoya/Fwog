@@ -83,7 +83,6 @@ namespace Fwog::detail
 
     auto llvm_ir = LoadFile(tempPath.generic_string());
 
-    shady::set_log_level(0); // Uncomment to dump IR
     auto targetConfig = shady::default_target_config();
     auto arenaConfig = shady::default_arena_config(&targetConfig);
     //arenaConfig.address_spaces[shady::AsGlobal].allowed = false;
@@ -112,6 +111,7 @@ namespace Fwog::detail
       .decay_unsized_arrays = false,
     };
 
+    //shady::set_log_level(0); // Uncomment to dump IR
     auto outputSize = size_t{};
     char* outputBuffer = {};
     shady::emit_c(compilerConfig, emitterConfig, module, &outputSize, &outputBuffer, nullptr);
