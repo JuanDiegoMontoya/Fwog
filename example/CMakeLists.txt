@@ -38,6 +38,12 @@ add_dependencies(05_gpu_driven copy_shaders copy_models)
 add_executable(06_msaa "06_msaa.cpp" common/Application.cpp common/Application.h vendor/stb_image.cpp)
 target_link_libraries(06_msaa PRIVATE glfw lib_glad fwog glm lib_imgui)
 
+if (FWOG_VCC_ENABLE)
+    add_executable(07_cpp_triangle "07_cpp_triangle.cpp" common/Application.cpp common/Application.h vendor/stb_image.cpp)
+    target_link_libraries(07_cpp_triangle PRIVATE glfw lib_glad fwog glm lib_imgui)
+    add_dependencies(07_cpp_triangle copy_shaders)
+endif()
+
 if (MSVC)
     target_compile_definitions(03_gltf_viewer PUBLIC STBI_MSC_SECURE_CRT)
     target_compile_definitions(04_volumetric PUBLIC STBI_MSC_SECURE_CRT)
