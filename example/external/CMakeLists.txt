@@ -57,9 +57,7 @@ if(FWOG_FSR2_ENABLE)
     FetchContent_MakeAvailable(fsr2)
 endif()
 
-FetchContent_MakeAvailable(glm)
-FetchContent_MakeAvailable(fastgltf)
-FetchContent_MakeAvailable(ktx)
+FetchContent_MakeAvailable(glm fastgltf ktx glfw)
 
 # Disable warnings for libktx
 target_compile_options(ktx
@@ -83,16 +81,16 @@ if(NOT imgui_POPULATED)
         ${imgui_SOURCE_DIR}/imgui_widgets.cpp
         ${imgui_SOURCE_DIR}/imgui_tables.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp)
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    )
 
     target_include_directories(lib_imgui PUBLIC 
         ${imgui_SOURCE_DIR} 
         ${imgui_SOURCE_DIR}/backends
-        ${glfw_SOURCE_DIR}/include)
+        ${glfw_SOURCE_DIR}/include
+    )
 
     target_link_libraries(lib_imgui PRIVATE glfw)
 endif()
-
-FetchContent_MakeAvailable(glfw)
 
 target_compile_definitions(glm INTERFACE GLM_FORCE_SILENT_WARNINGS)
