@@ -6,7 +6,7 @@
 
 namespace Fwog
 {
-  constexpr int32_t RoundUp(int32_t numberToRoundUp, int32_t multipleOf)
+  constexpr size_t RoundUp(size_t numberToRoundUp, size_t multipleOf)
   {
     assert(multipleOf);
     return ((numberToRoundUp + multipleOf - 1) / multipleOf) * multipleOf;
