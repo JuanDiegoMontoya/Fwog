@@ -18,7 +18,6 @@ extern "C"
 }
 #endif
 
-  #include <iostream>
 namespace Fwog::detail
 {
   namespace
@@ -60,7 +59,6 @@ namespace Fwog::detail
 
   std::string CompileShaderCppToGlsl(const std::filesystem::path& path)
   {
-    std::cout << path << '\n';
     auto compilerConfig = shady::default_compiler_config();
     compilerConfig.specialization.entry_point = "main";
 
