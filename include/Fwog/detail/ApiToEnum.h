@@ -1,6 +1,7 @@
 #pragma once
 #include <Fwog/BasicTypes.h>
 #include <Fwog/Buffer.h>
+#include <Fwog/Shader.h>
 #include <glad/gl.h>
 
 namespace Fwog::detail
@@ -35,6 +36,7 @@ namespace Fwog::detail
   bool IsBlockCompressedFormat(Format format);
 
   ////////////////////////////////////////////////////////// pipeline
+  GLenum PipelineStageToGL(PipelineStage stage);
   GLenum CullModeToGL(CullMode mode);
   GLenum PolygonModeToGL(PolygonMode mode);
   GLenum FrontFaceToGL(FrontFace face);

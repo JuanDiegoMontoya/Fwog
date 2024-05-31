@@ -3,5 +3,5 @@
 
 namespace Fwog::detail
 {
-  uint32_t CompileShaderGLSL(PipelineStage stage, std::string_view sourceGLSL, std::string_view name);
+  [[nodiscard]] uint32_t CompileShaderGLSL(PipelineStage stage, std::string_view sourceGLSL);
 } // namespace Fwog::detail

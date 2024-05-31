@@ -24,6 +24,7 @@ set(fwog_source_files
     src/detail/VertexArrayCache.cpp
     src/Context.cpp
     src/detail/ShaderGLSL.cpp
+    src/detail/ShaderSPIRV.cpp
 )
 
 set(fwog_header_files
@@ -48,6 +49,7 @@ set(fwog_header_files
     include/Fwog/Context.h
     include/Fwog/detail/ContextState.h
     include/Fwog/detail/ShaderGLSL.h
+    include/Fwog/detail/ShaderSPIRV.h
 )
 
 add_library(fwog ${fwog_source_files} ${fwog_header_files})

@@ -1,9 +1,11 @@
 #include <Fwog/Shader.h>
 #include <Fwog/detail/ContextState.h>
+#include <Fwog/Exception.h>
 #include <Fwog/detail/ShaderGLSL.h>
 #if FWOG_VCC_ENABLE
 #include <Fwog/detail/ShaderCPP.h>
 #endif
+#include <Fwog/detail/ShaderSPIRV.h>
 
 #include <string>
 #include <utility>
@@ -14,28 +16,39 @@ namespace Fwog
 {
   Shader::Shader(PipelineStage stage, std::string_view source, std::string_view name)
   {
-    id_ = detail::CompileShaderGLSL(stage, source, name);
+    id_ = detail::CompileShaderGLSL(stage, source);
+
+    detail::ValidateShader(id_);
+    if (!name.empty())
+    {
+      glObjectLabel(GL_SHADER, id_, static_cast<GLsizei>(name.length()), name.data());
+    }
+    detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }
 
-  Shader::Shader(PipelineStage stage, const ShaderSourceInfo& sourceInfo, std::string_view name)
+  Shader::Shader(PipelineStage stage, const ShaderCppInfo& cppInfo, std::string_view name)
   {
-    switch (sourceInfo.language)
+    const auto glsl = detail::CompileShaderCppToGlsl(cppInfo.source);
+    id_ = detail::CompileShaderGLSL(stage, glsl);
+
+    detail::ValidateShader(id_);
+    if (!name.empty())
     {
-    case SourceLanguage::GLSL:
+      glObjectLabel(GL_SHADER, id_, static_cast<GLsizei>(name.length()), name.data());
+    }
+    detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
+  }
+
+  Shader::Shader(PipelineStage stage, const ShaderSpirvInfo& spirvInfo, std::string_view name)
+  {
+    id_ = detail::CompileShaderSpirv(stage, spirvInfo);
+
+    detail::ValidateShader(id_);
+    if (!name.empty())
     {
-      id_ = detail::CompileShaderGLSL(stage, sourceInfo.source, name);
-      break;
+      glObjectLabel(GL_SHADER, id_, static_cast<GLsizei>(name.length()), name.data());
     }
-#if FWOG_VCC_ENABLE
-    case SourceLanguage::CPP:
-    {
-      auto glslSource = detail::CompileShaderCppToGlsl(sourceInfo.source);
-      id_ = detail::CompileShaderGLSL(stage, glslSource, name);
-      break;
-    }
-#endif
-    default: FWOG_UNREACHABLE;
-    }
+    detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }
 
   Shader::Shader(Shader&& old) noexcept : id_(std::exchange(old.id_, 0)) {}
@@ -54,3 +67,18 @@ namespace Fwog
     glDeleteShader(id_);
   }
 } // namespace Fwog
+
+void Fwog::detail::ValidateShader(uint32_t id)
+{
+  GLint success;
+  glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+  if (!success)
+  {
+    GLint infoLength = 512;
+    glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLength);
+    auto infoLog = std::string(infoLength + 1, '\0');
+    glGetShaderInfoLog(id, infoLength, nullptr, infoLog.data());
+    glDeleteShader(id);
+    throw ShaderCompilationException("Failed to compile shader source.\n" + infoLog);
+  }
+}

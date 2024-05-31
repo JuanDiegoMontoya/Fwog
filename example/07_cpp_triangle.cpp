@@ -102,8 +102,7 @@ static Fwog::GraphicsPipeline CreatePipeline()
   auto inputDescs = {descPos, descColor};
   
   auto vertexShader = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, gVertexSource, "Triangle VS");
-  const auto fragmentSourceInfo = Fwog::ShaderSourceInfo{
-    .language = Fwog::SourceLanguage::CPP,
+  const auto fragmentSourceInfo = Fwog::ShaderCppInfo{
     .source = gFragmentSourceCpp,
   };
   auto fragmentShader = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, fragmentSourceInfo, "Triangle FS");
