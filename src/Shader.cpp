@@ -26,6 +26,7 @@ namespace Fwog
     detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }
 
+#if FWOG_VCC_ENABLE == 1
   Shader::Shader(PipelineStage stage, const ShaderCppInfo& cppInfo, std::string_view name)
   {
     const auto glsl = detail::CompileShaderCppToGlsl(cppInfo.source);
@@ -38,6 +39,7 @@ namespace Fwog
     }
     detail::InvokeVerboseMessageCallback("Created shader with handle ", id_);
   }
+#endif
 
   Shader::Shader(PipelineStage stage, const ShaderSpirvInfo& spirvInfo, std::string_view name)
   {
