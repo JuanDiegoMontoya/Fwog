@@ -22,6 +22,12 @@ jobs:
     - name: Install Dependencies
       run: sudo apt-get update && sudo apt-get install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 
+    - name: Add Repository to find newer versions of gcc
+      run: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
+    - name: Update Repos
+      run: sudo apt-get update
+
     - name: Install gcc-${{ matrix.gccversion }}
       run: sudo apt-get install gcc-${{ matrix.gccversion }} g++-${{ matrix.gccversion }}
 
