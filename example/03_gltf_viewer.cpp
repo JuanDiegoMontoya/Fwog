@@ -391,7 +391,10 @@ GltfViewerApplication::GltfViewerApplication(const Application::CreateInfo& crea
 
   meshUniformBuffer.emplace(meshUniforms, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
 
-  lightBuffer.emplace(lights, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  if (!lights.empty())
+  {
+    lightBuffer.emplace(lights, Fwog::BufferStorageFlag::DYNAMIC_STORAGE);
+  }
 
   // clusterTexture({.imageType = Fwog::ImageType::TEX_3D,
   //                                      .format = Fwog::Format::R16G16_UINT,
@@ -734,7 +737,10 @@ void GltfViewerApplication::OnRender([[maybe_unused]] double dt)
       Fwog::Cmd::BindUniformBuffer(0, globalUniformsBuffer);
       Fwog::Cmd::BindUniformBuffer(1, shadingUniformsBuffer);
       Fwog::Cmd::BindUniformBuffer(2, shadowUniformsBuffer);
-      Fwog::Cmd::BindStorageBuffer(0, *lightBuffer);
+      if (lightBuffer)
+      {
+        Fwog::Cmd::BindStorageBuffer(0, *lightBuffer);
+      }
       Fwog::Cmd::Draw(3, 1, 0, 0);
     });
 
