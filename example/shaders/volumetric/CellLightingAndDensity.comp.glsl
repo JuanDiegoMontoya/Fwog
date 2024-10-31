@@ -35,14 +35,10 @@ float sdBox(vec3 p, vec3 b)
 
 vec3 phaseTex(float cosTheta)
 {
-  // [1, -1] -> [0, 1]
-  float u = 1.0 - (cosTheta * .5 + .5);
-  
+  float theta = acos(clamp(cosTheta, -1, 1));
+  float u = theta / 3.1415926;
   vec3 intensity = textureLod(s_fogScattering, u, 0).rgb;
-
-  // limit intensity (hack)
-  //return log(1.0 + intensity);
-  return intensity / (1.0 + intensity);
+  return intensity;
 }
 
 float ShadowESM(vec4 clip)

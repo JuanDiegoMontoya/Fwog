@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <numbers>
 
 /* 04_volumetric
  *
@@ -51,170 +52,230 @@
 #include <imgui.h>
 
 ////////////////////////////////////// Types
-
-struct ObjectUniforms
+namespace
 {
-  glm::mat4 model;
-};
+  struct ObjectUniforms
+  {
+    glm::mat4 model;
+  };
 
-struct GlobalUniforms
-{
-  glm::mat4 viewProj;
-  glm::mat4 invViewProj;
-  glm::vec4 cameraPos;
-};
+  struct GlobalUniforms
+  {
+    glm::mat4 viewProj;
+    glm::mat4 invViewProj;
+    glm::vec4 cameraPos;
+  };
 
-struct ShadingUniforms
-{
-  glm::mat4 sunViewProj;
-  glm::vec4 sunDir;
-  glm::vec4 sunStrength;
-};
+  struct ShadingUniforms
+  {
+    glm::mat4 sunViewProj;
+    glm::vec4 sunDir;
+    glm::vec4 sunStrength;
+  };
 
-struct Light
-{
-  glm::vec4 position;
-  glm::vec3 intensity;
-  float invRadius;
-};
+  struct Light
+  {
+    glm::vec4 position;
+    glm::vec3 intensity;
+    float invRadius;
+  };
 
-struct EsmBlurUniforms
-{
-  glm::ivec2 direction;
-  glm::ivec2 targetDim;
-};
+  struct EsmBlurUniforms
+  {
+    glm::ivec2 direction;
+    glm::ivec2 targetDim;
+  };
 
-glm::mat4 InfReverseZPerspectiveRH(float fovY_radians, float aspectWbyH, float zNear)
-{
-  float f = 1.0f / tan(fovY_radians / 2.0f);
-  return glm::mat4(f / aspectWbyH, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, zNear, 0.0f);
-}
+  glm::mat4 InfReverseZPerspectiveRH(float fovY_radians, float aspectWbyH, float zNear)
+  {
+    float f = 1.0f / tan(fovY_radians / 2.0f);
+    return glm::mat4(f / aspectWbyH, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, zNear, 0.0f);
+  }
 
-struct
-{
-  Fwog::Extent3D shadowmapResolution = {2048, 2048};
+  struct
+  {
+    Fwog::Extent3D shadowmapResolution = {2048, 2048};
 
-  float viewNearPlane = 0.3f;
+    float viewNearPlane = 0.3f;
 
-  float esmExponent = 40.0f;
-  size_t esmBlurPasses = 1;
-  Fwog::Extent3D esmResolution = {512, 512};
+    float esmExponent = 40.0f;
+    size_t esmBlurPasses = 1;
+    Fwog::Extent3D esmResolution = {512, 512};
 
-  float volumeNearPlane = viewNearPlane;
-  float volumeFarPlane = 60.0f;
-  Fwog::Extent3D volumeExtent = {160, 90, 256};
-  bool volumeUseScatteringTexture = true;
-  float volumeAnisotropyG = 0.2f;
-  float volumeNoiseOffsetScale = 0.0f;
-  bool frog = false;
-  float volumetricGroundFogDensity = .15f;
+    float volumeNearPlane = viewNearPlane;
+    float volumeFarPlane = 60.0f;
+    Fwog::Extent3D volumeExtent = {160, 90, 256};
+    //Fwog::Extent3D volumeExtent = {160 * 4, 90 * 4, 256};
+    bool volumeUseScatteringTexture = true;
+    float volumeAnisotropyG = 0.2f;
+    float volumeNoiseOffsetScale = 0.0f;
+    bool frog = false;
+    float volumetricGroundFogDensity = .15f;
 
-  float lightFarPlane = 50.0f;
-  float lightProjWidth = 24.0f;
-  float lightDistance = 25.0f;
-} config;
+    float lightFarPlane = 50.0f;
+    float lightProjWidth = 24.0f;
+    float lightDistance = 25.0f;
+  } config;
 
-static constexpr std::array<Fwog::VertexInputBindingDescription, 3> sceneInputBindingDescs{
-  Fwog::VertexInputBindingDescription{
-    .location = 0,
-    .binding = 0,
-    .format = Fwog::Format::R32G32B32_FLOAT,
-    .offset = offsetof(Utility::Vertex, position),
-  },
-  Fwog::VertexInputBindingDescription{
-    .location = 1,
-    .binding = 0,
-    .format = Fwog::Format::R16G16_SNORM,
-    .offset = offsetof(Utility::Vertex, normal),
-  },
-  Fwog::VertexInputBindingDescription{
-    .location = 2,
-    .binding = 0,
-    .format = Fwog::Format::R32G32_FLOAT,
-    .offset = offsetof(Utility::Vertex, texcoord),
-  },
-};
+  constexpr std::array<Fwog::VertexInputBindingDescription, 3> sceneInputBindingDescs{
+    Fwog::VertexInputBindingDescription{
+      .location = 0,
+      .binding = 0,
+      .format = Fwog::Format::R32G32B32_FLOAT,
+      .offset = offsetof(Utility::Vertex, position),
+    },
+    Fwog::VertexInputBindingDescription{
+      .location = 1,
+      .binding = 0,
+      .format = Fwog::Format::R16G16_SNORM,
+      .offset = offsetof(Utility::Vertex, normal),
+    },
+    Fwog::VertexInputBindingDescription{
+      .location = 2,
+      .binding = 0,
+      .format = Fwog::Format::R32G32_FLOAT,
+      .offset = offsetof(Utility::Vertex, texcoord),
+    },
+  };
 
-static Fwog::GraphicsPipeline CreateScenePipeline()
-{
-  auto vs =
-    Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
-  auto fs =
-    Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.frag.glsl"));
+  Fwog::GraphicsPipeline CreateScenePipeline()
+  {
+    auto vs =
+      Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
+    auto fs =
+      Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.frag.glsl"));
 
-  return Fwog::GraphicsPipeline({
-    .vertexShader = &vs,
-    .fragmentShader = &fs,
-    .vertexInputState = {sceneInputBindingDescs},
-    .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER},
-  });
-}
+    return Fwog::GraphicsPipeline({
+      .vertexShader = &vs,
+      .fragmentShader = &fs,
+      .vertexInputState = {sceneInputBindingDescs},
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true, .depthCompareOp = Fwog::CompareOp::GREATER},
+    });
+  }
 
-static Fwog::GraphicsPipeline CreateShadowPipeline()
-{
-  auto vs =
-    Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
+  Fwog::GraphicsPipeline CreateShadowPipeline()
+  {
+    auto vs =
+      Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/SceneDeferredSimple.vert.glsl"));
 
-  return Fwog::GraphicsPipeline({
-    .vertexShader = &vs,
-    .vertexInputState = {sceneInputBindingDescs},
-    .rasterizationState =
-      {
-        .depthBiasEnable = true,
-        .depthBiasConstantFactor = 3.0f,
-        .depthBiasSlopeFactor = 5.0f,
-      },
-    .depthState = {.depthTestEnable = true, .depthWriteEnable = true},
-  });
-}
+    return Fwog::GraphicsPipeline({
+      .vertexShader = &vs,
+      .vertexInputState = {sceneInputBindingDescs},
+      .rasterizationState =
+        {
+          .depthBiasEnable = true,
+          .depthBiasConstantFactor = 3.0f,
+          .depthBiasSlopeFactor = 5.0f,
+        },
+      .depthState = {.depthTestEnable = true, .depthWriteEnable = true},
+    });
+  }
 
-static Fwog::GraphicsPipeline CreateShadingPipeline()
-{
-  auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
-  auto fs =
-    Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/ShadeDeferredSimple.frag.glsl"));
+  Fwog::GraphicsPipeline CreateShadingPipeline()
+  {
+    auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
+    auto fs =
+      Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/ShadeDeferredSimple.frag.glsl"));
 
-  return Fwog::GraphicsPipeline({
-    .vertexShader = &vs,
-    .fragmentShader = &fs,
-    .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
-    .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
-  });
-}
+    return Fwog::GraphicsPipeline({
+      .vertexShader = &vs,
+      .fragmentShader = &fs,
+      .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
+    });
+  }
 
-static Fwog::GraphicsPipeline CreateDebugTexturePipeline()
-{
-  auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
-  auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/Texture.frag.glsl"));
+  Fwog::GraphicsPipeline CreateDebugTexturePipeline()
+  {
+    auto vs = Fwog::Shader(Fwog::PipelineStage::VERTEX_SHADER, Application::LoadFile("shaders/FullScreenTri.vert.glsl"));
+    auto fs = Fwog::Shader(Fwog::PipelineStage::FRAGMENT_SHADER, Application::LoadFile("shaders/Texture.frag.glsl"));
 
-  return Fwog::GraphicsPipeline({
-    .vertexShader = &vs,
-    .fragmentShader = &fs,
-    .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
-    .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
-  });
-}
+    return Fwog::GraphicsPipeline({
+      .vertexShader = &vs,
+      .fragmentShader = &fs,
+      .rasterizationState = {.cullMode = Fwog::CullMode::NONE},
+      .depthState = {.depthTestEnable = false, .depthWriteEnable = false},
+    });
+  }
 
-static Fwog::ComputePipeline CreateCopyToEsmPipeline()
-{
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
-                         Application::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
-  return Fwog::ComputePipeline({.shader = &cs});
-}
+  Fwog::ComputePipeline CreateCopyToEsmPipeline()
+  {
+    auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
+                           Application::LoadFile("shaders/volumetric/Depth2exponential.comp.glsl"));
+    return Fwog::ComputePipeline({.shader = &cs});
+  }
 
-static Fwog::ComputePipeline CreateGaussianBlurPipeline()
-{
-  auto cs =
-    Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER, Application::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
-  return Fwog::ComputePipeline({.shader = &cs});
-}
+  Fwog::ComputePipeline CreateGaussianBlurPipeline()
+  {
+    auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
+                           Application::LoadFile("shaders/volumetric/GaussianBlur.comp.glsl"));
+    return Fwog::ComputePipeline({.shader = &cs});
+  }
 
-static Fwog::ComputePipeline CreatePostprocessingPipeline()
-{
-  auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
-                         Application::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
-  return Fwog::ComputePipeline({.shader = &cs});
-}
+  Fwog::ComputePipeline CreatePostprocessingPipeline()
+  {
+    auto cs = Fwog::Shader(Fwog::PipelineStage::COMPUTE_SHADER,
+                           Application::LoadFile("shaders/volumetric/TonemapAndDither.comp.glsl"));
+    return Fwog::ComputePipeline({.shader = &cs});
+  }
+
+  float UniformSpherePDF()
+  {
+    return 1.0f / (4.0f * std::numbers::pi_v<float>);
+  }
+
+  glm::vec3 MapToUnitSphere(glm::vec2 uv)
+  {
+    float cosTheta = 2.0f * uv.x - 1.0f;
+    float phi = 2.0f * std::numbers::pi_v<float> * uv.y;
+    float sinTheta = cosTheta >= 1 ? 0 : sqrt(1.0f - cosTheta * cosTheta);
+    float sinPhi = sin(phi);
+    float cosPhi = cos(phi);
+
+    return {sinTheta * cosPhi, cosTheta, sinTheta * sinPhi};
+  }
+
+  using namespace glm;
+  uint PCG_Hash(uint seed)
+  {
+    uint state = seed * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+  }
+
+  // Used to advance the PCG state.
+  uint PCG_RandU32(uint& rng_state)
+  {
+    uint state = rng_state;
+    rng_state = rng_state * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+  }
+
+  // Advances the prng state and returns the corresponding random float.
+  float PCG_RandFloat(uint& state, float min_ = 0, float max_ = 1)
+  {
+    state = PCG_RandU32(state);
+    float f = float(state) * uintBitsToFloat(0x2f800004u);
+    return f * (max_ - min_) + min_;
+  }
+
+  float phaseHG(float g, float cosTheta)
+  {
+    return (1.0 - g * g) / (4.0 * std::numbers::pi_v<float> * pow(1.0 + g * g - 2.0 * g * cosTheta, 1.5));
+  }
+
+  float phaseSchlick(float k, float cosTheta)
+  {
+    float denom = 1.0 - k * cosTheta;
+    return (1.0 - k * k) / (4.0 * std::numbers::pi_v<float> * denom * denom);
+  }
+
+  float Luminance(vec3 c)
+  {
+    return dot(c, vec3(0.2126, 0.7152, 0.0722));
+  }
+} // namespace
 
 class VolumetricTechnique
 {
@@ -269,13 +330,65 @@ public:
       std::getline(file, fs1);
       std::getline(file, fs2);
 
-      float blue = std::stof(fs0);
+      float red = std::stof(fs0);
       float green = std::stof(fs1);
-      float red = std::stof(fs2);
-
-      data.push_back({red, green, blue});
+      float blue = std::stof(fs2);
+      
+      data.emplace_back(red, green, blue);
     }
 
+    assert(!data.empty());
+
+    dvec3 sum = {};
+    for (const auto& e : data)
+    {
+      sum += e * 180.0f;
+    }
+    sum /= data.size();
+
+    printf("sum: %f, %f, %f\n", sum.r, sum.g, sum.b);
+
+    auto eval = [&](const glm::vec3& dir) {
+      auto cosine = clamp(dot(dir, {0, 0, 1}), -1.0f, 1.0f);
+      //return vec3(phaseHG(0.9f, uv));
+      //return vec3(phaseSchlick(0.9f, uv));
+      auto radians = acos(cosine);
+      auto ic = radians / pi<float>();
+      auto tc = ic * (data.size() - 1);
+      auto left = (size_t)floor(tc);
+      auto right = (size_t)ceil(tc);
+      auto alpha = fract(tc);
+      return mix(data[left], data[right], alpha);
+    };
+
+    uint32_t seed = PCG_Hash(7);
+
+    constexpr int samples = 1'000'000;
+    glm::dvec3 estimate = {};
+    for (int i = 0; i < samples; i++)
+    {
+      const auto xi = glm::vec2(PCG_RandFloat(seed), PCG_RandFloat(seed));
+      estimate += eval(MapToUnitSphere(xi)) / UniformSpherePDF();
+    }
+    estimate /= samples;
+
+    //printf("estimate: %f, %f, %f\n", estimate.r, estimate.g, estimate.b);
+
+    for (auto& c : data)
+    {
+      c /= estimate;
+    }
+#if 0 // Re-integrate to see how close we got last time
+    glm::dvec3 estimate2 = {};
+    for (int i = 0; i < samples; i++)
+    {
+      const auto xi = glm::vec2(PCG_RandFloat(seed), PCG_RandFloat(seed));
+      estimate2 += eval(MapToUnitSphere(xi)) / UniformSpherePDF();
+    }
+    estimate2 /= samples;
+
+    printf("estimate2: %f, %f, %f\n", estimate2.r, estimate2.g, estimate2.b);
+#endif
     scatteringTexture = Fwog::Texture(Fwog::TextureCreateInfo{
       .imageType = Fwog::ImageType::TEX_1D,
       .format = Fwog::Format::R16G16B16_FLOAT,

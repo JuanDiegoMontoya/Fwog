@@ -87,5 +87,11 @@ void main()
 
   vec3 finalColor = baseColor * transmittance + inScattering;
 
+  // Draw lines on froxel borders.
+//  if (any(lessThan(fract(uv * vec2(textureSize(s_volume, 0).xy)), vec2(0.1))))
+//  {
+//    finalColor = vec3(1);
+//  }
+
   imageStore(i_target, gid, vec4(finalColor, 1.0));
 }
