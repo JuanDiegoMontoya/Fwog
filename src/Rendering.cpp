@@ -657,13 +657,13 @@ namespace Fwog
   void CopyTexture(const CopyTextureInfo& copy)
   {
     glCopyImageSubData(detail::GetHandle(copy.source),
-                       GL_TEXTURE,
+                       detail::ImageTypeToGL(copy.source.GetCreateInfo().imageType),
                        copy.sourceLevel,
                        copy.sourceOffset.x,
                        copy.sourceOffset.y,
                        copy.sourceOffset.z,
                        copy.target.Handle(),
-                       GL_TEXTURE,
+                       detail::ImageTypeToGL(copy.target.GetCreateInfo().imageType),
                        copy.targetLevel,
                        copy.targetOffset.x,
                        copy.targetOffset.y,
