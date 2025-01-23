@@ -502,6 +502,19 @@ namespace Fwog
     /// Valid in compute scopes.
     void DispatchInvocations(Extent3D invocationCount);
 
+    /// @brief Invokes a compute shader with at least as many threads as there are pixels in the image
+    /// @param texture The texture from which to infer the dispatch size
+    /// @param lod The level of detail of the tetxure from which to infer the dispatch size
+    ///
+    /// Automatically computes the number of workgroups to invoke based on the formula
+    /// groupCount = (invocationCount + workgroupSize - 1) / workgroupSize.
+    /// For 3D images, the depth is used for the Z component of invocationCount. Otherwise,
+    /// the number of array layers will be used.
+    /// For cube textures, the Z component of invocationCount will be equal to 6 times
+    /// the number of array layers.
+    /// Valid in compute scopes.
+    void DispatchInvocations(const Texture& texture, uint32_t lod = 0);
+
     /// @brief Invokes a compute shader with the group count provided by a buffer
     /// @param commandBuffer The buffer containing dispatch parameters
     /// @param commandBufferOffset The byte offset into commandBuffer where the parameters begin

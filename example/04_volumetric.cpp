@@ -489,7 +489,7 @@ public:
                     Fwog::Cmd::BindSampledImage(0, shadowDepth, sampler);
                     Fwog::Cmd::BindSampledImage(1, *scatteringTexture, sampler);
                     Fwog::Cmd::BindImage(0, densityVolume, 0);
-                    Fwog::Cmd::DispatchInvocations(densityVolume.Extent());
+                    Fwog::Cmd::DispatchInvocations(densityVolume);
                   });
   }
 
@@ -535,7 +535,7 @@ public:
                     Fwog::Cmd::BindSampledImage(2, sourceVolume, sampler);
                     Fwog::Cmd::BindSampledImage(3, noise, sampler);
                     Fwog::Cmd::BindImage(0, targetColor, 0);
-                    Fwog::Cmd::DispatchInvocations(targetColor.Extent());
+                    Fwog::Cmd::DispatchInvocations(targetColor);
                   });
   }
 
@@ -847,7 +847,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
                   Fwog::Cmd::BindSampledImage(0, shadowDepth, nearestMirrorSampler);
                   Fwog::Cmd::BindImage(0, esmTex, 0);
                   Fwog::Cmd::BindUniformBuffer(0, esmUniformBuffer);
-                  Fwog::Cmd::DispatchInvocations(esmTex.Extent());
+                  Fwog::Cmd::DispatchInvocations(esmTex);
 
                   Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
 
@@ -957,7 +957,7 @@ void VolumetricApplication::OnRender([[maybe_unused]] double dt)
                     Fwog::Cmd::BindSampledImage(0, frame.shadingTexHdr.value(), nearestSampler);
                     Fwog::Cmd::BindSampledImage(1, noiseTexture.value(), nearestSampler);
                     Fwog::Cmd::BindImage(0, frame.shadingTexLdr.value(), 0);
-                    Fwog::Cmd::DispatchInvocations(frame.shadingTexLdr->Extent());
+                    Fwog::Cmd::DispatchInvocations(*frame.shadingTexLdr);
                     Fwog::MemoryBarrier(Fwog::MemoryBarrierBit::TEXTURE_FETCH_BIT);
                   });
   }
