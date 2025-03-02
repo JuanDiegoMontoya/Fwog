@@ -128,3 +128,10 @@ if (${FWOG_BUILD_DOCS})
     set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
     add_subdirectory(docs)
 endif()
+
+install(TARGETS fwog
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib)
+
+install(DIRECTORY include/ DESTINATION include)
