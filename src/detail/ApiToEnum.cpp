@@ -602,6 +602,7 @@ GLenum CullModeToGL(CullMode mode)
     case Format::R8G8B8A8_UNORM:
     case Format::R8G8B8A8_SNORM:
     case Format::R16G16B16A16_UNORM:
+    case Format::R16G16B16A16_SNORM:
     case Format::R16G16B16A16_FLOAT:
     case Format::R32G32B32A32_FLOAT:
     case Format::R8G8B8A8_SINT:
@@ -634,6 +635,7 @@ GLenum CullModeToGL(CullMode mode)
     case Format::R8G8B8A8_UNORM:
     case Format::R8G8B8A8_SNORM:
     case Format::R16G16B16A16_UNORM:
+    case Format::R16G16B16A16_SNORM:
       return GL_TRUE;
     case Format::R16_FLOAT:
     case Format::R32_FLOAT:
@@ -691,6 +693,7 @@ GLenum CullModeToGL(CullMode mode)
     case Format::R8G8B8A8_UNORM:
     case Format::R8G8B8A8_SNORM:
     case Format::R16G16B16A16_UNORM:
+    case Format::R16G16B16A16_SNORM:
     case Format::R16_FLOAT:
     case Format::R16G16_FLOAT:
     case Format::R16G16B16_FLOAT:
@@ -758,6 +761,7 @@ GLenum CullModeToGL(CullMode mode)
     case Format::R10G10B10A2_UNORM:
     case Format::R12G12B12A12_UNORM:
     case Format::R16G16B16A16_UNORM:
+    case Format::R16G16B16A16_SNORM:
     case Format::R8G8B8_SRGB:
     case Format::R8G8B8A8_SRGB:
     case Format::R16_FLOAT:
